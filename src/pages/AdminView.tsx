@@ -127,33 +127,33 @@ export default function AdminView() {
   <meta charset="UTF-8" />
   <title>Acta Constitutiva - ${docInfo.commercial_name}</title>
   <style>
-    @page {
-      size: A4;
-      margin: 0;
+    @media print {
+      @page { margin: 0; }
+      body { padding: 2cm; margin: 0; }
     }
     * { box-sizing: border-box; }
     body {
       font-family: Arial, sans-serif;
       font-size: 10pt;
       color: #000;
-      margin: 0;
       padding: 2cm;
       line-height: 1.5;
+      margin: 0;
     }
     h1 { font-size: 13pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 0 0 6px 0; }
     h2 { font-size: 11pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 0 0 4px 0; }
     h3 { font-size: 11pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 0 0 16px 0; }
-    h4 { font-size: 10pt; font-weight: bold; text-transform: uppercase; margin: 16px 0 6px 0; }
+    h4 { font-size: 10pt; font-weight: bold; text-transform: uppercase; margin: 16px 0 6px 0; page-break-after: avoid; }
     p { text-align: justify; margin: 0 0 8px 0; }
     ul { margin: 0 0 8px 0; padding-left: 18px; }
     li { text-align: justify; margin-bottom: 3px; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; table-layout: fixed; word-wrap: break-word; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; table-layout: fixed; word-wrap: break-word; page-break-inside: auto; }
+    tr { page-break-inside: avoid; page-break-after: auto; }
     th, td { border: 1px solid #000; padding: 6px 8px; font-size: 9pt; vertical-align: middle; }
     th { background: #e8e8e8; font-weight: bold; }
     .sig-cell { height: 55px; text-align: center; }
     .sig-img { max-height: 48px; max-width: 100%; display: block; margin: 0 auto; }
     .header { text-align: center; margin-bottom: 20px; }
-    .no-break { page-break-inside: avoid; break-inside: avoid; }
     .page-break { page-break-before: always; break-before: page; }
   </style>
 </head>
@@ -170,12 +170,12 @@ export default function AdminView() {
   <p>Por lo antes expuesto, y con fundamento en el Decreto por el que se aprueben las Bases para el Establecimiento del Sistema Nacional de Protección Civil.- Diario Oficial de la Federación del 6 de Mayo de 1986.- Manual de Organización y Operación del Sistema Nacional de Protección Civil.- Publicación de la Dirección General de Protección Civil del año de 1998.- Decreto por el que se crea el Consejo Nacional de Protección Civil.- Diario Oficial de la Federación del 11 de Mayo de 1990.- Programa de Protección Civil 1995-2000.- Diario Oficial de la Federación del 17 de Julio de 1996.</p>
   <p>Se Constituye la Unidad Interna de Protección Civil, cuyos objetivos, integración y funciones se indican a continuación.</p>
 
-  <div class="no-break">
+  <div class="print-section">
     <h4>1. OBJETIVOS</h4>
     <p>Adecuar el Reglamento Interior u ordenamiento jurídico correspondiente, para incluir la función de Protección Civil en esta institución; elaborar, establecer, operar y evaluar permanentemente el Programa Interno de Protección Civil, así como implantar los mecanismos de coordinación con las dependencias y entidades públicas, privadas y sociales, en sus niveles federal, estatal y municipal que conforman el Sistema Nacional de Protección Civil, con el fin de cumplir con los objetivos del mismo, a través de la ejecución del Programa, particularmente realizando actividades que conduzcan a salvaguardar la integridad física del personal, visitantes y de las instalaciones del Inmueble.</p>
   </div>
 
-  <div class="no-break">
+  <div class="print-section">
     <h4>2. INTEGRACIÓN</h4>
     <p>La Unidad Interna de Protección Civil queda integrada por:</p>
     <table>
@@ -194,7 +194,7 @@ export default function AdminView() {
 
   <div class="page-break"></div>
 
-  <div class="no-break">
+  <div class="print-section">
     <h4>3. FUNCIONES</h4>
     <p>Corresponde a los integrantes de la Unidad Interna de Protección Civil, llevar a cabo las siguientes funciones:</p>
     <ul>
@@ -220,7 +220,7 @@ export default function AdminView() {
 
   <div class="page-break"></div>
 
-  <div class="no-break">
+  <div class="print-section">
     <h4>4. ESQUEMA ORGANIZACIONAL</h4>
     <p>Para que la Unidad Interna de Protección Civil logre los objetivos y desempeñe las funciones antes descritas, contará con la estructura organizacional.</p>
     <p>Se firma la presente <strong>ACTA CONSTITUTIVA</strong> de la <strong>Unidad Interna de Protección Civil</strong>, por sus integrantes, en el lugar y fecha indicados, siendo las ${docInfo.time_end} horas.</p>
