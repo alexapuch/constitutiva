@@ -249,6 +249,9 @@ export default function AdminView() {
     printWindow.document.write(html);
     printWindow.document.close();
 
+    // Change URL from 'about:blank' to site URL so print footer looks clean
+    printWindow.history.pushState({}, '', '/acta-constitutiva');
+
     // Wait for images (signatures) to load before printing
     printWindow.onload = () => {
       printWindow.focus();
