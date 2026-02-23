@@ -129,7 +129,7 @@ export default function AdminView() {
   <style>
     @page {
       size: A4;
-      margin: 2cm;
+      margin: 0;
     }
     * { box-sizing: border-box; }
     body {
@@ -137,7 +137,7 @@ export default function AdminView() {
       font-size: 10pt;
       color: #000;
       margin: 0;
-      padding: 0;
+      padding: 2cm;
       line-height: 1.5;
     }
     h1 { font-size: 13pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 0 0 6px 0; }
