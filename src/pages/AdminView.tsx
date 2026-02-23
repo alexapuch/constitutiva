@@ -310,10 +310,13 @@ export default function AdminView() {
             <ArrowLeft className="w-5 h-5" />
             Volver al inicio
           </Link>
-          <button onClick={() => setIsAuthenticated(false)} className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium transition-colors">
-            <LogOut className="w-5 h-5" />
-            Cerrar Sesión
-          </button>
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-gray-400">v1.1</span>
+            <button onClick={() => setIsAuthenticated(false)} className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium transition-colors">
+              <LogOut className="w-5 h-5" />
+              Cerrar Sesión
+            </button>
+          </div>
         </div>
 
         <div className="bg-white shadow-md rounded-lg overflow-hidden">

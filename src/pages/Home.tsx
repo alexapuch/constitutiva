@@ -30,6 +30,10 @@ export default function Home() {
             Ingresar como Administrador
           </button>
         </div>
+
+        <div className="text-gray-400 text-sm mt-4">
+          v1.1
+        </div>
       </div>
     </div>
   );
