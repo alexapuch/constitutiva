@@ -129,17 +129,24 @@ export default function AdminView() {
   <style>
     @media print {
       @page { margin: 0; }
-      body { padding: 2cm; margin: 0; }
+      body { margin: 0; padding: 0 2cm; }
+      .report-header { display: table-header-group; }
+      .report-footer { display: table-footer-group; }
     }
     * { box-sizing: border-box; }
     body {
       font-family: Arial, sans-serif;
       font-size: 10pt;
       color: #000;
-      padding: 2cm;
+      padding: 0 2cm;
       line-height: 1.5;
       margin: 0;
     }
+    table.report-container { width: 100%; border: none; margin: 0; padding: 0; }
+    .report-container > thead > tr > td, 
+    .report-container > tfoot > tr > td, 
+    .report-container > tbody > tr > td { border: none; padding: 0; }
+    .space-placeholder { height: 2cm; }
     h1 { font-size: 13pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 0 0 6px 0; }
     h2 { font-size: 11pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 0 0 4px 0; }
     h3 { font-size: 11pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 0 0 16px 0; }
@@ -158,7 +165,17 @@ export default function AdminView() {
   </style>
 </head>
 <body>
-  <div class="header">
+  <table class="report-container">
+    <thead class="report-header">
+      <tr><td class="space-placeholder">&nbsp;</td></tr>
+    </thead>
+    <tfoot class="report-footer">
+      <tr><td class="space-placeholder">&nbsp;</td></tr>
+    </tfoot>
+    <tbody class="report-content">
+      <tr>
+        <td>
+          <div class="header">
     <h1>ACTA CONSTITUTIVA DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL</h1>
     <h2>${docInfo.commercial_name}</h2>
     <h3>"${docInfo.company_name}"</h3>
@@ -237,6 +254,10 @@ export default function AdminView() {
       </tbody>
     </table>
   </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </body>
 </html>`;
 
@@ -311,7 +332,7 @@ export default function AdminView() {
             Volver al inicio
           </Link>
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-400">v1.1</span>
+            <span className="text-sm font-medium text-gray-400">v1.2</span>
             <button onClick={() => setIsAuthenticated(false)} className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium transition-colors">
               <LogOut className="w-5 h-5" />
               Cerrar Sesión
