@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { DocumentInfo, Employee } from '../types';
 import { Trash2, Save, FileText, Users, Plus, Eye, EyeOff, ArrowLeft, LogOut, Download } from 'lucide-react';
+import { generateSimulacroPDF } from '../utils/generateSimulacroPDF';
 
 export default function AdminView() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -12,6 +13,7 @@ export default function AdminView() {
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [visitantes, setVisitantes] = useState('0');
 
   useEffect(() => {
     fetchDocuments();
@@ -336,7 +338,7 @@ export default function AdminView() {
             Volver al inicio
           </Link>
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-400">v1.8</span>
+            <span className="text-sm font-medium text-gray-400">v1.9</span>
             <button onClick={() => setIsAuthenticated(false)} className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium transition-colors">
               <LogOut className="w-5 h-5" />
               Cerrar Sesión
@@ -496,18 +498,46 @@ export default function AdminView() {
             </div>
 
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
-              <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-                <h2 className="text-xl font-bold flex items-center gap-2 text-gray-800">
-                  <Users className="w-6 h-6" />
-                  Firmas Registradas en esta Acta ({employees.length})
+              <div className="p-6 border-b border-gray-200 flex flex-col md:flex-row gap-4 justify-between items-center bg-gray-50">
+                <h2 className="text-xl font-bold flex flex-col sm:flex-row items-center gap-2 text-gray-800">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-6 h-6" />
+                    Firmas Registradas
+                  </div>
+                  <span className="text-sm font-normal text-gray-500">({employees.length} en total)</span>
                 </h2>
-                <button
-                  onClick={handleDownloadPDF}
-                  className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  Descargar PDF
-                </button>
+
+                <div className="flex flex-col sm:flex-row items-center justify-end gap-4 w-full md:w-auto">
+                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">
+                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Visitantes:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={visitantes}
+                      onChange={(e) => setVisitantes(e.target.value)}
+                      className="w-16 border-none bg-transparent p-0 text-right focus:ring-0 text-gray-900 font-semibold"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => docInfo && generateSimulacroPDF(docInfo, employees, visitantes)}
+                      className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors shadow-sm whitespace-nowrap"
+                      title="Descargar Cédula de Evaluación de Simulacro"
+                    >
+                      <Download className="w-4 h-4" />
+                      Cédula Simulacro
+                    </button>
+                    <button
+                      onClick={handleDownloadPDF}
+                      className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap"
+                      title="Descargar Acta Constitutiva"
+                    >
+                      <Download className="w-4 h-4" />
+                      Acta Constitutiva
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="overflow-x-auto">
