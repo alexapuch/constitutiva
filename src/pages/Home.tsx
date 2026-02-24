@@ -32,7 +32,7 @@ export default function Home() {
         </div>
 
         <div className="text-gray-400 text-sm mt-4">
-          v1.11
+          v1.12
         </div>
       </div>
     </div>

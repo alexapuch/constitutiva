@@ -338,7 +338,7 @@ export default function AdminView() {
             Volver al inicio
           </Link>
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-400">v1.11</span>
+            <span className="text-sm font-medium text-gray-400">v1.12</span>
             <button onClick={() => setIsAuthenticated(false)} className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium transition-colors">
               <LogOut className="w-5 h-5" />
               Cerrar Sesión
@@ -553,9 +553,9 @@ export default function AdminView() {
                     </tr>
                   </thead>
                   <tbody>
-                    {employees.map((emp) => (
+                    {employees.map((emp, index) => (
                       <tr key={emp.id} className="hover:bg-gray-50 border-b border-gray-100">
-                        <td className="p-3 text-gray-500">#{emp.id}</td>
+                        <td className="p-3 text-gray-500">#{index + 1}</td>
                         <td className="p-3 font-medium uppercase">{emp.name}</td>
                         <td className="p-3 uppercase">{emp.role}</td>
                         <td className="p-3 uppercase">{emp.brigade}</td>
