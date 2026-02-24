@@ -39,13 +39,13 @@ export const generateSimulacroPDF = async (
             [{ content: `Dirección del establecimiento o inmueble: ${docInfo.address}`, colSpan: 6 }],
             [
                 { content: 'El inmueble cuenta con:', colSpan: 2 },
-                { content: 'Estacionamiento   ● Sí   ○ No', colSpan: 2 },
-                { content: 'Elevadores   ○ Sí   ● No', colSpan: 2 }
+                { content: 'Estacionamiento   (X) Sí   ( ) No', colSpan: 2 },
+                { content: 'Elevadores   ( ) Sí   (X) No', colSpan: 2 }
             ],
             [
                 { content: 'Niveles\nSótanos          Superiores\n        X                        X', colSpan: 2, styles: { halign: 'center' } },
-                { content: 'Escaleras de emergencia\n○ Sí          ● No\nCapacidad: ____________', colSpan: 2 },
-                { content: 'Helipuerto\n○ Sí          ● No\n○ Abierto     ○ Acomodo', colSpan: 2 }
+                { content: 'Escaleras de emergencia\n( ) Sí          (X) No\nCapacidad: ____________', colSpan: 2 },
+                { content: 'Helipuerto\n( ) Sí          (X) No\n( ) Abierto     ( ) Acomodo', colSpan: 2 }
             ],
             [
                 { content: 'Número de trabajadores por turno:', colSpan: 4, styles: { halign: 'center' } },
@@ -84,17 +84,17 @@ export const generateSimulacroPDF = async (
         },
         body: [
             [
-                { content: 'Hipótesis planteada:\n○ Sismo    ● Incendio    ○ Huracán    ○ Amenaza de bomba    ○ Otra: ________________________', colSpan: 2 },
-                { content: 'Presenta documento:     ● Sí       ○ No' }
+                { content: 'Hipótesis planteada:\n( ) Sismo    (X) Incendio    ( ) Huracán    ( ) Amenaza de bomba    ( ) Otra: ________________________', colSpan: 2 },
+                { content: 'Presenta documento:     (X) Sí       ( ) No' }
             ],
             [
-                { content: 'Tipo de simulacro:            ○ Individual            ● Integral                      ○ Macro\n                                        ● Con previo aviso                            ○ Sin previo aviso', colSpan: 3 }
+                { content: 'Tipo de simulacro:            ( ) Individual            (X) Integral                      ( ) Macro\n                                        (X) Con previo aviso                            ( ) Sin previo aviso', colSpan: 3 }
             ],
             [
-                { content: 'Acciones:                       ○ Repliegue              ○ Evacuación parcial        ● Evacuación total', colSpan: 3 }
+                { content: 'Acciones:                       ( ) Repliegue              ( ) Evacuación parcial        (X) Evacuación total', colSpan: 3 }
             ],
             [
-                { content: 'Difusión del simulacro                                   ● Sí                               ○ No\n¿A quién?        ● Empleados           ○ Usuarios y visitantes        ○ Vecinos        ○ Autoridades e instituciones\n¿A través de qué medios?\n________PANFLETOS___________________________________________________________', colSpan: 3 }
+                { content: 'Difusión del simulacro                                   (X) Sí                               ( ) No\n¿A quién?        (X) Empleados           ( ) Usuarios y visitantes        ( ) Vecinos        ( ) Autoridades e instituciones\n¿A través de qué medios?\n________PANFLETOS___________________________________________________________', colSpan: 3 }
             ],
             [
                 'Duración del simulacro',
@@ -130,37 +130,37 @@ export const generateSimulacroPDF = async (
         },
         body: [
             [
-                { content: 'Sistema de alertamiento utilizado    ○ Timbre                                   ○ Sirena\n○ Silbato                        ○ Campana                        ○ Megáfono                        ● Voceo', colSpan: 4 }
+                { content: 'Sistema de alertamiento utilizado    ( ) Timbre                                   ( ) Sirena\n( ) Silbato                        ( ) Campana                        ( ) Megáfono                        (X) Voceo', colSpan: 4 }
             ],
             [
-                '¿Se instaló punto de reunión?', '● Sí            ○ No',
-                'Señalizado:', '● Sí            ○ No'
+                '¿Se instaló punto de reunión?', '(X) Sí            ( ) No',
+                'Señalizado:', '(X) Sí            ( ) No'
             ],
             [
-                '¿Se instaló puesto de mando?', '○ Sí            ● No',
-                'Señalizado:', '○ Sí            ● No'
+                '¿Se instaló puesto de mando?', '( ) Sí            (X) No',
+                'Señalizado:', '( ) Sí            (X) No'
             ],
             [
-                '¿Se instaló puesto de primeros auxilios?', '○ Sí            ● No',
-                'Señalizado:', '○ Sí            ● No'
+                '¿Se instaló puesto de primeros auxilios?', '( ) Sí            (X) No',
+                'Señalizado:', '( ) Sí            (X) No'
             ],
             [
-                { content: '¿Se aplicó el plan de...    Alertamiento?     ● Sí      ○ No        Emergencia?     ● Sí      ○ No\nEvaluación de daños?     ● Sí      ○ No        Vuelta a la normalidad?     ● Sí      ○ No', colSpan: 4 }
+                { content: '¿Se aplicó el plan de...    Alertamiento?     (X) Sí      ( ) No        Emergencia?     (X) Sí      ( ) No\nEvaluación de daños?     (X) Sí      ( ) No        Vuelta a la normalidad?     (X) Sí      ( ) No', colSpan: 4 }
             ],
             [
-                { content: '¿Se llevó a cabo la verificación del personal evacuado?  ● Sí   ○ No  ¿Se realizó reunión de evaluación?  ● Sí   ○ No', colSpan: 4 }
+                { content: '¿Se llevó a cabo la verificación del personal evacuado?  (X) Sí   ( ) No  ¿Se realizó reunión de evaluación?  (X) Sí   ( ) No', colSpan: 4 }
             ],
             [
-                { content: '¿Quiénes participaron?      ○ Autoridades institucionales             ● Brigadistas\n○ Observadores                                 ○ Instituciones de apoyo                  ○ Otros', colSpan: 4 }
+                { content: '¿Quiénes participaron?      ( ) Autoridades institucionales             (X) Brigadistas\n( ) Observadores                                 ( ) Instituciones de apoyo                  ( ) Otros', colSpan: 4 }
             ],
             [
-                { content: 'Brigadas internas que participaron:  ○ Primeros auxilios       ● Evacuación de inmuebles       ● Combate de incendios\n○ Búsqueda y rescate    ○ Otra                             ¿Cuentan con equipo de identificación?    ● Sí      ○ No', colSpan: 4 }
+                { content: 'Brigadas internas que participaron:  ( ) Primeros auxilios       (X) Evacuación de inmuebles       (X) Combate de incendios\n( ) Búsqueda y rescate    ( ) Otra                             ¿Cuentan con equipo de identificación?    (X) Sí      ( ) No', colSpan: 4 }
             ],
             [
-                { content: 'Equipos e instalaciones de emergencia utilizados:   ○ Hidrantes             ● Extintores             ○ Botiquines\n○ Equipo de protección personal        ○ Escaleras de emergencia        ○ Ambulancia institucional        ○ Otros', colSpan: 4 }
+                { content: 'Equipos e instalaciones de emergencia utilizados:   ( ) Hidrantes             (X) Extintores             ( ) Botiquines\n( ) Equipo de protección personal        ( ) Escaleras de emergencia        ( ) Ambulancia institucional        ( ) Otros', colSpan: 4 }
             ],
             [
-                { content: 'Instituciones de apoyo que se presentaron:      ○ Seguridad pública        ○ Cruz Roja        ○ UREM        ○ Bomberos\n○ Protección civil           ○ Otras: ___________________________________     Tiempo de respuesta: ___________', colSpan: 4 }
+                { content: 'Instituciones de apoyo que se presentaron:      ( ) Seguridad pública        ( ) Cruz Roja        ( ) UREM        ( ) Bomberos\n( ) Protección civil           ( ) Otras: ___________________________________     Tiempo de respuesta: ___________', colSpan: 4 }
             ]
         ]
     });
