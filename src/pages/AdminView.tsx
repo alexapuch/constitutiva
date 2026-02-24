@@ -131,24 +131,25 @@ export default function AdminView() {
       currentY += 8;
 
       // Body paragraphs
-      addText(`C. ${docInfo.commercial_name} RESPONSABLE DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL DE LA EMPRESA DENOMINADA "${docInfo.company_name}" y Siendo las ${docInfo.time_start} horas del día ${docInfo.date}, en el inmueble que ocupa la empresa, con domicilio, ${docInfo.address}. Se reúne la representante legal, así como lo empleados:`, 10, 'normal', 'justify');
+      addText(`C. ${docInfo.commercial_name} RESPONSABLE DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL DE LA EMPRESA DENOMINADA "${docInfo.company_name}" y Siendo las ${docInfo.time_start} horas del día ${docInfo.date}, en el inmueble que ocupa la empresa, con domicilio, ${docInfo.address}. Se reúne la representante legal, así como lo empleados:`, 10, 'normal', 'left');
       currentY += 4;
-      addText(`Con el objeto de constituir formalmente la Unidad Interna de Protección Civil de este inmueble.`, 10, 'normal', 'justify');
+      addText(`Con el objeto de constituir formalmente la Unidad Interna de Protección Civil de este inmueble.`, 10, 'normal', 'left');
       currentY += 4;
-      addText(`Como consecuencia de los sucesos ocurridos en el año de 1985, el Gobierno Federal decidió instrumentar un sistema que permitiese una respuesta eficaz y eficiente de los diversos sectores de la sociedad ante la presencia de desastres naturales y/o humanos con el propósito de prevenir sus consecuencias o en su caso mitigarlas.`, 10, 'normal', 'justify');
+      addText(`Como consecuencia de los sucesos ocurridos en el año de 1985, el Gobierno Federal decidió instrumentar un sistema que permitiese una respuesta eficaz y eficiente de los diversos sectores de la sociedad ante la presencia de desastres naturales y/o humanos con el propósito de prevenir sus consecuencias o en su caso mitigarlas.`, 10, 'normal', 'left');
       currentY += 4;
-      addText(`Por lo antes expuesto, y con fundamento en el Decreto por el que se aprueben las Bases para el Establecimiento del Sistema Nacional de Protección Civil.- Diario Oficial de la Federación del 6 de Mayo de 1986.- Manual de Organización y Operación del Sistema Nacional de Protección Civil.- Publicación de la Dirección General de Protección Civil del año de 1998.- Decreto por el que se crea el Consejo Nacional de Protección Civil.- Diario Oficial de la Federación del 11 de Mayo de 1990.- Programa de Protección Civil 1995-2000.- Diario Oficial de la Federación del 17 de Julio de 1996.`, 10, 'normal', 'justify');
+      addText(`Por lo antes expuesto, y con fundamento en el Decreto por el que se aprueben las Bases para el Establecimiento del Sistema Nacional de Protección Civil.- Diario Oficial de la Federación del 6 de Mayo de 1986.- Manual de Organización y Operación del Sistema Nacional de Protección Civil.- Publicación de la Dirección General de Protección Civil del año de 1998.- Decreto por el que se crea el Consejo Nacional de Protección Civil.- Diario Oficial de la Federación del 11 de Mayo de 1990.- Programa de Protección Civil 1995-2000.- Diario Oficial de la Federación del 17 de Julio de 1996.`, 10, 'normal', 'left');
       currentY += 4;
-      addText(`Se Constituye la Unidad Interna de Protección Civil, cuyos objetivos, integración y funciones se indican a continuación.`, 10, 'normal', 'justify');
+      addText(`Se Constituye la Unidad Interna de Protección Civil, cuyos objetivos, integración y funciones se indican a continuación.`, 10, 'normal', 'left');
       currentY += 8;
 
       // 1. OBJETIVOS
       addText('1. OBJETIVOS', 10, 'bold', 'left');
       currentY += 2;
-      addText(`Adecuar el Reglamento Interior u ordenamiento jurídico correspondiente, para incluir la función de Protección Civil en esta institución; elaborar, establecer, operar y evaluar permanentemente el Programa Interno de Protección Civil, así como implantar los mecanismos de coordinación con las dependencias y entidades públicas, privadas y sociales, en sus niveles federal, estatal y municipal que conforman el Sistema Nacional de Protección Civil, con el fin de cumplir con los objetivos del mismo, a través de la ejecución del Programa, particularmente realizando actividades que conduzcan a salvaguardar la integridad física del personal, visitantes y de las instalaciones del Inmueble.`, 10, 'normal', 'justify');
+      addText(`Adecuar el Reglamento Interior u ordenamiento jurídico correspondiente, para incluir la función de Protección Civil en esta institución; elaborar, establecer, operar y evaluar permanentemente el Programa Interno de Protección Civil, así como implantar los mecanismos de coordinación con las dependencias y entidades públicas, privadas y sociales, en sus niveles federal, estatal y municipal que conforman el Sistema Nacional de Protección Civil, con el fin de cumplir con los objetivos del mismo, a través de la ejecución del Programa, particularmente realizando actividades que conduzcan a salvaguardar la integridad física del personal, visitantes y de las instalaciones del Inmueble.`, 10, 'normal', 'left');
       currentY += 8;
 
       // 2. INTEGRACIÓN
+      doc.addPage(); currentY = margin;
       addText('2. INTEGRACIÓN', 10, 'bold', 'left');
       currentY += 2;
       addText('La Unidad Interna de Protección Civil queda integrada por:', 10, 'normal', 'left');
@@ -229,15 +230,15 @@ export default function AdminView() {
         theme: 'grid',
         headStyles: { fillColor: [232, 232, 232], textColor: 0, fontStyle: 'bold', halign: 'center' },
         styles: { font: 'helvetica', fontSize: 9, cellPadding: 2, textColor: 0, valign: 'middle' },
-        columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 50 }, 2: { cellWidth: 50, minCellHeight: 25 } },
+        columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 50 }, 2: { cellWidth: 50, minCellHeight: 15 } },
         margin: { left: margin, right: margin },
         didDrawCell: function (data) {
           if (data.column.index === 2 && data.cell.section === 'body' && employees.length > 0) {
             const emp = employees[data.row.index];
             if (emp && emp.signature) {
               const dim = data.cell;
-              const imgW = 40;
-              const imgH = 15;
+              const imgW = 24;
+              const imgH = 9;
               const xPos = dim.x + (dim.width - imgW) / 2;
               const yPos = dim.y + (dim.height - imgH) / 2;
               try {
@@ -333,7 +334,7 @@ export default function AdminView() {
             Volver al inicio
           </Link>
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-400">v1.6</span>
+            <span className="text-sm font-medium text-gray-400">v1.7</span>
             <button onClick={() => setIsAuthenticated(false)} className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium transition-colors">
               <LogOut className="w-5 h-5" />
               Cerrar Sesión
