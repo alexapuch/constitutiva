@@ -5,7 +5,8 @@ import { DocumentInfo, Employee } from '../types';
 export const generateSimulacroPDF = async (
     docInfo: DocumentInfo,
     employees: Employee[],
-    visitantes: string
+    visitantes: string,
+    usuarios: string
 ) => {
     const doc = new jsPDF({
         orientation: 'portrait',
@@ -35,7 +36,7 @@ export const generateSimulacroPDF = async (
         styles: { font: 'helvetica', fontSize: 9, cellPadding: 1, textColor: 0, lineColor: 0, lineWidth: 0.1 },
         body: [
             [{ content: `Nombre, denominación o razón social: ${docInfo.commercial_name}`, colSpan: 7 }],
-            [{ content: `Giro o actividad productiva principal del establecimiento: `, colSpan: 7 }],
+            [{ content: `Giro o actividad productiva principal del establecimiento: ${docInfo.activity || ''}`, colSpan: 7 }],
             [{ content: `Dirección del establecimiento o inmueble: ${docInfo.address}`, colSpan: 7 }],
             [
                 { content: 'El inmueble cuenta con:', colSpan: 2 },
@@ -54,7 +55,7 @@ export const generateSimulacroPDF = async (
             ],
             [
                 `Matutino\n \n${employees.length}`, `Vespertino\n \n${employees.length}`, `Nocturno\n \n0`, `Otro\n \n0`,
-                `Usuarios\n \n0`, `Visitantes\n \n${visitantes}`
+                `Usuarios\n \n${usuarios}`, `Visitantes\n \n${visitantes}`
             ]
         ],
         willDrawCell: function (data) {

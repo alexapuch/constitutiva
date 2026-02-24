@@ -7,6 +7,7 @@ export interface DocumentInfo {
   time_end: string;
   address: string;
   is_active: number;
+  activity?: string;
 }
 
 export interface Employee {
