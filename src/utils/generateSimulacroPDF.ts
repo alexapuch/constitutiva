@@ -34,27 +34,27 @@ export const generateSimulacroPDF = async (
         theme: 'plain',
         styles: { font: 'helvetica', fontSize: 9, cellPadding: 1, textColor: 0, lineColor: 0, lineWidth: 0.1 },
         body: [
-            [{ content: `Nombre, denominación o razón social: ${docInfo.commercial_name}`, colSpan: 6 }],
-            [{ content: `Giro o actividad productiva principal del establecimiento: `, colSpan: 6 }],
-            [{ content: `Dirección del establecimiento o inmueble: ${docInfo.address}`, colSpan: 6 }],
+            [{ content: `Nombre, denominación o razón social: ${docInfo.commercial_name}`, colSpan: 7 }],
+            [{ content: `Giro o actividad productiva principal del establecimiento: `, colSpan: 7 }],
+            [{ content: `Dirección del establecimiento o inmueble: ${docInfo.address}`, colSpan: 7 }],
             [
                 { content: 'El inmueble cuenta con:', colSpan: 2 },
                 { content: 'Estacionamiento   (X) Sí   ( ) No', colSpan: 2 },
-                { content: 'Elevadores   ( ) Sí   (X) No', colSpan: 2 }
+                { content: 'Elevadores   ( ) Sí   (X) No', colSpan: 3 }
             ],
             [
                 { content: 'Niveles\nSótanos          Superiores\n        X                        X', colSpan: 2, styles: { halign: 'center' } },
                 { content: 'Escaleras de emergencia\n( ) Sí          (X) No\nCapacidad: ____________', colSpan: 2 },
-                { content: 'Helipuerto\n( ) Sí          (X) No\n( ) Abierto     ( ) Acomodo', colSpan: 2 }
+                { content: 'Helipuerto\n( ) Sí          (X) No\n( ) Abierto     ( ) Acomodo', colSpan: 3 }
             ],
             [
                 { content: 'Número de trabajadores por turno:', colSpan: 4, styles: { halign: 'center' } },
-                { content: 'Número de población diaria:', colSpan: 1, styles: { halign: 'center' } },
-                { content: 'Total, de población\nparticipante', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } }
+                { content: 'Número de población diaria:', colSpan: 2, styles: { halign: 'center' } },
+                { content: `Total, de población\nparticipante\n \n${employees.length}`, rowSpan: 2, styles: { halign: 'center', valign: 'middle' } }
             ],
             [
-                'Matutino\n \n ', 'Vespertino\n \n ', 'Nocturno\n \n ', 'Otro\n \n ',
-                'Usuarios\n \n ', 'Visitantes\n \n' + visitantes
+                `Matutino\n \n${employees.length}`, `Vespertino\n \n${employees.length}`, `Nocturno\n \n0`, `Otro\n \n0`,
+                `Usuarios\n \n0`, `Visitantes\n \n${visitantes}`
             ]
         ],
         willDrawCell: function (data) {
@@ -106,8 +106,8 @@ export const generateSimulacroPDF = async (
                 { content: 'Duración total del ejercicio:          30 MIN', colSpan: 2 }
             ],
             [
-                { content: 'Personas evacuadas:   Empleados   [            ] ', colSpan: 2 },
-                'Visitantes   [            ]'
+                { content: `Personas evacuadas:   Empleados   [   ${employees.length}   ] `, colSpan: 2 },
+                `Visitantes   [   ${visitantes}   ]`
             ]
         ]
     });
