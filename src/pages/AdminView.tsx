@@ -99,7 +99,7 @@ export default function AdminView() {
 
   const docInfo = documents.find(d => d.id === selectedDocId);
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (!docInfo) return;
 
     const doc = new jsPDF({
@@ -248,7 +248,26 @@ export default function AdminView() {
     });
 
     const safeName = docInfo.commercial_name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    doc.save(`acta_constitutiva_${safeName}.pdf`);
+    const fileName = `acta_constitutiva_${safeName}.pdf`;
+
+    const pdfBlob = doc.output('blob');
+    const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: `Acta Constitutiva - ${docInfo.commercial_name}`,
+        });
+        return; // Success, exit
+      } catch (error) {
+        console.log('User cancelled share or share failed:', error);
+        // Fallback to normal download if share fails
+      }
+    }
+
+    // Fallback for desktop browsers / browsers without file sharing
+    doc.save(fileName);
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -303,7 +322,7 @@ export default function AdminView() {
             Volver al inicio
           </Link>
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-400">v1.4</span>
+            <span className="text-sm font-medium text-gray-400">v1.5</span>
             <button onClick={() => setIsAuthenticated(false)} className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium transition-colors">
               <LogOut className="w-5 h-5" />
               Cerrar Sesión
