@@ -31,7 +31,7 @@ app.get('/api/documents', async (req, res) => {
 // POST create document
 app.post('/api/documents', async (req, res) => {
   const { commercial_name, company_name, date, time_start, time_end, address, is_active, activity } = req.body;
-  const access_code = nanoid(8).toUpperCase(); // e.g. "V1StGXR8"
+  const access_code = nanoid(6).toUpperCase(); // e.g. "V1StGX"
   const { data, error } = await supabase
     .from('document_info')
     .insert({ commercial_name, company_name, date, time_start, time_end, address, is_active: is_active ?? 1, activity, access_code })
