@@ -51,10 +51,34 @@ export default function PublicView() {
   };
 
   const handleSaveSignature = async () => {
-    if (!selectedDocId) return;
-    if (!sigCanvas.current || sigCanvas.current.isEmpty() || !name) {
+    console.log('--- handleSaveSignature CALLED ---');
+    console.log('selectedDocId:', selectedDocId);
+    console.log('name:', name);
+    console.log('sigCanvas.current:', sigCanvas.current);
+
+    if (!selectedDocId) {
+      console.log('Aborting: no selectedDocId');
       return;
     }
+
+    if (!sigCanvas.current) {
+      console.log('Aborting: no sigCanvas.current');
+      return;
+    }
+
+    if (sigCanvas.current.isEmpty()) {
+      console.log('Aborting: sigCanvas is empty');
+      alert('Por favor, dibuja tu firma antes de guardar.');
+      return;
+    }
+
+    if (!name) {
+      console.log('Aborting: name is empty');
+      alert('Por favor, ingresa tu nombre completo antes de guardar.');
+      return;
+    }
+
+    console.log('All validations passed, getting image data...');
 
     const signatureData = sigCanvas.current.getCanvas().toDataURL('image/png');
 
