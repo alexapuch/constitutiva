@@ -2,6 +2,14 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import SignatureCanvas from 'react-signature-canvas';
 import { DocumentInfo, Employee } from '../types';
+
+export const sortEmployees = (employees: Employee[]) => {
+  return [...employees].sort((a, b) => {
+    if (a.role === 'REPRESENTANTE LEGAL' && b.role !== 'REPRESENTANTE LEGAL') return -1;
+    if (a.role !== 'REPRESENTANTE LEGAL' && b.role === 'REPRESENTANTE LEGAL') return 1;
+    return 0;
+  });
+};
 import { PenTool, X, ChevronDown, ArrowLeft } from 'lucide-react';
 
 export default function PublicView() {
@@ -9,7 +17,7 @@ export default function PublicView() {
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   const [name, setName] = useState('');
   const [role, setRole] = useState('EMPLEADO');
   const [brigade, setBrigade] = useState('MULTIBRIGADA');
@@ -76,8 +84,8 @@ export default function PublicView() {
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
         <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200 text-center max-w-md w-full">
           <p className="text-gray-500 mb-6">No hay actas constitutivas activas en este momento.</p>
-          <Link 
-            to="/" 
+          <Link
+            to="/"
             className="inline-flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-lg font-medium transition-colors w-full"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -168,7 +176,7 @@ export default function PublicView() {
                     </tr>
                   </thead>
                   <tbody>
-                    {employees.map((emp) => (
+                    {sortEmployees(employees).map((emp) => (
                       <tr key={emp.id} className="hover:bg-gray-50">
                         <td className="border border-gray-300 p-2 uppercase">{emp.name}</td>
                         <td className="border border-gray-300 p-2 uppercase">{emp.role}</td>
@@ -221,7 +229,7 @@ export default function PublicView() {
               <p className="text-sm mb-4">
                 Se firma la presente <strong>ACTA CONSTITUTIVA</strong> de la <strong>Unidad Interna de Protección Civil</strong>, por sus integrantes, en el lugar y fecha indicados, siendo las {docInfo.time_end} horas.
               </p>
-              
+
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse border border-gray-300 text-sm">
                   <thead>
@@ -232,7 +240,7 @@ export default function PublicView() {
                     </tr>
                   </thead>
                   <tbody>
-                    {employees.map((emp) => (
+                    {sortEmployees(employees).map((emp) => (
                       <tr key={emp.id} className="hover:bg-gray-50">
                         <td className="border border-gray-300 p-2 uppercase align-middle">{emp.name}</td>
                         <td className="border border-gray-300 p-2 uppercase align-middle">{emp.role}</td>
@@ -280,7 +288,7 @@ export default function PublicView() {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            
+
             <div className="p-4 overflow-y-auto flex-1">
               <div className="space-y-4">
                 <div>
@@ -293,15 +301,17 @@ export default function PublicView() {
                     placeholder="Ej. Juan Pérez"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Puesto en la Empresa</label>
-                  <input
-                    type="text"
+                  <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
                     className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+                  >
+                    <option value="EMPLEADO">EMPLEADO</option>
+                    <option value="REPRESENTANTE LEGAL">REPRESENTANTE LEGAL</option>
+                  </select>
                 </div>
 
                 <div>
@@ -317,7 +327,7 @@ export default function PublicView() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between">
                     <span>Firma</span>
-                    <button 
+                    <button
                       onClick={() => sigCanvas.current?.clear()}
                       className="text-xs text-blue-600 hover:text-blue-800"
                     >
@@ -340,7 +350,7 @@ export default function PublicView() {
                 </div>
               </div>
             </div>
-            
+
             <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
               <button
                 onClick={() => setIsModalOpen(false)}

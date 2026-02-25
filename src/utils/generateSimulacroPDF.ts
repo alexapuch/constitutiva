@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { DocumentInfo, Employee } from '../types';
+import { sortEmployees } from '../pages/PublicView';
 
 export const generateSimulacroPDF = async (
     docInfo: DocumentInfo,
@@ -308,8 +309,10 @@ export const generateSimulacroPDF = async (
     doc.text('PARTICIPANTES SIMULACRO', pageWidth / 2, currentY, { align: 'center' });
     currentY += 8;
 
-    const tableBody = employees.length > 0
-        ? employees.map(e => [e.name.toUpperCase(), 'EMPLEADO', ''])
+    const sortedEmployees = sortEmployees(employees);
+
+    const tableBody = sortedEmployees.length > 0
+        ? sortedEmployees.map(e => [e.name.toUpperCase(), 'EMPLEADO', ''])
         : [['Aún no hay firmas registradas.', '', '']];
 
     autoTable(doc, {
@@ -322,8 +325,8 @@ export const generateSimulacroPDF = async (
         columnStyles: { 0: { cellWidth: 70 }, 1: { cellWidth: 50 }, 2: { cellWidth: 50, minCellHeight: 12 } },
         margin: { left: margin, right: margin },
         didDrawCell: function (data) {
-            if (data.column.index === 2 && data.cell.section === 'body' && employees.length > 0) {
-                const emp = employees[data.row.index];
+            if (data.column.index === 2 && data.cell.section === 'body' && sortedEmployees.length > 0) {
+                const emp = sortedEmployees[data.row.index];
                 if (emp && emp.signature) {
                     const dim = data.cell;
                     const imgW = 20;

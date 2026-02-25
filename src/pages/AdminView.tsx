@@ -5,6 +5,7 @@ import autoTable from 'jspdf-autotable';
 import { DocumentInfo, Employee } from '../types';
 import { Trash2, Save, FileText, Users, Plus, Eye, EyeOff, ArrowLeft, LogOut, Download } from 'lucide-react';
 import { generateSimulacroPDF } from '../utils/generateSimulacroPDF';
+import { sortEmployees } from './PublicView';
 
 export default function AdminView() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -158,8 +159,10 @@ export default function AdminView() {
       addText('La Unidad Interna de Protección Civil queda integrada por:', 10, 'normal', 'left');
       currentY += 4;
 
-      const table1Body = employees.length > 0
-        ? employees.map(e => [e.name.toUpperCase(), e.role.toUpperCase(), e.brigade || 'MULTIBRIGADA'])
+      const sortedEmployees = sortEmployees(employees);
+
+      const table1Body = sortedEmployees.length > 0
+        ? sortedEmployees.map(e => [e.name.toUpperCase(), e.role.toUpperCase(), e.brigade || 'MULTIBRIGADA'])
         : [['Aún no hay firmas registradas.', '', '']];
 
       autoTable(doc, {
@@ -222,8 +225,8 @@ export default function AdminView() {
       addText(`Se firma la presente ACTA CONSTITUTIVA de la Unidad Interna de Protección Civil, por sus integrantes, en el lugar y fecha indicados, siendo las ${docInfo.time_end} horas.`, 10, 'normal', 'left');
       currentY += 4;
 
-      const table2Body = employees.length > 0
-        ? employees.map(e => [e.name.toUpperCase(), e.role.toUpperCase(), ''])
+      const table2Body = sortedEmployees.length > 0
+        ? sortedEmployees.map(e => [e.name.toUpperCase(), e.role.toUpperCase(), ''])
         : [['Aún no hay firmas registradas.', '', '']];
 
       autoTable(doc, {
@@ -236,8 +239,8 @@ export default function AdminView() {
         columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 50 }, 2: { cellWidth: 50, minCellHeight: 15 } },
         margin: { left: margin, right: margin },
         didDrawCell: function (data) {
-          if (data.column.index === 2 && data.cell.section === 'body' && employees.length > 0) {
-            const emp = employees[data.row.index];
+          if (data.column.index === 2 && data.cell.section === 'body' && sortedEmployees.length > 0) {
+            const emp = sortedEmployees[data.row.index];
             if (emp && emp.signature) {
               const dim = data.cell;
               const imgW = 24;
@@ -575,7 +578,7 @@ export default function AdminView() {
                     </tr>
                   </thead>
                   <tbody>
-                    {employees.map((emp, index) => (
+                    {sortEmployees(employees).map((emp, index) => (
                       <tr key={emp.id} className="hover:bg-gray-50 border-b border-gray-100">
                         <td className="p-3 text-gray-500">#{index + 1}</td>
                         <td className="p-3 font-medium uppercase">{emp.name}</td>
