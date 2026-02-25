@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
+import { nanoid } from 'nanoid';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000');
@@ -30,13 +31,36 @@ app.get('/api/documents', async (req, res) => {
 // POST create document
 app.post('/api/documents', async (req, res) => {
   const { commercial_name, company_name, date, time_start, time_end, address, is_active, activity } = req.body;
+  const access_code = nanoid(8).toUpperCase(); // e.g. "V1StGXR8"
   const { data, error } = await supabase
     .from('document_info')
-    .insert({ commercial_name, company_name, date, time_start, time_end, address, is_active: is_active ?? 1, activity })
+    .insert({ commercial_name, company_name, date, time_start, time_end, address, is_active: is_active ?? 1, activity, access_code })
     .select()
     .single();
   if (error) return res.status(500).json({ error: error.message });
-  res.json({ id: data.id });
+  res.json({ id: data.id, access_code: data.access_code });
+});
+
+// GET document by access code
+app.get('/api/documents/code/:code', async (req, res) => {
+  const { data, error } = await supabase
+    .from('document_info')
+    .select('*')
+    .eq('access_code', req.params.code)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') { // No rows returned
+      return res.status(404).json({ error: 'Documento no encontrado o código inválido.' });
+    }
+    return res.status(500).json({ error: error.message });
+  }
+
+  if (data.is_active !== 1) {
+    return res.status(404).json({ error: 'El documento ya no está activo.' });
+  }
+
+  res.json(data);
 });
 
 // PUT update document

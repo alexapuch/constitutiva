@@ -370,6 +370,7 @@ export default function AdminView() {
               <thead className="bg-gray-50 border-b border-gray-200 text-gray-700">
                 <tr>
                   <th className="px-6 py-3 font-medium">Nombre Comercial</th>
+                  <th className="px-6 py-3 font-medium">Código Acceso</th>
                   <th className="px-6 py-3 font-medium">Fecha</th>
                   <th className="px-6 py-3 font-medium text-center">Estado</th>
                   <th className="px-6 py-3 font-medium text-right">Acciones</th>
@@ -383,6 +384,9 @@ export default function AdminView() {
                     onClick={() => setSelectedDocId(doc.id)}
                   >
                     <td className="px-6 py-4 font-medium text-gray-900">{doc.commercial_name}</td>
+                    <td className="px-6 py-4">
+                      <span className="font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-200">{doc.access_code || 'N/A'}</span>
+                    </td>
                     <td className="px-6 py-4 text-gray-500">{doc.date}</td>
                     <td className="px-6 py-4 text-center">
                       <button
@@ -443,6 +447,30 @@ export default function AdminView() {
                     onChange={(e) => updateSelectedDoc('commercial_name', e.target.value)}
                     className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Código de Acceso (Solo Lectura)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={docInfo.access_code || 'No asignado'}
+                      className="w-full border border-gray-200 bg-gray-50 rounded-md p-2 text-gray-600 font-mono"
+                    />
+                    <button
+                      onClick={() => {
+                        if (docInfo.access_code) {
+                          navigator.clipboard.writeText(docInfo.access_code);
+                          alert('Código copiado al portapapeles');
+                        }
+                      }}
+                      className="bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded-md transition-colors text-sm font-medium"
+                      title="Copiar código"
+                    >
+                      Copiar
+                    </button>
+                  </div>
                 </div>
 
                 <div>

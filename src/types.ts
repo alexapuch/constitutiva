@@ -8,6 +8,7 @@ export interface DocumentInfo {
   address: string;
   is_active: number;
   activity?: string;
+  access_code?: string;
 }
 
 export interface Employee {

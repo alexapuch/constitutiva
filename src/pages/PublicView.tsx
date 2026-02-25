@@ -13,8 +13,8 @@ export const sortEmployees = (employees: Employee[]) => {
 import { PenTool, X, ChevronDown, ArrowLeft } from 'lucide-react';
 
 export default function PublicView() {
-  const [documents, setDocuments] = useState<DocumentInfo[]>([]);
-  const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
+  const [docInfo, setDocInfo] = useState<DocumentInfo | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string>('');
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -23,24 +23,29 @@ export default function PublicView() {
   const [brigade, setBrigade] = useState('MULTIBRIGADA');
   const sigCanvas = useRef<SignatureCanvas>(null);
 
-  useEffect(() => {
-    fetchDocuments();
-  }, []);
+  const searchParams = new URLSearchParams(window.location.search);
+  const code = searchParams.get('code');
 
   useEffect(() => {
-    if (selectedDocId) {
-      fetchEmployees(selectedDocId);
-    } else {
-      setEmployees([]);
+    if (!code) {
+      setErrorMsg('No se proporcionó ningún código de acceso.');
+      return;
     }
-  }, [selectedDocId]);
+    fetchDocumentByCode(code);
+  }, [code]);
 
-  const fetchDocuments = async () => {
-    const res = await fetch('/api/documents?activeOnly=true');
-    const data = await res.json();
-    setDocuments(data);
-    if (data.length > 0 && !selectedDocId) {
-      setSelectedDocId(data[0].id);
+  const fetchDocumentByCode = async (accessCode: string) => {
+    try {
+      const res = await fetch(`/api/documents/code/${accessCode}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Código inválido o acta no encontrada.');
+        return;
+      }
+      setDocInfo(data);
+      fetchEmployees(data.id);
+    } catch (e) {
+      setErrorMsg('Error de conexión al buscar el acta.');
     }
   };
 
@@ -52,12 +57,12 @@ export default function PublicView() {
 
   const handleSaveSignature = async () => {
     console.log('--- handleSaveSignature CALLED ---');
-    console.log('selectedDocId:', selectedDocId);
+    console.log('docInfo?.id:', docInfo?.id);
     console.log('name:', name);
     console.log('sigCanvas.current:', sigCanvas.current);
 
-    if (!selectedDocId) {
-      console.log('Aborting: no selectedDocId');
+    if (!docInfo?.id) {
+      console.log('Aborting: no docInfo id');
       return;
     }
 
@@ -82,7 +87,7 @@ export default function PublicView() {
 
     const signatureData = sigCanvas.current.getCanvas().toDataURL('image/png');
 
-    const res = await fetch(`/api/documents/${selectedDocId}/employees`, {
+    const res = await fetch(`/api/documents/${docInfo.id}/employees`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -99,28 +104,28 @@ export default function PublicView() {
       setRole('EMPLEADO');
       setBrigade('MULTIBRIGADA');
       sigCanvas.current.clear();
-      fetchEmployees(selectedDocId);
+      fetchEmployees(docInfo.id);
     }
   };
 
-  if (documents.length === 0) {
+  if (errorMsg || !docInfo) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
         <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200 text-center max-w-md w-full">
-          <p className="text-gray-500 mb-6">No hay actas constitutivas activas en este momento.</p>
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-lg font-medium transition-colors w-full"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Volver al inicio
-          </Link>
+          <p className="text-gray-500 mb-6">{errorMsg || 'Cargando acta...'}</p>
+          {errorMsg && (
+            <Link
+              to="/"
+              className="inline-flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-lg font-medium transition-colors w-full"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              Volver al inicio
+            </Link>
+          )}
         </div>
       </div>
     );
   }
-
-  const docInfo = documents.find(d => d.id === selectedDocId);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8 font-sans">
@@ -128,24 +133,9 @@ export default function PublicView() {
         <Link to="/" className="p-3 bg-white rounded-lg shadow-sm border border-gray-200 text-gray-600 hover:text-gray-900 transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row items-center gap-4 flex-1">
-          <label className="font-medium text-gray-700 whitespace-nowrap">Seleccionar Acta:</label>
-          <div className="relative w-full">
-            <select
-              value={selectedDocId || ''}
-              onChange={(e) => setSelectedDocId(Number(e.target.value))}
-              className="w-full appearance-none bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 pr-8"
-            >
-              {documents.map(doc => (
-                <option key={doc.id} value={doc.id}>
-                  {doc.commercial_name} - {doc.date}
-                </option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-              <ChevronDown className="w-4 h-4" />
-            </div>
-          </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row items-baseline gap-4 flex-1">
+          <span className="font-medium text-gray-700 whitespace-nowrap">Código de Acceso en uso:</span>
+          <span className="text-blue-700 font-bold tracking-widest bg-blue-50 px-3 py-1 rounded-md">{code}</span>
         </div>
       </div>
 
