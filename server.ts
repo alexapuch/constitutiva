@@ -74,6 +74,19 @@ app.put('/api/documents/:id', async (req, res) => {
   res.json({ success: true });
 });
 
+// PATCH regenerate access code for a document
+app.patch('/api/documents/:id/regenerate-code', async (req, res) => {
+  const access_code = nanoid(6).toUpperCase();
+  const { data, error } = await supabase
+    .from('document_info')
+    .update({ access_code })
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ access_code: data.access_code });
+});
+
 // DELETE document
 app.delete('/api/documents/:id', async (req, res) => {
   const { error } = await supabase.from('document_info').delete().eq('id', req.params.id);

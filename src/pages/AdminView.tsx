@@ -77,6 +77,16 @@ export default function AdminView() {
     setSelectedDocId(data.id);
   };
 
+  const handleRegenerateCode = async () => {
+    if (!selectedDocId) return;
+    const res = await fetch(`/api/documents/${selectedDocId}/regenerate-code`, { method: 'PATCH' });
+    const data = await res.json();
+    if (data.access_code) {
+      setDocuments(docs => docs.map(d => d.id === selectedDocId ? { ...d, access_code: data.access_code } : d));
+    }
+  };
+
+
   const handleDeleteDocument = async (id: number) => {
     await fetch(`/api/documents/${id}`, { method: 'DELETE' });
     if (selectedDocId === id) setSelectedDocId(null);
@@ -465,10 +475,17 @@ export default function AdminView() {
                           alert('Código copiado al portapapeles');
                         }
                       }}
-                      className="bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded-md transition-colors text-sm font-medium"
+                      className="bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded-md transition-colors text-sm font-medium whitespace-nowrap"
                       title="Copiar código"
                     >
                       Copiar
+                    </button>
+                    <button
+                      onClick={handleRegenerateCode}
+                      className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded-md transition-colors text-sm font-medium whitespace-nowrap"
+                      title="Generar nuevo código"
+                    >
+                      Regenerar
                     </button>
                   </div>
                 </div>
