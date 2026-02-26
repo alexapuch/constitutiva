@@ -5,6 +5,7 @@ import autoTable from 'jspdf-autotable';
 import { DocumentInfo, Employee } from '../types';
 import { Trash2, Save, FileText, Users, Plus, ArrowLeft, LogOut, Download } from 'lucide-react';
 import { generateSimulacroPDF } from '../utils/generateSimulacroPDF';
+import { compressSignature } from '../utils/compressSignature';
 import { sortEmployees } from './PublicView';
 
 export default function AdminView() {
@@ -110,6 +111,16 @@ export default function AdminView() {
     if (!docInfo) return;
     try {
 
+      // Pre-compress all signature images to reduce PDF size
+      const sortedEmps = sortEmployees(employees);
+      const compressedSignatures: Record<number, string> = {};
+      await Promise.all(
+        sortedEmps.map(async (emp) => {
+          if (emp.signature) {
+            compressedSignatures[emp.id] = await compressSignature(emp.signature);
+          }
+        })
+      );
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -251,7 +262,7 @@ export default function AdminView() {
               const xPos = dim.x + (dim.width - imgW) / 2;
               const yPos = dim.y + (dim.height - imgH) / 2;
               try {
-                doc.addImage(emp.signature, 'PNG', xPos, yPos, imgW, imgH);
+                doc.addImage(compressedSignatures[emp.id] || emp.signature, 'JPEG', xPos, yPos, imgW, imgH);
               } catch (e) { console.error('Error drawing image', e); }
             }
           }

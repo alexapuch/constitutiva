@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import SignatureCanvas from 'react-signature-canvas';
 import { DocumentInfo, Employee } from '../types';
+import { compressSignature } from '../utils/compressSignature';
 
 export const sortEmployees = (employees: Employee[]) => {
   return [...employees].sort((a, b) => {
@@ -85,7 +86,8 @@ export default function PublicView() {
 
     console.log('All validations passed, getting image data...');
 
-    const signatureData = sigCanvas.current.getCanvas().toDataURL('image/png');
+    const rawSignature = sigCanvas.current.getCanvas().toDataURL('image/png');
+    const signatureData = await compressSignature(rawSignature, 300, 0.6);
 
     const res = await fetch(`/api/documents/${docInfo.id}/employees`, {
       method: 'POST',

@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { DocumentInfo, Employee } from '../types';
 import { sortEmployees } from '../pages/PublicView';
+import { compressSignature } from './compressSignature';
 
 export const generateSimulacroPDF = async (
     docInfo: DocumentInfo,
@@ -9,6 +10,17 @@ export const generateSimulacroPDF = async (
     visitantes: string,
     usuarios: string
 ) => {
+    // Pre-compress all signature images
+    const sortedEmployeesAll = sortEmployees(employees);
+    const compressedSignatures: Record<number, string> = {};
+    await Promise.all(
+        sortedEmployeesAll.map(async (emp) => {
+            if (emp.signature) {
+                compressedSignatures[emp.id] = await compressSignature(emp.signature);
+            }
+        })
+    );
+
     const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -334,7 +346,7 @@ export const generateSimulacroPDF = async (
                     const xPos = dim.x + (dim.width - imgW) / 2;
                     const yPos = dim.y + (dim.height - imgH) / 2;
                     try {
-                        doc.addImage(emp.signature, 'PNG', xPos, yPos, imgW, imgH);
+                        doc.addImage(compressedSignatures[emp.id] || emp.signature, 'JPEG', xPos, yPos, imgW, imgH);
                     } catch (e) { console.error('Error drawing image', e); }
                 }
             }
