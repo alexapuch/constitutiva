@@ -93,7 +93,7 @@ export default function PublicView() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name,
+        name: name.toUpperCase(),
         role,
         brigade,
         signature: signatureData
