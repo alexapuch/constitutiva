@@ -292,7 +292,7 @@ export default function AdminView() {
           return; // Success, exit
         } catch (error) {
           console.log('User cancelled share or share failed:', error);
-          // Fallback to normal download if share fails
+          return; // Stay on the page, don't fallback to doc.save
         }
       }
 

@@ -371,6 +371,7 @@ export const generateSimulacroPDF = async (
             return;
         } catch (error) {
             console.log('User cancelled share or share failed:', error);
+            return; // Stay on the page, don't fallback to doc.save
         }
     }
 
