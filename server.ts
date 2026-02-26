@@ -1,7 +1,9 @@
 import express from 'express';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
-import { nanoid } from 'nanoid';
+import { customAlphabet } from 'nanoid';
+
+const generateCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 6);
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000');
@@ -30,7 +32,7 @@ app.get('/api/documents', async (req, res) => {
 // POST create document
 app.post('/api/documents', async (req, res) => {
   const { commercial_name, company_name, date, time_start, time_end, address, is_active, activity } = req.body;
-  const access_code = nanoid(6).toUpperCase(); // e.g. "V1StGX"
+  const access_code = generateCode(); // e.g. "V1StGX"
   const { data, error } = await supabase
     .from('document_info')
     .insert({ commercial_name, company_name, date, time_start, time_end, address, is_active: is_active ?? 1, activity, access_code })
@@ -75,7 +77,7 @@ app.put('/api/documents/:id', async (req, res) => {
 
 // PATCH regenerate access code for a document
 app.patch('/api/documents/:id/regenerate-code', async (req, res) => {
-  const access_code = nanoid(6).toUpperCase();
+  const access_code = generateCode();
   const { data, error } = await supabase
     .from('document_info')
     .update({ access_code })
