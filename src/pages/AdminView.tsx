@@ -230,8 +230,8 @@ export default function AdminView() {
       });
       currentY += 8;
 
-      // 4. ESQUEMA ORGANIZACIONAL
-      if (currentY > 250) { doc.addPage(); currentY = margin; }
+      // 4. ESQUEMA ORGANIZACIONAL — always on a new page
+      doc.addPage(); currentY = margin;
       addText('4. ESQUEMA ORGANIZACIONAL', 10, 'bold', 'left');
       currentY += 2;
       addText('Para que la Unidad Interna de Protección Civil logre los objetivos y desempeñe las funciones antes descritas, contará con la estructura organizacional.', 10, 'normal', 'left');
