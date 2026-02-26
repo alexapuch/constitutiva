@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { DocumentInfo, Employee } from '../types';
-import { Trash2, Save, FileText, Users, Plus, Eye, EyeOff, ArrowLeft, LogOut, Download } from 'lucide-react';
+import { Trash2, Save, FileText, Users, Plus, ArrowLeft, LogOut, Download } from 'lucide-react';
 import { generateSimulacroPDF } from '../utils/generateSimulacroPDF';
 import { sortEmployees } from './PublicView';
 
@@ -93,14 +93,7 @@ export default function AdminView() {
     fetchDocuments();
   };
 
-  const handleToggleActive = async (doc: DocumentInfo) => {
-    await fetch(`/api/documents/${doc.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...doc, is_active: doc.is_active ? 0 : 1 })
-    });
-    fetchDocuments();
-  };
+
 
   const handleDeleteEmployee = async (id: number) => {
     await fetch(`/api/employees/${id}`, { method: 'DELETE' });
@@ -382,7 +375,6 @@ export default function AdminView() {
                   <th className="px-6 py-3 font-medium">Nombre Comercial</th>
                   <th className="px-6 py-3 font-medium">Código Acceso</th>
                   <th className="px-6 py-3 font-medium">Fecha</th>
-                  <th className="px-6 py-3 font-medium text-center">Estado</th>
                   <th className="px-6 py-3 font-medium text-right">Acciones</th>
                 </tr>
               </thead>
@@ -398,15 +390,7 @@ export default function AdminView() {
                       <span className="font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-200">{doc.access_code || 'N/A'}</span>
                     </td>
                     <td className="px-6 py-4 text-gray-500">{doc.date}</td>
-                    <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleToggleActive(doc); }}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${doc.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
-                      >
-                        {doc.is_active ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                        {doc.is_active ? 'Visible' : 'Oculto'}
-                      </button>
-                    </td>
+
                     <td className="px-6 py-4 text-right">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDeleteDocument(doc.id); }}
