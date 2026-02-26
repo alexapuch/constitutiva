@@ -284,13 +284,11 @@ export default function PublicView() {
       {docInfo && (
         <button
           onClick={() => setIsModalOpen(true)}
-          className="fixed bottom-8 right-8 bg-blue-600 text-white p-4 rounded-full shadow-xl hover:bg-blue-700 transition-colors flex items-center justify-center group z-10"
+          className="fixed bottom-8 right-4 left-4 sm:left-auto sm:right-8 bg-blue-600 text-white px-6 py-4 rounded-2xl shadow-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-3 z-10"
           aria-label="Agregar Firma"
         >
-          <PenTool className="w-6 h-6" />
-          <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 ease-in-out pl-0 group-hover:pl-2 font-medium">
-            Agregar mi firma
-          </span>
+          <PenTool className="w-6 h-6 shrink-0" />
+          <span className="font-bold text-sm sm:text-base">DAR CLICK AQUÍ PARA FIRMAR Y REGISTRARTE</span>
         </button>
       )}
 
