@@ -8,7 +8,9 @@ export const generateSimulacroPDF = async (
     docInfo: DocumentInfo,
     employees: Employee[],
     visitantes: string,
-    usuarios: string
+    usuarios: string,
+    sotanos: string = '0',
+    superiores: string = '1'
 ) => {
     // Pre-compress all signature images
     const sortedEmployeesAll = sortEmployees(employees);
@@ -57,7 +59,7 @@ export const generateSimulacroPDF = async (
                 { content: 'Elevadores   ( ) Sí   (X) No', colSpan: 3 }
             ],
             [
-                { content: 'Niveles\nSótanos          Superiores\n        X                        X', colSpan: 2, styles: { halign: 'center' } },
+                { content: `Niveles\nSótanos          Superiores\n        ${sotanos}                        ${superiores}`, colSpan: 2, styles: { halign: 'center' } },
                 { content: 'Escaleras de emergencia\n( ) Sí          (X) No\nCapacidad: ____________', colSpan: 2 },
                 { content: 'Helipuerto\n( ) Sí          (X) No\n( ) Abierto     ( ) Acomodo', colSpan: 3 }
             ],

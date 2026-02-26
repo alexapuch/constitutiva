@@ -17,6 +17,8 @@ export default function AdminView() {
   const [isSaving, setIsSaving] = useState(false);
   const [visitantes, setVisitantes] = useState('0');
   const [usuarios, setUsuarios] = useState('0');
+  const [sotanos, setSotanos] = useState('0');
+  const [superiores, setSuperiores] = useState('1');
 
   useEffect(() => {
     fetchDocuments();
@@ -584,9 +586,30 @@ export default function AdminView() {
                     />
                   </div>
 
+                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">
+                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Sótanos:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={sotanos}
+                      onChange={(e) => setSotanos(e.target.value)}
+                      className="w-16 border-none bg-transparent p-0 text-right focus:ring-0 text-gray-900 font-semibold"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">
+                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Superiores:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={superiores}
+                      onChange={(e) => setSuperiores(e.target.value)}
+                      className="w-16 border-none bg-transparent p-0 text-right focus:ring-0 text-gray-900 font-semibold"
+                    />
+                  </div>
+
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => docInfo && generateSimulacroPDF(docInfo, employees, visitantes, usuarios)}
+                      onClick={() => docInfo && generateSimulacroPDF(docInfo, employees, visitantes, usuarios, sotanos, superiores)}
                       className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors shadow-sm whitespace-nowrap"
                       title="Descargar Cédula de Evaluación de Simulacro"
                     >
