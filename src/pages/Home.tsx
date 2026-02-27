@@ -45,13 +45,12 @@ export default function Home() {
             </div>
           </div>
 
-          <button
+          <p
             onClick={() => navigate('/admin')}
-            className="w-full flex items-center justify-center gap-3 bg-gray-800 hover:bg-gray-900 text-white p-4 rounded-xl font-medium transition-colors"
+            className="text-gray-400 text-sm cursor-pointer hover:text-gray-600 transition-colors"
           >
-            <Shield className="w-6 h-6" />
             Ingresar como Administrador
-          </button>
+          </p>
         </div>
 
         <div className="text-gray-400 text-sm mt-4">
