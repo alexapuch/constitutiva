@@ -49,9 +49,10 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         doc.text(docInfo.commercial_name.toUpperCase(), 118, 95, { align: 'left', maxWidth: 140 });
 
         // 3. Address
-        // Exact translation from 659.75px, 684.75px (1920x1080 base) with micro-adjustments (down)
-        const fullAddress = `${docInfo.address}${docInfo.address ? ", " : ""}Playa del Carmen, Quintana Roo, México.`.toUpperCase();
-        doc.text(fullAddress, 96, 101, { align: 'left', maxWidth: 155, lineHeightFactor: 1.5 });
+        // Force "Playa del Carmen..." to the second line explicitly by passing an array of strings
+        const addressLine1 = docInfo.address.toUpperCase();
+        const addressLine2 = "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.";
+        doc.text([addressLine1, addressLine2], 96, 101, { align: 'left', maxWidth: 155, lineHeightFactor: 1.5 });
 
         // 4. Date
         doc.setFontSize(11);
