@@ -45,19 +45,19 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         // 2. Commercial Name
         doc.setFontSize(10);
         doc.setTextColor(80, 80, 80); // Gray text
-        // Move up and left
-        doc.text(docInfo.commercial_name.toUpperCase(), 105, 96, { align: 'left', maxWidth: 140 });
+        // Precise X based on user's 1006.38px measurement (146.5 mm)
+        doc.text(docInfo.commercial_name.toUpperCase(), 146.5, 94, { align: 'left', maxWidth: 120 });
 
         // 3. Address
-        // Move up and left
+        // Precise X based on user's 855.91px measurement (124.5 mm)
         const fullAddress = `${docInfo.address}${docInfo.address ? ", " : ""}Playa del Carmen, Quintana Roo, México.`.toUpperCase();
-        doc.text(fullAddress, 95, 104, { align: 'left', maxWidth: 155, lineHeightFactor: 1.5 });
+        doc.text(fullAddress, 124.5, 99.5, { align: 'left', maxWidth: 140, lineHeightFactor: 1.5 });
 
         // 4. Date
         doc.setFontSize(11);
-        doc.setTextColor(0, 0, 0); // Black text for testing visibility
+        doc.setTextColor(255, 255, 255); // White text inside red banner
         doc.setFont('helvetica', 'bold');
-        // Move date up
+        // Date reported correct at this position
         doc.text(docInfo.date.toUpperCase(), 140, 125, { align: 'center' });
 
         // Generate output and download
