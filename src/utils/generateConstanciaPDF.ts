@@ -45,13 +45,13 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         // 2. Commercial Name
         doc.setFontSize(10);
         doc.setTextColor(80, 80, 80); // Gray text
-        // Exact translation from 825.75px, 642.75px (1920x1080 base)
-        doc.text(docInfo.commercial_name.toUpperCase(), 120, 93.5, { align: 'left', maxWidth: 140 });
+        // Exact translation from 825.75px, 642.75px (1920x1080 base) with micro-adjustments (down and left)
+        doc.text(docInfo.commercial_name.toUpperCase(), 118, 95, { align: 'left', maxWidth: 140 });
 
         // 3. Address
-        // Exact translation from 659.75px, 684.75px (1920x1080 base)
+        // Exact translation from 659.75px, 684.75px (1920x1080 base) with micro-adjustments (down)
         const fullAddress = `${docInfo.address}${docInfo.address ? ", " : ""}Playa del Carmen, Quintana Roo, México.`.toUpperCase();
-        doc.text(fullAddress, 96, 99.6, { align: 'left', maxWidth: 155, lineHeightFactor: 1.5 });
+        doc.text(fullAddress, 96, 101, { align: 'left', maxWidth: 155, lineHeightFactor: 1.5 });
 
         // 4. Date
         doc.setFontSize(11);
