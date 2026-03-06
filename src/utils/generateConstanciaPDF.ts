@@ -45,20 +45,20 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         // 2. Commercial Name
         doc.setFontSize(10);
         doc.setTextColor(80, 80, 80); // Gray text
-        // Move slightly left and down
-        doc.text(docInfo.commercial_name.toUpperCase(), 95, 96, { align: 'left', maxWidth: 140 });
+        // Move left and up
+        doc.text(docInfo.commercial_name.toUpperCase(), 105, 87, { align: 'left', maxWidth: 140 });
 
         // 3. Address
-        // Move slightly left to align with commercial name
+        // Move left and up
         const fullAddress = `${docInfo.address}${docInfo.address ? ", " : ""}Playa del Carmen, Quintana Roo, México.`.toUpperCase();
-        doc.text(fullAddress, 95, 102, { align: 'left', maxWidth: 155, lineHeightFactor: 1.5 });
+        doc.text(fullAddress, 105, 93, { align: 'left', maxWidth: 155, lineHeightFactor: 1.5 });
 
         // 4. Date
         doc.setFontSize(11);
         doc.setTextColor(255, 255, 255); // White text inside red banner
         doc.setFont('helvetica', 'bold');
-        // Move date down drastically into the red rectangle
-        doc.text(docInfo.date.toUpperCase(), 133, 137, { align: 'center' });
+        // Move date back up 
+        doc.text(docInfo.date.toUpperCase(), 140, 115, { align: 'center' });
 
         // Generate output and download
         const safeName = emp.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
