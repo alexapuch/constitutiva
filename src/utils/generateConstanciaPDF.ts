@@ -84,7 +84,18 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
             }
         }
 
-        doc.save(fileName);
+        // Force standard download attachment instead of opening
+        // By using 'application/octet-stream', we prevent the browser from auto-opening PDFs if configured to do so.
+        const pdfBlobRaw = doc.output('blob');
+        const pdfBlobForDownload = new Blob([pdfBlobRaw], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(pdfBlobForDownload);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 100);
     } catch (error: any) {
         console.error('Error al generar constancia:', error);
         alert('Error al generar constancia. Asegúrate de haber guardado la imagen vacía como "constancia_vacia.jpg" en la carpeta public. Detalles: ' + error.message);
