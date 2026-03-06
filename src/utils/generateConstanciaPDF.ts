@@ -4,7 +4,7 @@ import { DocumentInfo, Employee } from '../types';
 export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee) => {
     try {
         // 1. URL to the empty template
-        const imgUrl = '/constancia_vacia.jpeg';
+        const imgUrl = '/constancia_vacia.png';
 
         // Convert image to base64
         const imgData = await fetch(imgUrl)
@@ -39,24 +39,25 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(27, 54, 93); // Dark blue from the template
         doc.setFontSize(22);
-        doc.text(emp.name.toUpperCase(), docWidth / 2, 60, { align: 'center' }); // Adjusted Y up
+        // Adjusted Y for the name to match the line inside the new PNG
+        doc.text(emp.name.toUpperCase(), docWidth / 2, 60, { align: 'center' });
 
         // 2. Commercial Name
         doc.setFontSize(10);
         doc.setTextColor(80, 80, 80); // Gray text
         // Right next to "NOMBRE COMERCIAL:"
-        doc.text(docInfo.commercial_name.toUpperCase(), 110, 93, { align: 'left', maxWidth: 160 });
+        doc.text(docInfo.commercial_name.toUpperCase(), 110, 95.5, { align: 'left', maxWidth: 160 });
 
         // 3. Address
         // Next to "DIRECCIÓN:"
         const fullAddress = `${docInfo.address}${docInfo.address ? ", " : ""}Playa del Carmen, Quintana Roo, México.`.toUpperCase();
-        doc.text(fullAddress, 95, 101, { align: 'left', maxWidth: 170 });
+        doc.text(fullAddress, 95, 103.5, { align: 'left', maxWidth: 170 });
 
         // 4. Date
         doc.setFontSize(11);
         doc.setTextColor(255, 255, 255); // White text inside red banner
         doc.setFont('helvetica', 'bold');
-        doc.text(docInfo.date.toUpperCase(), 140, 126, { align: 'center' });
+        doc.text(docInfo.date.toUpperCase(), 140, 128.5, { align: 'center' });
 
         // Generate output and download
         const safeName = emp.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
