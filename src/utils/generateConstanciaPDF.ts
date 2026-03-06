@@ -22,7 +22,8 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         const doc = new jsPDF({
             orientation: 'landscape',
             unit: 'mm',
-            format: [279.4, 157.16] // Custom 16:9 format matching 1920x1080 to prevent squishing
+            format: [279.4, 157.16], // Custom 16:9 format matching 1920x1080 to prevent squishing
+            compress: true
         });
 
         const docWidth = doc.internal.pageSize.getWidth();
@@ -31,7 +32,7 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         // Note: If using a PNG, change 'JPEG' to 'PNG'
         // JS PDF usually handles base64 urls dynamically, but let's assume JPEG as standard photo format
         const imgType = imgData.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-        doc.addImage(imgData, imgType, 0, 0, docWidth, docHeight);
+        doc.addImage(imgData, imgType, 0, 0, docWidth, docHeight, 'template', 'FAST');
 
         // Text position settings
 
