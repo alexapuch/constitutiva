@@ -1,17 +1,18 @@
-import { jsPDF } from 'jspdf';
+﻿import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { DocumentInfo, Employee } from '../types';
 import { sortEmployees } from '../pages/PublicView';
 import { compressSignature } from './compressSignature';
+import { FIRMA_JORGE_BASE64 } from './firmaJorge';
 
 export const generateSimulacroPDF = async (
     docInfo: DocumentInfo,
-    employees: Employee[],
-    visitantes: string,
-    usuarios: string,
-    sotanos: string = '0',
-    superiores: string = '1'
+    employees: Employee[]
 ) => {
+    const visitantes = docInfo.visitantes ?? 0;
+    const usuarios = docInfo.usuarios ?? 0;
+    const sotanos = docInfo.sotanos ?? 0;
+    const superiores = docInfo.superiores ?? 1;
     // Pre-compress all signature images
     const sortedEmployeesAll = sortEmployees(employees);
     const compressedSignatures: Record<number, string> = {};
@@ -52,7 +53,7 @@ export const generateSimulacroPDF = async (
         body: [
             [{ content: `Nombre, denominación o razón social: ${docInfo.commercial_name}`, colSpan: 7 }],
             [{ content: `Giro o actividad productiva principal del establecimiento: ${docInfo.activity || ''}`, colSpan: 7 }],
-            [{ content: `Dirección del establecimiento o inmueble: ${docInfo.address}`, colSpan: 7 }],
+            [{ content: `Dirección del establecimiento o inmueble: ${docInfo.address}${docInfo.address ? ", " : ""}PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.`, colSpan: 7 }],
             [
                 { content: 'El inmueble cuenta con:', colSpan: 2 },
                 { content: 'Estacionamiento   (X) Sí   ( ) No', colSpan: 2 },
@@ -299,11 +300,24 @@ export const generateSimulacroPDF = async (
             doc.setLineWidth(0.1);
             doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height);
         },
+        didDrawCell: function (data) {
+            // Draw Jorge's signature in row 1 (the JORGE HUMBERTO cell), column 0
+            if (data.cell.section === 'body' && data.row.index === 1 && data.column.index === 0) {
+                const dim = data.cell;
+                const imgW = 45;
+                const imgH = 22;
+                const xPos = dim.x + 2;
+                const yPos = dim.y + 1;
+                try {
+                    doc.addImage(FIRMA_JORGE_BASE64, 'JPEG', xPos, yPos, imgW, imgH);
+                } catch (e) { console.error('Error drawing Jorge signature', e); }
+            }
+        },
         body: [
             [{ content: 'POR OBSERVADORES O ASESORES EXTERNOS', colSpan: 2 }],
             [
-                { content: ' \n\nJORGE HUMBERTO MEZA CONTRERAS', styles: { minCellHeight: 18, halign: 'left', valign: 'bottom' } },
-                { content: '', styles: { minCellHeight: 18 } }
+                { content: ' \n\n\n\nJORGE HUMBERTO MEZA CONTRERAS', styles: { minCellHeight: 28, halign: 'left', valign: 'bottom' } },
+                { content: '', styles: { minCellHeight: 28 } }
             ],
             [{ content: 'Nombre, Cargo y Firma de los funcionarios, Observadores', colSpan: 2, styles: { halign: 'center' } }],
             [{ content: 'POR EL INMUEBLE', colSpan: 2 }],

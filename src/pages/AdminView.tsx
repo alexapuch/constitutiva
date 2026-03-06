@@ -1,12 +1,129 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { DocumentInfo, Employee } from '../types';
-import { Trash2, Save, FileText, Users, Plus, ArrowLeft, LogOut, Download } from 'lucide-react';
+import { Trash2, Save, FileText, Users, Plus, ArrowLeft, LogOut, Download, Award } from 'lucide-react';
 import { generateSimulacroPDF } from '../utils/generateSimulacroPDF';
+import { generateConstanciaPDF } from '../utils/generateConstanciaPDF';
 import { compressSignature } from '../utils/compressSignature';
 import { sortEmployees } from './PublicView';
+
+// --- Swipeable Row Component for mobile swipe-to-delete ---
+function SwipeableRow({
+  children,
+  onDelete,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onDelete: () => void;
+  onClick: () => void;
+}) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [translateX, setTranslateX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const currentX = useRef(0);
+  const isHorizontalSwipe = useRef<boolean | null>(null);
+  const DELETE_THRESHOLD = 80;
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    startY.current = e.touches[0].clientY;
+    currentX.current = 0;
+    isHorizontalSwipe.current = null;
+    setIsSwiping(true);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isSwiping) return;
+    const diffX = e.touches[0].clientX - startX.current;
+    const diffY = e.touches[0].clientY - startY.current;
+
+    // Determine swipe direction on first significant move
+    if (isHorizontalSwipe.current === null) {
+      if (Math.abs(diffX) > 5 || Math.abs(diffY) > 5) {
+        isHorizontalSwipe.current = Math.abs(diffX) > Math.abs(diffY);
+      }
+      return;
+    }
+
+    if (!isHorizontalSwipe.current) return;
+
+    // Only allow swiping left (negative values)
+    const clampedX = Math.min(0, Math.max(diffX, -120));
+    currentX.current = clampedX;
+    setTranslateX(clampedX);
+  }, [isSwiping]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsSwiping(false);
+    if (currentX.current < -DELETE_THRESHOLD) {
+      // Keep it open to show the delete button
+      setTranslateX(-100);
+    } else {
+      setTranslateX(0);
+    }
+  }, []);
+
+  const handleRowClick = useCallback(() => {
+    if (translateX < 0) {
+      // If swiped open, close it instead of selecting
+      setTranslateX(0);
+    } else {
+      onClick();
+    }
+  }, [translateX, onClick]);
+
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden' }}>
+      {/* Delete button behind the row */}
+      <div
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: '100px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#ef4444',
+          color: 'white',
+          fontWeight: 600,
+          fontSize: '14px',
+          cursor: 'pointer',
+          zIndex: 0,
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+      >
+        <Trash2 className="w-5 h-5 mr-1" />
+        Eliminar
+      </div>
+      {/* Foreground swipeable row */}
+      <div
+        ref={rowRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={handleRowClick}
+        style={{
+          transform: `translateX(${translateX}px)`,
+          transition: isSwiping ? 'none' : 'transform 0.3s ease',
+          position: 'relative',
+          zIndex: 1,
+          backgroundColor: 'white',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export default function AdminView() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -15,10 +132,7 @@ export default function AdminView() {
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [visitantes, setVisitantes] = useState('0');
-  const [usuarios, setUsuarios] = useState('0');
-  const [sotanos, setSotanos] = useState('0');
-  const [superiores, setSuperiores] = useState('1');
+  const editSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchDocuments();
@@ -65,9 +179,9 @@ export default function AdminView() {
       commercial_name: 'Nueva Empresa',
       company_name: 'Nueva Razón Social',
       date: 'Fecha',
-      time_start: '00:00',
-      time_end: '00:00',
-      address: 'Dirección',
+      time_start: '12:00',
+      time_end: '13:20',
+      address: '',
       is_active: 1
     };
     const res = await fetch('/api/documents', {
@@ -151,7 +265,8 @@ export default function AdminView() {
       currentY += 8;
 
       // Body paragraphs
-      addText(`C. ${docInfo.commercial_name} RESPONSABLE DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL DE LA EMPRESA DENOMINADA "${docInfo.company_name}" y Siendo las ${docInfo.time_start} horas del día ${docInfo.date}, en el inmueble que ocupa la empresa, con domicilio, ${docInfo.address}. Se reúne la representante legal, así como lo empleados:`, 10, 'normal', 'left');
+      const fullAddress = `${docInfo.address}${docInfo.address ? ", " : ""}PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.`;
+      addText(`C. ${docInfo.commercial_name} RESPONSABLE DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL DE LA EMPRESA DENOMINADA "${docInfo.company_name}" y Siendo las ${docInfo.time_start} horas del día ${docInfo.date}, en el inmueble que ocupa la empresa, con domicilio, ${fullAddress} Se reúne la representante legal, así como lo empleados:`, 10, 'normal', 'left');
       currentY += 4;
       addText(`Con el objeto de constituir formalmente la Unidad Interna de Protección Civil de este inmueble.`, 10, 'normal', 'left');
       currentY += 4;
@@ -381,55 +496,60 @@ export default function AdminView() {
             </button>
           </div>
 
-          <div className="p-0">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-gray-50 border-b border-gray-200 text-gray-700">
-                <tr>
-                  <th className="px-6 py-3 font-medium">Nombre Comercial</th>
-                  <th className="px-6 py-3 font-medium">Código Acceso</th>
-                  <th className="px-6 py-3 font-medium">Fecha</th>
-                  <th className="px-6 py-3 font-medium text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {documents.map(doc => (
-                  <tr
-                    key={doc.id}
-                    className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${selectedDocId === doc.id ? 'bg-blue-50' : ''}`}
-                    onClick={() => setSelectedDocId(doc.id)}
-                  >
-                    <td className="px-6 py-4 font-medium text-gray-900">{doc.commercial_name}</td>
-                    <td className="px-6 py-4">
-                      <span className="font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-200">{doc.access_code || 'N/A'}</span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500">{doc.date}</td>
-
-                    <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteDocument(doc.id); }}
-                        className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
-                        title="Eliminar Acta"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {documents.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-8 text-center text-gray-500 italic">
-                      No hay actas constitutivas creadas.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <div className="p-0" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+            {/* Header row - visible on larger screens */}
+            <div className="hidden sm:grid sm:grid-cols-[1fr_auto_auto_auto] gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200 text-sm font-medium text-gray-700">
+              <span>Nombre Comercial</span>
+              <span className="w-24 text-center">Código Acceso</span>
+              <span className="w-32 text-center">Fecha</span>
+              <span className="w-16 text-right">Acciones</span>
+            </div>
+            {documents.map(doc => (
+              <SwipeableRow
+                key={doc.id}
+                onDelete={() => handleDeleteDocument(doc.id)}
+                onClick={() => {
+                  setSelectedDocId(doc.id);
+                  setTimeout(() => {
+                    editSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }, 100);
+                }}
+              >
+                <div
+                  className={`grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-1 sm:gap-4 items-center px-6 py-4 border-b border-gray-100 cursor-pointer ${selectedDocId === doc.id ? 'bg-blue-50' : 'bg-white'}`}
+                >
+                  <span className="font-medium text-gray-900">{doc.commercial_name}</span>
+                  <span className="w-auto sm:w-24 text-left sm:text-center">
+                    <span className="font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-200 text-sm">{doc.access_code || 'N/A'}</span>
+                  </span>
+                  <span className="text-gray-500 text-sm w-auto sm:w-32 sm:text-center">{doc.date}</span>
+                  {/* Desktop-only delete button */}
+                  <span className="hidden sm:flex w-16 justify-end">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteDocument(doc.id); }}
+                      className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
+                      title="Eliminar Acta"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </span>
+                  {/* Mobile hint */}
+                  <span className="block sm:hidden text-xs text-gray-400 mt-1">← Desliza para eliminar</span>
+                </div>
+              </SwipeableRow>
+            ))}
+            {documents.length === 0 && (
+              <div className="px-6 py-8 text-center text-gray-500 italic">
+                No hay actas constitutivas creadas.
+              </div>
+            )}
           </div>
+
         </div>
 
         {docInfo && (
           <>
-            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+            <div ref={editSectionRef} className="bg-white shadow-md rounded-lg overflow-hidden">
               <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-blue-50">
                 <h2 className="text-xl font-bold flex items-center gap-2 text-blue-900">
                   <FileText className="w-6 h-6" />
@@ -451,7 +571,7 @@ export default function AdminView() {
                   <input
                     type="text"
                     value={docInfo.commercial_name}
-                    onChange={(e) => updateSelectedDoc('commercial_name', e.target.value)}
+                    onChange={(e) => updateSelectedDoc('commercial_name', e.target.value.toUpperCase())}
                     className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -500,12 +620,20 @@ export default function AdminView() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
                   <input
-                    type="text"
-                    value={docInfo.date}
-                    onChange={(e) => updateSelectedDoc('date', e.target.value)}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Ej. 19 de FEBRERO DEL 2026"
+                    type="date"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!val) return;
+                      const [y, m, d] = val.split('-');
+                      const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+                      const formatted = `${parseInt(d)} DE ${meses[parseInt(m) - 1]} DEL ${y}`;
+                      updateSelectedDoc('date', formatted);
+                    }}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 mb-1"
                   />
+                  <div className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-md px-3 py-1.5 font-medium">
+                    {docInfo.date || 'Sin fecha seleccionada'}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -536,9 +664,13 @@ export default function AdminView() {
                   <textarea
                     rows={2}
                     value={docInfo.address}
-                    onChange={(e) => updateSelectedDoc('address', e.target.value)}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                    onChange={(e) => updateSelectedDoc('address', e.target.value.toUpperCase())}
+                    className="w-full border border-gray-300 rounded-t-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Ej. Calle 6 bis entre 25 y 30, Col. Centro"
                   />
+                  <div className="w-full bg-gray-100 border border-t-0 border-gray-300 rounded-b-md px-3 py-2 text-sm font-semibold text-gray-700 select-none">
+                    PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.
+                  </div>
                 </div>
 
                 <div className="md:col-span-2">
@@ -546,7 +678,7 @@ export default function AdminView() {
                   <input
                     type="text"
                     value={docInfo.activity || ''}
-                    onChange={(e) => updateSelectedDoc('activity', e.target.value)}
+                    onChange={(e) => updateSelectedDoc('activity', e.target.value.toUpperCase())}
                     className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Ej. HOTEL U HOSPEDAJE TEMPORAL"
                   />
@@ -570,8 +702,8 @@ export default function AdminView() {
                     <input
                       type="number"
                       min="0"
-                      value={usuarios}
-                      onChange={(e) => setUsuarios(e.target.value)}
+                      value={docInfo.usuarios ?? 0}
+                      onChange={(e) => updateSelectedDoc('usuarios', parseInt(e.target.value) || 0)}
                       className="w-16 border-none bg-transparent p-0 text-right focus:ring-0 text-gray-900 font-semibold"
                     />
                   </div>
@@ -580,8 +712,8 @@ export default function AdminView() {
                     <input
                       type="number"
                       min="0"
-                      value={visitantes}
-                      onChange={(e) => setVisitantes(e.target.value)}
+                      value={docInfo.visitantes ?? 0}
+                      onChange={(e) => updateSelectedDoc('visitantes', parseInt(e.target.value) || 0)}
                       className="w-16 border-none bg-transparent p-0 text-right focus:ring-0 text-gray-900 font-semibold"
                     />
                   </div>
@@ -590,8 +722,8 @@ export default function AdminView() {
                     <input
                       type="number"
                       min="0"
-                      value={sotanos}
-                      onChange={(e) => setSotanos(e.target.value)}
+                      value={docInfo.sotanos ?? 0}
+                      onChange={(e) => updateSelectedDoc('sotanos', parseInt(e.target.value) || 0)}
                       className="w-16 border-none bg-transparent p-0 text-right focus:ring-0 text-gray-900 font-semibold"
                     />
                   </div>
@@ -600,8 +732,8 @@ export default function AdminView() {
                     <input
                       type="number"
                       min="0"
-                      value={superiores}
-                      onChange={(e) => setSuperiores(e.target.value)}
+                      value={docInfo.superiores ?? 1}
+                      onChange={(e) => updateSelectedDoc('superiores', parseInt(e.target.value) || 0)}
                       className="w-16 border-none bg-transparent p-0 text-right focus:ring-0 text-gray-900 font-semibold"
                     />
                   </div>
@@ -609,7 +741,7 @@ export default function AdminView() {
 
                 <div className="flex flex-wrap items-center gap-3">
                   <button
-                    onClick={() => docInfo && generateSimulacroPDF(docInfo, employees, visitantes, usuarios, sotanos, superiores)}
+                    onClick={() => docInfo && generateSimulacroPDF(docInfo, employees)}
                     className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors shadow-sm whitespace-nowrap"
                     title="Descargar Cédula de Evaluación de Simulacro"
                   >
@@ -649,7 +781,14 @@ export default function AdminView() {
                         <td className="p-3 text-center h-16">
                           <img src={emp.signature} alt="Firma" className="h-10 mx-auto object-contain mix-blend-multiply" />
                         </td>
-                        <td className="p-3 text-center">
+                        <td className="p-3 text-center flex justify-center gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); docInfo && generateConstanciaPDF(docInfo, emp); }}
+                            className="text-indigo-500 hover:text-indigo-700 p-2 rounded-full hover:bg-indigo-50 transition-colors"
+                            title="Descargar Constancia"
+                          >
+                            <Award className="w-5 h-5" />
+                          </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleDeleteEmployee(emp.id); }}
                             className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition-colors"

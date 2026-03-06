@@ -9,6 +9,10 @@ export interface DocumentInfo {
   is_active: number;
   activity?: string;
   access_code?: string;
+  usuarios?: number;
+  visitantes?: number;
+  sotanos?: number;
+  superiores?: number;
 }
 
 export interface Employee {

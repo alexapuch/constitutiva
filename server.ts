@@ -31,11 +31,11 @@ app.get('/api/documents', async (req, res) => {
 
 // POST create document
 app.post('/api/documents', async (req, res) => {
-  const { commercial_name, company_name, date, time_start, time_end, address, is_active, activity } = req.body;
+  const { commercial_name, company_name, date, time_start, time_end, address, is_active, activity, usuarios, visitantes, sotanos, superiores } = req.body;
   const access_code = generateCode(); // e.g. "V1StGX"
   const { data, error } = await supabase
     .from('document_info')
-    .insert({ commercial_name, company_name, date, time_start, time_end, address, is_active: is_active ?? 1, activity, access_code })
+    .insert({ commercial_name, company_name, date, time_start, time_end, address, is_active: is_active ?? 1, activity, access_code, usuarios, visitantes, sotanos, superiores })
     .select()
     .single();
   if (error) return res.status(500).json({ error: error.message });
@@ -66,10 +66,10 @@ app.get('/api/documents/code/:code', async (req, res) => {
 
 // PUT update document
 app.put('/api/documents/:id', async (req, res) => {
-  const { commercial_name, company_name, date, time_start, time_end, address, is_active, activity } = req.body;
+  const { commercial_name, company_name, date, time_start, time_end, address, is_active, activity, usuarios, visitantes, sotanos, superiores } = req.body;
   const { error } = await supabase
     .from('document_info')
-    .update({ commercial_name, company_name, date, time_start, time_end, address, is_active, activity })
+    .update({ commercial_name, company_name, date, time_start, time_end, address, is_active, activity, usuarios, visitantes, sotanos, superiores })
     .eq('id', req.params.id);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ success: true });
