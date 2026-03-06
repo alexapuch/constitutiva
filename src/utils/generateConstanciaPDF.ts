@@ -39,25 +39,26 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(27, 54, 93); // Dark blue from the template
         doc.setFontSize(22);
-        // Adjusted Y for the name to match the line inside the new PNG
-        doc.text(emp.name.toUpperCase(), docWidth / 2, 60, { align: 'center' });
+        // Move up further for Name
+        doc.text(emp.name.toUpperCase(), docWidth / 2, 53, { align: 'center' });
 
         // 2. Commercial Name
         doc.setFontSize(10);
         doc.setTextColor(80, 80, 80); // Gray text
-        // Right next to "NOMBRE COMERCIAL:"
-        doc.text(docInfo.commercial_name.toUpperCase(), 110, 95.5, { align: 'left', maxWidth: 160 });
+        // Move slightly right and up
+        doc.text(docInfo.commercial_name.toUpperCase(), 125, 91, { align: 'left', maxWidth: 140 });
 
         // 3. Address
-        // Next to "DIRECCIÓN:"
+        // Move right and up, reduce maxWidth to force line breaks earlier
         const fullAddress = `${docInfo.address}${docInfo.address ? ", " : ""}Playa del Carmen, Quintana Roo, México.`.toUpperCase();
-        doc.text(fullAddress, 95, 103.5, { align: 'left', maxWidth: 170 });
+        doc.text(fullAddress, 105, 99.5, { align: 'left', maxWidth: 155, lineHeightFactor: 1.5 });
 
         // 4. Date
         doc.setFontSize(11);
         doc.setTextColor(255, 255, 255); // White text inside red banner
         doc.setFont('helvetica', 'bold');
-        doc.text(docInfo.date.toUpperCase(), 140, 128.5, { align: 'center' });
+        // Move date up
+        doc.text(docInfo.date.toUpperCase(), 140, 117.5, { align: 'center' });
 
         // Generate output and download
         const safeName = emp.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
