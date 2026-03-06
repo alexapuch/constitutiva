@@ -59,8 +59,8 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         doc.setFontSize(11);
         doc.setTextColor(255, 255, 255); // White text inside red banner
         doc.setFont('helvetica', 'bold');
-        // Date reported correct at this position
-        doc.text(docInfo.date.toUpperCase(), 140, 125, { align: 'center' });
+        // Shift slightly to the right and up
+        doc.text(docInfo.date.toUpperCase(), 146, 123, { align: 'center' });
 
         // Generate output and download
         const safeName = emp.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
