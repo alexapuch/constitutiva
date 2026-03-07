@@ -77,9 +77,11 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
                         files: [file],
                         title: `Constancia - ${emp.name}`,
                     });
-                    return;
+                    return; // Success, exit
                 } catch (error) {
                     console.log('Share canceled or failed:', error);
+                    // DO NOT FALLTHROUGH on mobile. doc.save() on iOS overrides the current tab.
+                    return;
                 }
             }
         }
