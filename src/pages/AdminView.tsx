@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { DocumentInfo, Employee } from '../types';
-import { Trash2, Save, FileText, Users, Plus, ArrowLeft, LogOut, Download, Award } from 'lucide-react';
+import { Trash2, Save, FileText, Users, Plus, ArrowLeft, LogOut, Download, Award, Zap } from 'lucide-react';
 import { generateSimulacroPDF } from '../utils/generateSimulacroPDF';
 import { generateConstanciaPDF } from '../utils/generateConstanciaPDF';
 import { compressSignature } from '../utils/compressSignature';
@@ -134,6 +134,15 @@ export default function AdminView() {
   const [isSaving, setIsSaving] = useState(false);
   const editSectionRef = useRef<HTMLDivElement>(null);
 
+  // Manual Constancia Generator State
+  const [showQuickModal, setShowQuickModal] = useState(false);
+  const [quickData, setQuickData] = useState({
+    employeeName: '',
+    commercial_name: '',
+    address: '',
+    date: ''
+  });
+
   useEffect(() => {
     fetchDocuments();
   }, []);
@@ -219,6 +228,55 @@ export default function AdminView() {
 
   const updateSelectedDoc = (field: keyof DocumentInfo, value: any) => {
     setDocuments(docs => docs.map(d => d.id === selectedDocId ? { ...d, [field]: value } : d));
+  };
+
+  const handleQuickAutocomplete = (docId: string) => {
+    if (!docId) {
+      setQuickData(prev => ({ ...prev, commercial_name: '', address: '', date: '' }));
+      return;
+    }
+    const doc = documents.find(d => d.id.toString() === docId);
+    if (doc) {
+      setQuickData(prev => ({
+        ...prev,
+        commercial_name: doc.commercial_name || '',
+        address: doc.address || '',
+        date: doc.date || ''
+      }));
+    }
+  };
+
+  const handleGenerateManualConstancia = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickData.employeeName.trim() || !quickData.commercial_name.trim() || !quickData.address.trim() || !quickData.date.trim()) {
+      alert('Por favor llena todos los campos, o selecciona un acta existente para autocompletar.');
+      return;
+    }
+
+    // Create fake docInfo and employee objects to trick generateConstanciaPDF
+    const fakeDocInfo: DocumentInfo = {
+      id: 0,
+      commercial_name: quickData.commercial_name.toUpperCase(),
+      company_name: '',
+      date: quickData.date,
+      time_start: '',
+      time_end: '',
+      address: quickData.address.toUpperCase(),
+      is_active: 1
+    };
+
+    const fakeEmployee: Employee = {
+      id: 0,
+      document_id: 0,
+      name: quickData.employeeName.toUpperCase(),
+      role: '',
+      brigade: '',
+      signature: '' // Not needed for constancia background
+    };
+
+    generateConstanciaPDF(fakeDocInfo, fakeEmployee);
+    setShowQuickModal(false);
+    setQuickData({ employeeName: '', commercial_name: '', address: '', date: '' });
   };
 
   const docInfo = documents.find(d => d.id === selectedDocId);
@@ -473,8 +531,16 @@ export default function AdminView() {
             Volver al inicio
           </Link>
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowQuickModal(true)}
+              className="flex items-center gap-2 bg-purple-600 text-white px-3 py-1.5 rounded-md hover:bg-purple-700 transition-colors shadow-sm text-sm"
+              title="Generar constancia sin necesidad de firma"
+            >
+              <Zap className="w-4 h-4" />
+              Generador Rápido
+            </button>
             <span className="text-sm font-medium text-gray-400">v1.14</span>
-            <button onClick={() => setIsAuthenticated(false)} className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium transition-colors">
+            <button onClick={() => setIsAuthenticated(false)} className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium transition-colors text-sm">
               <LogOut className="w-5 h-5" />
               Cerrar Sesión
             </button>
@@ -814,6 +880,112 @@ export default function AdminView() {
         )}
 
       </div>
+
+      {/* Quick Constancia Generator Modal */}
+      {showQuickModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
+            <div className="bg-purple-600 p-4 text-white flex justify-between items-center">
+              <h3 className="font-bold flex items-center gap-2">
+                <Zap className="w-5 h-5" />
+                Generador Rápido de Constancias
+              </h3>
+              <button
+                onClick={() => setShowQuickModal(false)}
+                className="text-white hover:text-purple-200 transition-colors"
+                title="Cerrar"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleGenerateManualConstancia} className="p-6 space-y-4">
+              <p className="text-sm text-gray-600 mb-4">
+                Genera una constancia en PDF al instante para cualquier persona. Puedes escribir los datos de la empresa manualmente o autocompletarlos seleccionando un acta existente.
+              </p>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Nombre de la Persona *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. Juan Pérez López"
+                  value={quickData.employeeName}
+                  onChange={(e) => setQuickData({ ...quickData, employeeName: e.target.value.toUpperCase() })}
+                  className="w-full border border-gray-300 rounded-md p-2 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Autocompletar datos desde acta existente (Opcional):</label>
+                <select
+                  className="w-full border border-gray-300 rounded-md p-2 bg-gray-50 focus:ring-purple-500"
+                  onChange={(e) => handleQuickAutocomplete(e.target.value)}
+                  defaultValue=""
+                >
+                  <option value="">-- Escribir datos manualmente --</option>
+                  {documents.map(doc => (
+                    <option key={doc.id} value={doc.id}>
+                      {doc.commercial_name} ({doc.date})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Comercial de la Empresa *</label>
+                  <input
+                    type="text"
+                    required
+                    value={quickData.commercial_name}
+                    onChange={(e) => setQuickData({ ...quickData, commercial_name: e.target.value.toUpperCase() })}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Dirección de la Empresa *</label>
+                  <input
+                    type="text"
+                    required
+                    value={quickData.address}
+                    onChange={(e) => setQuickData({ ...quickData, address: e.target.value.toUpperCase() })}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Expedición (Día de Mes de Año) *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. 15 de Noviembre de 2024"
+                    value={quickData.date}
+                    onChange={(e) => setQuickData({ ...quickData, date: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 flex justify-end gap-3 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setShowQuickModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors font-medium flex items-center gap-2"
+                >
+                  <Award className="w-4 h-4" />
+                  Descargar Constancia
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
