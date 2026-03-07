@@ -536,8 +536,8 @@ export default function AdminView() {
               className="flex items-center gap-2 bg-purple-600 text-white px-3 py-1.5 rounded-md hover:bg-purple-700 transition-colors shadow-sm text-sm"
               title="Generar constancia sin necesidad de firma"
             >
-              <Zap className="w-4 h-4" />
-              Generador Rápido
+              <FileText className="w-4 h-4" />
+              Generar Constancia
             </button>
             <span className="text-sm font-medium text-gray-400">v1.14</span>
             <button onClick={() => setIsAuthenticated(false)} className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium transition-colors text-sm">
@@ -887,8 +887,8 @@ export default function AdminView() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
             <div className="bg-purple-600 p-4 text-white flex justify-between items-center">
               <h3 className="font-bold flex items-center gap-2">
-                <Zap className="w-5 h-5" />
-                Generador Rápido de Constancias
+                <FileText className="w-5 h-5" />
+                Generar Constancia Rápida
               </h3>
               <button
                 onClick={() => setShowQuickModal(false)}
@@ -954,15 +954,30 @@ export default function AdminView() {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Expedición (Día de Mes de Año) *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Expedición *</label>
                   <input
-                    type="text"
+                    type="date"
                     required
-                    placeholder="Ej. 15 de Noviembre de 2024"
-                    value={quickData.date}
-                    onChange={(e) => setQuickData({ ...quickData, date: e.target.value })}
+                    onChange={(e) => {
+                      const dateObj = new Date(e.target.value + 'T00:00:00');
+                      if (!isNaN(dateObj.getTime())) {
+                        const formattedDate = dateObj.toLocaleDateString('es-ES', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        });
+                        setQuickData({ ...quickData, date: formattedDate });
+                      } else {
+                        setQuickData({ ...quickData, date: '' });
+                      }
+                    }}
                     className="w-full border border-gray-300 rounded-md p-2 focus:ring-purple-500 focus:border-purple-500"
                   />
+                  {quickData.date && (
+                    <p className="text-xs text-purple-600 mt-2 font-medium">
+                      Formato final: {quickData.date}
+                    </p>
+                  )}
                 </div>
               </div>
 
