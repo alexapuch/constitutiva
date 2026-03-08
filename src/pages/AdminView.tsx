@@ -440,41 +440,49 @@ export default function AdminView() {
                   <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">
                     <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Usuarios:</label>
                     <input
-                      type="number"
-                      min="0"
-                      value={docInfo.usuarios ?? 0}
-                      onChange={(e) => updateSelectedDoc('usuarios', parseInt(e.target.value) || 0)}
-                      className="w-16 border-none bg-transparent p-0 text-right focus:ring-0 text-gray-900 font-semibold"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="0"
+                      value={docInfo.usuarios || ''}
+                      onChange={(e) => updateSelectedDoc('usuarios', parseInt(e.target.value.replace(/\D/g, '')) || 0)}
+                      className="w-12 border-none bg-transparent p-0 text-center focus:ring-0 text-gray-900 font-semibold"
                     />
                   </div>
                   <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">
                     <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Visitantes:</label>
                     <input
-                      type="number"
-                      min="0"
-                      value={docInfo.visitantes ?? 0}
-                      onChange={(e) => updateSelectedDoc('visitantes', parseInt(e.target.value) || 0)}
-                      className="w-16 border-none bg-transparent p-0 text-right focus:ring-0 text-gray-900 font-semibold"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="0"
+                      value={docInfo.visitantes || ''}
+                      onChange={(e) => updateSelectedDoc('visitantes', parseInt(e.target.value.replace(/\D/g, '')) || 0)}
+                      className="w-12 border-none bg-transparent p-0 text-center focus:ring-0 text-gray-900 font-semibold"
                     />
                   </div>
                   <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">
                     <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Sótanos:</label>
                     <input
-                      type="number"
-                      min="0"
-                      value={docInfo.sotanos ?? 0}
-                      onChange={(e) => updateSelectedDoc('sotanos', parseInt(e.target.value) || 0)}
-                      className="w-16 border-none bg-transparent p-0 text-right focus:ring-0 text-gray-900 font-semibold"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="0"
+                      value={docInfo.sotanos || ''}
+                      onChange={(e) => updateSelectedDoc('sotanos', parseInt(e.target.value.replace(/\D/g, '')) || 0)}
+                      className="w-12 border-none bg-transparent p-0 text-center focus:ring-0 text-gray-900 font-semibold"
                     />
                   </div>
                   <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">
                     <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Superiores:</label>
                     <input
-                      type="number"
-                      min="0"
-                      value={docInfo.superiores ?? 1}
-                      onChange={(e) => updateSelectedDoc('superiores', parseInt(e.target.value) || 0)}
-                      className="w-16 border-none bg-transparent p-0 text-right focus:ring-0 text-gray-900 font-semibold"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="0"
+                      value={docInfo.superiores || ''}
+                      onChange={(e) => updateSelectedDoc('superiores', parseInt(e.target.value.replace(/\D/g, '')) || 0)}
+                      className="w-12 border-none bg-transparent p-0 text-center focus:ring-0 text-gray-900 font-semibold"
                     />
                   </div>
                 </div>
