@@ -588,25 +588,24 @@ export default function AdminView() {
 
       </div>
 
-      {/* Quick Constancia Generator Modal */}
       {showQuickModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-            <div className="bg-purple-600 p-4 text-white flex justify-between items-center">
-              <h3 className="font-bold flex items-center gap-2">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-blue-900 p-5 text-white flex justify-between items-center shrink-0">
+              <h3 className="font-extrabold flex items-center gap-2">
                 <FileText className="w-5 h-5" />
                 Generar Constancia Rápida
               </h3>
               <button
                 onClick={() => setShowQuickModal(false)}
-                className="text-white hover:text-purple-200 transition-colors"
+                className="text-gray-300 hover:text-white transition-colors p-3 -mr-3"
                 title="Cerrar"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleGenerateManualConstancia} className="p-6 space-y-4">
+            <form onSubmit={handleGenerateManualConstancia} className="p-6 space-y-4 overflow-y-auto flex-1">
               <p className="text-sm text-gray-600 mb-4">
                 Genera una constancia en PDF al instante para cualquier persona. Puedes escribir los datos de la empresa manualmente o autocompletarlos seleccionando un acta existente.
               </p>
@@ -678,29 +677,29 @@ export default function AdminView() {
                         setQuickData({ ...quickData, date: '' });
                       }
                     }}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-600 focus:border-blue-600"
                   />
                   {quickData.date && (
-                    <p className="text-xs text-purple-600 mt-2 font-medium">
+                    <p className="text-xs text-blue-600 mt-2 font-medium">
                       Formato final: {quickData.date}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 flex justify-end gap-3 border-t border-gray-200">
+              <div className="mt-6 pt-4 flex justify-end gap-3 border-t border-gray-200 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowQuickModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors font-bold min-h-[44px]"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-bold flex items-center gap-2 min-h-[44px]"
+                  className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-bold flex items-center justify-center gap-2 min-h-[44px]"
                 >
-                  <Award className="w-4 h-4" />
+                  <Award className="w-5 h-5 shrink-0" />
                   Descargar Constancia
                 </button>
               </div>
