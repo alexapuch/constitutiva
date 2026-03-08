@@ -84,7 +84,7 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
-                    className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
+                    className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] min-w-0 break-words"
                 >
                     <div className="flex justify-between items-center p-4 border-b bg-blue-50">
                         <h3 className="text-xl font-extrabold text-blue-900 tracking-tight">Agregar mi firma</h3>
@@ -155,18 +155,18 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
                         </div>
                     </div>
 
-                    <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
+                    <div className="p-4 border-t bg-gray-50 flex flex-col-reverse sm:flex-row justify-end gap-3 shrink-0">
                         <button
                             onClick={onClose}
                             disabled={isSaving}
-                            className="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 font-bold min-h-[44px]"
+                            className="w-full sm:w-auto px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 font-bold min-h-[44px]"
                         >
                             Cancelar
                         </button>
                         <button
                             onClick={handleSaveSignature}
                             disabled={isSaving}
-                            className="px-6 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 font-bold disabled:opacity-50 flex items-center justify-center min-w-[140px] min-h-[44px] shadow-md transition-colors"
+                            className="w-full sm:w-auto px-6 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 font-bold disabled:opacity-50 flex items-center justify-center min-w-[140px] min-h-[44px] shadow-md transition-colors"
                         >
                             {isSaving ? 'Guardando...' : 'Guardar Firma'}
                         </button>

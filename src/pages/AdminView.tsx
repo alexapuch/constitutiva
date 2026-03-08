@@ -601,7 +601,7 @@ export default function AdminView() {
 
       {showQuickModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] min-w-0 break-words">
             <div className="bg-blue-900 p-5 text-white flex justify-between items-center shrink-0">
               <h3 className="font-extrabold flex items-center gap-2 text-lg">
                 <FileText className="w-5 h-5" />
@@ -700,17 +700,17 @@ export default function AdminView() {
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 flex justify-end gap-3 border-t border-gray-200 shrink-0">
+              <div className="mt-6 pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-gray-200 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowQuickModal(false)}
-                  className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors font-bold min-h-[44px]"
+                  className="w-full sm:w-auto px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors font-bold min-h-[44px]"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-bold flex items-center justify-center gap-2 min-h-[44px]"
+                  className="w-full sm:w-auto px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-bold flex items-center justify-center gap-2 min-h-[44px]"
                 >
                   <Award className="w-5 h-5 shrink-0" />
                   Descargar Constancia
