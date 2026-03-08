@@ -241,47 +241,56 @@ export default function AdminView() {
 
           <div className="p-0 bg-gray-50" style={{ maxHeight: '500px', overflowY: 'auto' }}>
             <div className="flex flex-col gap-2 p-2 sm:p-4">
-              {documents.map(doc => (
-                <SwipeableRow
-                  key={doc.id}
-                  onDelete={() => handleDeleteDocument(doc.id)}
-                  onClick={() => {
-                    setSelectedDocId(doc.id);
-                    setTimeout(() => {
-                      editSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 100);
-                  }}
-                >
-                  <div
-                    className={`flex flex-col p-4 rounded-xl border cursor-pointer transition-all shadow-sm ${selectedDocId === doc.id ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400' : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md'}`}
+              <AnimatePresence>
+                {documents.map(doc => (
+                  <motion.div
+                    key={doc.id}
+                    initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    animate={{ opacity: 1, height: 'auto', marginBottom: 8 }}
+                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    transition={{ duration: 0.3 }}
                   >
-                    <div className="flex justify-between items-start mb-3">
-                      <span className="font-extrabold text-blue-900 text-lg leading-tight pr-4">{doc.commercial_name}</span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteDocument(doc.id); }}
-                        className="hidden sm:flex text-gray-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors"
-                        title="Eliminar Acta"
+                    <SwipeableRow
+                      onDelete={() => handleDeleteDocument(doc.id)}
+                      onClick={() => {
+                        setSelectedDocId(doc.id);
+                        setTimeout(() => {
+                          editSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 100);
+                      }}
+                    >
+                      <div
+                        className={`flex flex-col p-4 rounded-xl border cursor-pointer transition-all shadow-sm ${selectedDocId === doc.id ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400' : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md'}`}
                       >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
+                        <div className="flex justify-between items-start mb-3">
+                          <span className="font-extrabold text-blue-900 text-lg leading-tight pr-4">{doc.commercial_name}</span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteDocument(doc.id); }}
+                            className="hidden sm:flex text-gray-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors"
+                            title="Eliminar Acta"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-                      <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 self-start sm:self-auto">
-                        <span className="text-gray-500 text-xs uppercase font-bold tracking-wider">Acceso:</span>
-                        <span className="font-mono text-blue-700 font-bold tracking-widest text-sm">{doc.access_code || 'N/A'}</span>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+                          <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 self-start sm:self-auto">
+                            <span className="text-gray-500 text-xs uppercase font-bold tracking-wider">Acceso:</span>
+                            <span className="font-mono text-blue-700 font-bold tracking-widest text-sm">{doc.access_code || 'N/A'}</span>
+                          </div>
+
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-gray-400 font-medium">Fecha:</span>
+                            <span className="font-medium text-gray-700">{doc.date}</span>
+                          </div>
+                        </div>
+
+                        <span className="block sm:hidden text-xs text-red-500 mt-3 font-medium opacity-70">← Desliza para eliminar</span>
                       </div>
-
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-gray-400 font-medium">Fecha:</span>
-                        <span className="font-medium text-gray-700">{doc.date}</span>
-                      </div>
-                    </div>
-
-                    <span className="block sm:hidden text-xs text-red-500 mt-3 font-medium opacity-70">← Desliza para eliminar</span>
-                  </div>
-                </SwipeableRow>
-              ))}
+                    </SwipeableRow>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
               {documents.length === 0 && (
                 <div className="px-6 py-12 text-center bg-white rounded-xl border border-gray-200 shadow-sm mt-2">
                   <FileText className="w-12 h-12 text-blue-200 mx-auto mb-3" />
