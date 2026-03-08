@@ -199,8 +199,9 @@ export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: 
         console.error('Fatal PDF Error:', e);
         Swal.fire({
             icon: 'error',
-            title: 'Error al generar PDF',
-            text: e?.message || JSON.stringify(e)
+            title: 'Error de PDF',
+            text: 'Hubo un error crítico al generar el Acta Constitutiva. Verifique la consola para más detalles.',
+            confirmButtonColor: '#e11d48'
         });
     }
 };

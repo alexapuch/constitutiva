@@ -103,7 +103,8 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         Swal.fire({
             icon: 'error',
             title: 'Error al generar constancia',
-            text: `Asegúrate de haber guardado la imagen vacía como "constancia_vacia.jpg" en la carpeta public. Detalles: ${error.message}`
+            text: `Asegúrate de haber guardado la imagen vacía como "constancia_vacia.jpg" en la carpeta public. Detalles: ${error.message}`,
+            confirmButtonColor: '#e11d48'
         });
     }
 };

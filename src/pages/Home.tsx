@@ -16,8 +16,8 @@ export default function Home() {
         className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center space-y-8"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Protección Civil</h1>
-          <p className="text-gray-500">Sistema de Actas Constitutivas</p>
+          <h1 className="text-3xl font-extrabold text-blue-900 mb-2 tracking-tight">PROTECCIÓN CIVIL</h1>
+          <p className="text-blue-600 font-medium tracking-wide text-sm uppercase">Sistema de Actas Constitutivas</p>
         </div>
 
         <div className="space-y-4">
@@ -35,7 +35,7 @@ export default function Home() {
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 placeholder="Código de Acceso"
-                className="w-full border border-blue-200 rounded-lg p-3 text-center uppercase tracking-widest font-bold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all shadow-sm"
+                className="w-full border border-blue-200 rounded-lg p-4 text-center uppercase tracking-widest font-bold focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all shadow-inner text-blue-900 placeholder:text-blue-300"
               />
               <button
                 onClick={() => {
@@ -44,7 +44,7 @@ export default function Home() {
                   }
                 }}
                 disabled={!code.trim()}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                className="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white p-4 rounded-lg font-bold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md flex items-center justify-center min-h-[56px]"
               >
                 Abrir Documento
               </button>
@@ -53,7 +53,7 @@ export default function Home() {
 
           <p
             onClick={() => navigate('/admin')}
-            className="text-gray-400 text-sm cursor-pointer hover:text-gray-600 transition-colors"
+            className="text-blue-500 text-sm font-medium cursor-pointer hover:text-blue-800 transition-colors py-2"
           >
             Ingresar como Administrador
           </p>

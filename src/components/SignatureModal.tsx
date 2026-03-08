@@ -25,7 +25,8 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
             Swal.fire({
                 icon: 'warning',
                 title: 'Firma requerida',
-                text: 'Por favor, dibuja tu firma antes de guardar.'
+                text: 'Por favor, dibuja tu firma antes de guardar.',
+                confirmButtonColor: '#e11d48'
             });
             return;
         }
@@ -34,7 +35,8 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
             Swal.fire({
                 icon: 'warning',
                 title: 'Nombre requerido',
-                text: 'Por favor, ingresa tu nombre completo antes de guardar.'
+                text: 'Por favor, ingresa tu nombre completo antes de guardar.',
+                confirmButtonColor: '#e11d48'
             });
             return;
         }
@@ -56,7 +58,8 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Hubo un error al guardar la firma.'
+                text: 'Hubo un error al guardar la firma.',
+                confirmButtonColor: '#e11d48'
             });
         } finally {
             setIsSaving(false);
@@ -72,9 +75,9 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
                     exit={{ opacity: 0, y: 20 }}
                     className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
                 >
-                    <div className="flex justify-between items-center p-4 border-b">
-                        <h3 className="text-lg font-bold">Agregar mi firma</h3>
-                        <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                    <div className="flex justify-between items-center p-4 border-b bg-blue-50">
+                        <h3 className="text-xl font-extrabold text-blue-900 tracking-tight">Agregar mi firma</h3>
+                        <button onClick={onClose} className="text-blue-500 hover:text-blue-800 transition-colors p-2">
                             <X className="w-6 h-6" />
                         </button>
                     </div>
@@ -87,7 +90,7 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
                                     type="text"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-600 focus:border-blue-600"
                                     placeholder="Ej. Juan Pérez"
                                 />
                             </div>
@@ -97,7 +100,7 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
                                 <select
                                     value={role}
                                     onChange={(e) => setRole(e.target.value)}
-                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-600 focus:border-blue-600"
                                 >
                                     <option value="EMPLEADO">EMPLEADO</option>
                                     <option value="REPRESENTANTE LEGAL">REPRESENTANTE LEGAL</option>
@@ -119,7 +122,7 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
                                     <span>Firma</span>
                                     <button
                                         onClick={() => sigCanvas.current?.clear()}
-                                        className="text-xs text-blue-600 hover:text-blue-800"
+                                        className="text-sm text-red-500 font-bold hover:text-red-700"
                                     >
                                         Limpiar
                                     </button>
@@ -145,14 +148,14 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
                         <button
                             onClick={onClose}
                             disabled={isSaving}
-                            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                            className="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 font-bold min-h-[44px]"
                         >
                             Cancelar
                         </button>
                         <button
                             onClick={handleSaveSignature}
                             disabled={isSaving}
-                            className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 font-medium disabled:opacity-50 flex items-center justify-center min-w-[120px]"
+                            className="px-6 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 font-bold disabled:opacity-50 flex items-center justify-center min-w-[140px] min-h-[44px] shadow-md transition-colors"
                         >
                             {isSaving ? 'Guardando...' : 'Guardar Firma'}
                         </button>

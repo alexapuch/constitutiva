@@ -137,7 +137,8 @@ export default function AdminView() {
       Swal.fire({
         icon: 'warning',
         title: 'Campos incompletos',
-        text: 'Por favor llena todos los campos, o selecciona un acta existente para autocompletar.'
+        text: 'Por favor llena todos los campos, o selecciona un acta existente para autocompletar.',
+        confirmButtonColor: '#e11d48'
       });
       return;
     }
@@ -182,7 +183,8 @@ export default function AdminView() {
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: 'Contraseña incorrecta'
+        text: 'Contraseña incorrecta',
+        confirmButtonColor: '#e11d48'
       });
     }
   };
@@ -207,13 +209,13 @@ export default function AdminView() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setShowQuickModal(true)}
-              className="flex items-center gap-2 bg-purple-600 text-white px-3 py-1.5 rounded-md hover:bg-purple-700 transition-colors shadow-sm text-sm"
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors shadow-sm font-medium min-h-[44px]"
               title="Generar constancia sin necesidad de firma"
             >
-              <FileText className="w-4 h-4" />
-              Generar Constancia
+              <FileText className="w-5 h-5" />
+              <span className="hidden sm:inline">Generar Constancia</span>
             </button>
-            <span className="text-sm font-medium text-gray-400">v1.14</span>
+            <span className="hidden sm:inline text-sm font-medium text-gray-400">v1.14</span>
             <button onClick={() => setIsAuthenticated(false)} className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium transition-colors text-sm">
               <LogOut className="w-5 h-5" />
               Cerrar Sesión
@@ -223,66 +225,71 @@ export default function AdminView() {
 
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
           <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-            <h2 className="text-xl font-bold flex items-center gap-2 text-gray-800">
-              <FileText className="w-6 h-6" />
-              Gestión de Actas Constitutivas
+            <h2 className="text-xl font-extrabold flex items-center gap-2 text-blue-900 tracking-tight">
+              <FileText className="w-6 h-6 text-blue-600" />
+              Actas Constitutivas
             </h2>
             <button
               onClick={handleCreateDocument}
-              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+              className="flex items-center gap-2 bg-red-600 text-white px-5 py-2 rounded-md hover:bg-red-700 transition-colors font-bold shadow-md min-h-[44px]"
             >
-              <Plus className="w-4 h-4" />
-              Nueva Acta
+              <Plus className="w-5 h-5" />
+              <span className="hidden sm:inline">Nueva Acta</span>
+              <span className="inline sm:hidden">Nueva</span>
             </button>
           </div>
 
-          <div className="p-0" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-            {/* Header row - visible on larger screens */}
-            <div className="hidden sm:grid sm:grid-cols-[1fr_auto_auto_auto] gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200 text-sm font-medium text-gray-700">
-              <span>Nombre Comercial</span>
-              <span className="w-24 text-center">Código Acceso</span>
-              <span className="w-32 text-center">Fecha</span>
-              <span className="w-16 text-right">Acciones</span>
-            </div>
-            {documents.map(doc => (
-              <SwipeableRow
-                key={doc.id}
-                onDelete={() => handleDeleteDocument(doc.id)}
-                onClick={() => {
-                  setSelectedDocId(doc.id);
-                  setTimeout(() => {
-                    editSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }, 100);
-                }}
-              >
-                <div
-                  className={`grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-1 sm:gap-4 items-center px-6 py-4 border-b border-gray-100 cursor-pointer ${selectedDocId === doc.id ? 'bg-blue-50' : 'bg-white'}`}
+          <div className="p-0 bg-gray-50" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+            <div className="flex flex-col gap-2 p-2 sm:p-4">
+              {documents.map(doc => (
+                <SwipeableRow
+                  key={doc.id}
+                  onDelete={() => handleDeleteDocument(doc.id)}
+                  onClick={() => {
+                    setSelectedDocId(doc.id);
+                    setTimeout(() => {
+                      editSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                  }}
                 >
-                  <span className="font-medium text-gray-900">{doc.commercial_name}</span>
-                  <span className="w-auto sm:w-24 text-left sm:text-center">
-                    <span className="font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-200 text-sm">{doc.access_code || 'N/A'}</span>
-                  </span>
-                  <span className="text-gray-500 text-sm w-auto sm:w-32 sm:text-center">{doc.date}</span>
-                  {/* Desktop-only delete button */}
-                  <span className="hidden sm:flex w-16 justify-end">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteDocument(doc.id); }}
-                      className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
-                      title="Eliminar Acta"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </span>
-                  {/* Mobile hint */}
-                  <span className="block sm:hidden text-xs text-gray-400 mt-1">← Desliza para eliminar</span>
+                  <div
+                    className={`flex flex-col p-4 rounded-xl border cursor-pointer transition-all shadow-sm ${selectedDocId === doc.id ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400' : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md'}`}
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <span className="font-extrabold text-blue-900 text-lg leading-tight pr-4">{doc.commercial_name}</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteDocument(doc.id); }}
+                        className="hidden sm:flex text-gray-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors"
+                        title="Eliminar Acta"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+                      <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 self-start sm:self-auto">
+                        <span className="text-gray-500 text-xs uppercase font-bold tracking-wider">Acceso:</span>
+                        <span className="font-mono text-blue-700 font-bold tracking-widest text-sm">{doc.access_code || 'N/A'}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-400 font-medium">Fecha:</span>
+                        <span className="font-medium text-gray-700">{doc.date}</span>
+                      </div>
+                    </div>
+
+                    <span className="block sm:hidden text-xs text-red-500 mt-3 font-medium opacity-70">← Desliza para eliminar</span>
+                  </div>
+                </SwipeableRow>
+              ))}
+              {documents.length === 0 && (
+                <div className="px-6 py-12 text-center bg-white rounded-xl border border-gray-200 shadow-sm mt-2">
+                  <FileText className="w-12 h-12 text-blue-200 mx-auto mb-3" />
+                  <p className="text-gray-500 font-medium">No hay actas constitutivas creadas.</p>
+                  <p className="text-sm text-gray-400 mt-1">Crea una nueva acta para comenzar.</p>
                 </div>
-              </SwipeableRow>
-            ))}
-            {documents.length === 0 && (
-              <div className="px-6 py-8 text-center text-gray-500 italic">
-                No hay actas constitutivas creadas.
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
         </div>
@@ -298,9 +305,9 @@ export default function AdminView() {
                 <button
                   onClick={handleSaveDocInfo}
                   disabled={isSaving}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 bg-blue-900 text-white px-6 py-2 rounded-md font-bold hover:bg-blue-800 transition-colors shadow-md disabled:opacity-50 min-h-[44px]"
                 >
-                  <Save className="w-4 h-4" />
+                  <Save className="w-5 h-5" />
                   {isSaving ? 'Guardando...' : 'Guardar Cambios'}
                 </button>
               </div>
@@ -332,14 +339,14 @@ export default function AdminView() {
                           alert('Código copiado al portapapeles');
                         }
                       }}
-                      className="bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded-md transition-colors text-sm font-medium whitespace-nowrap"
+                      className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md transition-colors text-sm font-bold whitespace-nowrap min-h-[44px] flex items-center"
                       title="Copiar código"
                     >
                       Copiar
                     </button>
                     <button
                       onClick={handleRegenerateCode}
-                      className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded-md transition-colors text-sm font-medium whitespace-nowrap"
+                      className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-2 rounded-md transition-colors text-sm font-bold whitespace-nowrap min-h-[44px] flex items-center"
                       title="Generar nuevo código"
                     >
                       Regenerar
@@ -487,31 +494,31 @@ export default function AdminView() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3 mt-4">
                   <button
                     onClick={() => docInfo && generateBatchConstanciasPDF(docInfo, employees)}
                     disabled={employees.length === 0}
-                    className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm whitespace-nowrap"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm font-bold min-h-[44px]"
                     title="Descargar Todas las Constancias"
                   >
-                    <Award className="w-4 h-4" />
-                    Constancias (Lote)
+                    <Award className="w-5 h-5" />
+                    <span className="whitespace-nowrap">Constancias (Lote)</span>
                   </button>
                   <button
                     onClick={() => docInfo && generateSimulacroPDF(docInfo, employees)}
-                    className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors shadow-sm whitespace-nowrap"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition-colors shadow-sm font-bold min-h-[44px]"
                     title="Descargar Cédula de Evaluación de Simulacro"
                   >
-                    <Download className="w-4 h-4" />
-                    Cédula Simulacro
+                    <Download className="w-5 h-5" />
+                    <span className="whitespace-nowrap">Cédula Simulacro</span>
                   </button>
                   <button
                     onClick={handleDownloadPDF}
-                    className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-red-600 text-white px-5 py-2 rounded-md hover:bg-red-700 transition-colors shadow-md font-bold min-h-[44px]"
                     title="Descargar Acta Constitutiva"
                   >
-                    <Download className="w-4 h-4" />
-                    Acta Constitutiva
+                    <Download className="w-5 h-5" />
+                    <span className="whitespace-nowrap">Acta Constitutiva</span>
                   </button>
                 </div>
               </div>
@@ -603,14 +610,14 @@ export default function AdminView() {
                   placeholder="Ej. Juan Pérez López"
                   value={quickData.employeeName}
                   onChange={(e) => setQuickData({ ...quickData, employeeName: e.target.value.toUpperCase() })}
-                  className="w-full border border-gray-300 rounded-md p-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-600 focus:border-blue-600"
                 />
               </div>
 
               <div className="mt-6 pt-4 border-t border-gray-200">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Autocompletar datos desde acta existente (Opcional):</label>
                 <select
-                  className="w-full border border-gray-300 rounded-md p-2 bg-gray-50 focus:ring-purple-500"
+                  className="w-full border border-gray-300 rounded-md p-3 bg-gray-50 focus:ring-blue-600"
                   onChange={(e) => handleQuickAutocomplete(e.target.value)}
                   defaultValue=""
                 >
@@ -631,7 +638,7 @@ export default function AdminView() {
                     required
                     value={quickData.commercial_name}
                     onChange={(e) => setQuickData({ ...quickData, commercial_name: e.target.value.toUpperCase() })}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-600 focus:border-blue-600"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -641,7 +648,7 @@ export default function AdminView() {
                     required
                     value={quickData.address}
                     onChange={(e) => setQuickData({ ...quickData, address: e.target.value.toUpperCase() })}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-600 focus:border-blue-600"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -682,7 +689,7 @@ export default function AdminView() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors font-medium flex items-center gap-2"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-bold flex items-center gap-2 min-h-[44px]"
                 >
                   <Award className="w-4 h-4" />
                   Descargar Constancia

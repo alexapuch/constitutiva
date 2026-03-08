@@ -20,28 +20,28 @@ export default function AdminLoginForm({ onLogin }: { onLogin: (password: string
                 className="max-w-sm w-full bg-white rounded-2xl shadow-xl p-8 space-y-6"
             >
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-gray-900">Acceso Administrador</h2>
-                    <p className="text-gray-500 text-sm mt-2">Ingresa la contraseña para continuar</p>
+                    <h2 className="text-2xl font-extrabold text-blue-900 tracking-tight">Acceso Administrador</h2>
+                    <p className="text-blue-600 font-medium text-sm mt-2">Ingresa la contraseña maestra para continuar</p>
                 </div>
                 <div>
                     <input
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                        className="w-full border border-blue-200 rounded-xl p-4 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all text-blue-900 placeholder:text-blue-300 shadow-inner"
                         placeholder="Contraseña"
                         autoFocus
                     />
                 </div>
                 <button
                     type="submit"
-                    className="w-full bg-gray-900 hover:bg-black text-white p-3 rounded-xl font-medium transition-colors"
+                    className="w-full bg-blue-900 hover:bg-blue-800 active:bg-blue-950 text-white p-4 rounded-xl font-bold text-lg transition-colors shadow-md min-h-[56px]"
                 >
-                    Ingresar
+                    Ingresar de forma segura
                 </button>
                 <Link
                     to="/"
-                    className="block text-center w-full text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors"
+                    className="block text-center w-full text-blue-500 hover:text-blue-800 text-sm font-medium transition-colors py-2"
                 >
                     Volver al inicio
                 </Link>

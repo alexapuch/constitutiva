@@ -7,8 +7,9 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
         if (!employees || employees.length === 0) {
             Swal.fire({
                 icon: 'warning',
-                title: 'No hay empleados',
-                text: 'No hay empleados registrados para generar constancias.'
+                title: 'No hay personas',
+                text: 'No hay firmas/personas registradas en esta acta para generar constancias.',
+                confirmButtonColor: '#e11d48'
             });
             return;
         }
@@ -111,8 +112,9 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
         console.error('Error al generar constancias en lote:', error);
         Swal.fire({
             icon: 'error',
-            title: 'Error al generar constancias en lote',
-            text: error.message
+            title: 'Error',
+            text: `Hubo un error crítico al generar las constancias. Detalles: ${error.message}`,
+            confirmButtonColor: '#e11d48'
         });
     }
 };
