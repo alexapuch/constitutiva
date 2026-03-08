@@ -93,7 +93,7 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
                         </button>
                     </div>
 
-                    <div className="p-4 overflow-y-auto flex-1">
+                    <div className="p-4 overflow-y-auto overflow-x-hidden flex-1 w-full max-w-full">
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>

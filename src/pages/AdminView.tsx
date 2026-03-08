@@ -618,7 +618,7 @@ export default function AdminView() {
               </button>
             </div>
 
-            <form onSubmit={handleGenerateManualConstancia} className="p-6 space-y-4 overflow-y-auto flex-1">
+            <form onSubmit={handleGenerateManualConstancia} className="p-6 space-y-4 overflow-y-auto overflow-x-hidden flex-1 w-full max-w-full">
               <p className="text-sm text-gray-600 mb-4">
                 Genera una constancia en PDF al instante para cualquier persona. Puedes escribir los datos de la empresa manualmente o autocompletarlos seleccionando un acta existente.
               </p>
