@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { DocumentInfo, Employee } from '../types';
-import { Trash2, Save, FileText, Users, Plus, ArrowLeft, LogOut, Download, Award, Zap } from 'lucide-react';
+import { Trash2, Save, FileText, Users, Plus, ArrowLeft, LogOut, Download, Award, Zap, X } from 'lucide-react';
 import { generateSimulacroPDF } from '../utils/generateSimulacroPDF';
 import { generateBatchConstanciasPDF } from '../utils/generateBatchConstanciasPDF';
 import { generateConstanciaPDF } from '../utils/generateConstanciaPDF';
@@ -27,6 +27,17 @@ export default function AdminView() {
     address: '',
     date: ''
   });
+
+  useEffect(() => {
+    if (showQuickModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showQuickModal]);
 
   useEffect(() => {
     fetchDocuments();
@@ -592,16 +603,18 @@ export default function AdminView() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
             <div className="bg-blue-900 p-5 text-white flex justify-between items-center shrink-0">
-              <h3 className="font-extrabold flex items-center gap-2">
+              <h3 className="font-extrabold flex items-center gap-2 text-lg">
                 <FileText className="w-5 h-5" />
-                Generar Constancia Rápida
+                Nueva Constancia
               </h3>
               <button
-                onClick={() => setShowQuickModal(false)}
-                className="text-gray-300 hover:text-white transition-colors p-3 -mr-3"
-                title="Cerrar"
+                type="button"
+                onClick={(e) => { e.preventDefault(); setShowQuickModal(false); }}
+                className="flex items-center justify-center bg-blue-800/50 hover:bg-blue-800 transition-colors rounded-lg w-11 h-11 text-white/80 hover:text-white"
+                title="Cerrar modal"
+                aria-label="Cerrar modal"
               >
-                ✕
+                <X className="w-6 h-6" />
               </button>
             </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 import { X } from 'lucide-react';
 import { compressSignature } from '../utils/compressSignature';
@@ -17,6 +17,17 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
     const [brigade] = useState('MULTIBRIGADA');
     const [isSaving, setIsSaving] = useState(false);
     const sigCanvas = useRef<SignatureCanvas>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
