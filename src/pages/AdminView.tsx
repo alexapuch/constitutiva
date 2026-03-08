@@ -5,6 +5,7 @@ import autoTable from 'jspdf-autotable';
 import { DocumentInfo, Employee } from '../types';
 import { Trash2, Save, FileText, Users, Plus, ArrowLeft, LogOut, Download, Award, Zap } from 'lucide-react';
 import { generateSimulacroPDF } from '../utils/generateSimulacroPDF';
+import { generateBatchConstanciasPDF } from '../utils/generateBatchConstanciasPDF';
 import { generateConstanciaPDF } from '../utils/generateConstanciaPDF';
 import { compressSignature } from '../utils/compressSignature';
 import { sortEmployees } from './PublicView';
@@ -806,6 +807,15 @@ export default function AdminView() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => docInfo && generateBatchConstanciasPDF(docInfo, employees)}
+                    disabled={employees.length === 0}
+                    className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm whitespace-nowrap"
+                    title="Descargar Todas las Constancias"
+                  >
+                    <Award className="w-4 h-4" />
+                    Constancias (Lote)
+                  </button>
                   <button
                     onClick={() => docInfo && generateSimulacroPDF(docInfo, employees)}
                     className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors shadow-sm whitespace-nowrap"
