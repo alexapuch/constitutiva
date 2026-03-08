@@ -1,28 +1,16 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import SignatureCanvas from 'react-signature-canvas';
 import { DocumentInfo, Employee } from '../types';
-import { compressSignature } from '../utils/compressSignature';
-
-export const sortEmployees = (employees: Employee[]) => {
-  return [...employees].sort((a, b) => {
-    if (a.role === 'REPRESENTANTE LEGAL' && b.role !== 'REPRESENTANTE LEGAL') return -1;
-    if (a.role !== 'REPRESENTANTE LEGAL' && b.role === 'REPRESENTANTE LEGAL') return 1;
-    return 0;
-  });
-};
-import { PenTool, X, ChevronDown, ArrowLeft } from 'lucide-react';
+import { sortEmployees } from '../utils/employees';
+import SignatureModal from '../components/SignatureModal';
+import { PenTool, ArrowLeft } from 'lucide-react';
+import { motion } from 'motion/react';
 
 export default function PublicView() {
   const [docInfo, setDocInfo] = useState<DocumentInfo | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const [name, setName] = useState('');
-  const [role, setRole] = useState('EMPLEADO');
-  const [brigade, setBrigade] = useState('MULTIBRIGADA');
-  const sigCanvas = useRef<SignatureCanvas>(null);
 
   const searchParams = new URLSearchParams(window.location.search);
   const code = searchParams.get('code');
@@ -56,44 +44,14 @@ export default function PublicView() {
     setEmployees(data);
   };
 
-  const handleSaveSignature = async () => {
-    console.log('--- handleSaveSignature CALLED ---');
-    console.log('docInfo?.id:', docInfo?.id);
-    console.log('name:', name);
-    console.log('sigCanvas.current:', sigCanvas.current);
-
-    if (!docInfo?.id) {
-      console.log('Aborting: no docInfo id');
-      return;
-    }
-
-    if (!sigCanvas.current) {
-      console.log('Aborting: no sigCanvas.current');
-      return;
-    }
-
-    if (sigCanvas.current.isEmpty()) {
-      console.log('Aborting: sigCanvas is empty');
-      alert('Por favor, dibuja tu firma antes de guardar.');
-      return;
-    }
-
-    if (!name) {
-      console.log('Aborting: name is empty');
-      alert('Por favor, ingresa tu nombre completo antes de guardar.');
-      return;
-    }
-
-    console.log('All validations passed, getting image data...');
-
-    const rawSignature = sigCanvas.current.getCanvas().toDataURL('image/png');
-    const signatureData = await compressSignature(rawSignature, 300, 0.6);
+  const handleSaveSignature = async (name: string, role: string, brigade: string, signatureData: string) => {
+    if (!docInfo?.id) return;
 
     const res = await fetch(`/api/documents/${docInfo.id}/employees`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: name.toUpperCase(),
+        name,
         role,
         brigade,
         signature: signatureData
@@ -102,11 +60,9 @@ export default function PublicView() {
 
     if (res.ok) {
       setIsModalOpen(false);
-      setName('');
-      setRole('EMPLEADO');
-      setBrigade('MULTIBRIGADA');
-      sigCanvas.current.clear();
       fetchEmployees(docInfo.id);
+    } else {
+      throw new Error('Error al guardar la firma');
     }
   };
 
@@ -130,7 +86,11 @@ export default function PublicView() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8 font-sans">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8 font-sans"
+    >
       <div className="max-w-4xl mx-auto mb-6 flex items-center gap-4">
         <Link to="/" className="p-3 bg-white rounded-lg shadow-sm border border-gray-200 text-gray-600 hover:text-gray-900 transition-colors">
           <ArrowLeft className="w-5 h-5" />
@@ -293,95 +253,11 @@ export default function PublicView() {
       )}
 
       {/* Signature Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="text-lg font-bold">Agregar mi firma</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="p-4 overflow-y-auto flex-1">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Ej. Juan Pérez"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Puesto en la Empresa</label>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="EMPLEADO">EMPLEADO</option>
-                    <option value="REPRESENTANTE LEGAL">REPRESENTANTE LEGAL</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Brigada que Integra</label>
-                  <input
-                    type="text"
-                    readOnly
-                    value="MULTIBRIGADA"
-                    className="w-full border border-gray-200 bg-gray-100 rounded-md p-2 text-gray-600 cursor-not-allowed"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between">
-                    <span>Firma</span>
-                    <button
-                      onClick={() => sigCanvas.current?.clear()}
-                      className="text-xs text-blue-600 hover:text-blue-800"
-                    >
-                      Limpiar
-                    </button>
-                  </label>
-                  <div className="border border-gray-300 rounded-md bg-gray-50" style={{ touchAction: 'none' }}>
-                    <SignatureCanvas
-                      ref={sigCanvas}
-                      canvasProps={{
-                        className: 'signature-canvas w-full h-40 rounded-md cursor-crosshair',
-                        style: { touchAction: 'none' }
-                      }}
-                      minWidth={1}
-                      maxWidth={2.5}
-                      velocityFilterWeight={0.7}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">Firma dentro del recuadro usando tu dedo o mouse.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveSignature}
-                className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 font-medium"
-              >
-                Guardar Firma
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <SignatureModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveSignature}
+      />
+    </motion.div>
   );
 }

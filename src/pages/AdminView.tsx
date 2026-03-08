@@ -1,134 +1,18 @@
 ﻿import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import Swal from 'sweetalert2';
 import { DocumentInfo, Employee } from '../types';
 import { Trash2, Save, FileText, Users, Plus, ArrowLeft, LogOut, Download, Award, Zap } from 'lucide-react';
 import { generateSimulacroPDF } from '../utils/generateSimulacroPDF';
 import { generateBatchConstanciasPDF } from '../utils/generateBatchConstanciasPDF';
 import { generateConstanciaPDF } from '../utils/generateConstanciaPDF';
-import { compressSignature } from '../utils/compressSignature';
-import { sortEmployees } from './PublicView';
-
-// --- Swipeable Row Component for mobile swipe-to-delete ---
-function SwipeableRow({
-  children,
-  onDelete,
-  onClick,
-}: {
-  children: React.ReactNode;
-  onDelete: () => void;
-  onClick: () => void;
-}) {
-  const rowRef = useRef<HTMLDivElement>(null);
-  const [translateX, setTranslateX] = useState(0);
-  const [isSwiping, setIsSwiping] = useState(false);
-  const startX = useRef(0);
-  const startY = useRef(0);
-  const currentX = useRef(0);
-  const isHorizontalSwipe = useRef<boolean | null>(null);
-  const DELETE_THRESHOLD = 80;
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    startX.current = e.touches[0].clientX;
-    startY.current = e.touches[0].clientY;
-    currentX.current = 0;
-    isHorizontalSwipe.current = null;
-    setIsSwiping(true);
-  }, []);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isSwiping) return;
-    const diffX = e.touches[0].clientX - startX.current;
-    const diffY = e.touches[0].clientY - startY.current;
-
-    // Determine swipe direction on first significant move
-    if (isHorizontalSwipe.current === null) {
-      if (Math.abs(diffX) > 5 || Math.abs(diffY) > 5) {
-        isHorizontalSwipe.current = Math.abs(diffX) > Math.abs(diffY);
-      }
-      return;
-    }
-
-    if (!isHorizontalSwipe.current) return;
-
-    // Only allow swiping left (negative values)
-    const clampedX = Math.min(0, Math.max(diffX, -120));
-    currentX.current = clampedX;
-    setTranslateX(clampedX);
-  }, [isSwiping]);
-
-  const handleTouchEnd = useCallback(() => {
-    setIsSwiping(false);
-    if (currentX.current < -DELETE_THRESHOLD) {
-      // Keep it open to show the delete button
-      setTranslateX(-100);
-    } else {
-      setTranslateX(0);
-    }
-  }, []);
-
-  const handleRowClick = useCallback(() => {
-    if (translateX < 0) {
-      // If swiped open, close it instead of selecting
-      setTranslateX(0);
-    } else {
-      onClick();
-    }
-  }, [translateX, onClick]);
-
-  return (
-    <div style={{ position: 'relative', overflow: 'hidden' }}>
-      {/* Delete button behind the row */}
-      <div
-        style={{
-          position: 'absolute',
-          right: 0,
-          top: 0,
-          bottom: 0,
-          width: '100px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#ef4444',
-          color: 'white',
-          fontWeight: 600,
-          fontSize: '14px',
-          cursor: 'pointer',
-          zIndex: 0,
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-      >
-        <Trash2 className="w-5 h-5 mr-1" />
-        Eliminar
-      </div>
-      {/* Foreground swipeable row */}
-      <div
-        ref={rowRef}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onClick={handleRowClick}
-        style={{
-          transform: `translateX(${translateX}px)`,
-          transition: isSwiping ? 'none' : 'transform 0.3s ease',
-          position: 'relative',
-          zIndex: 1,
-          backgroundColor: 'white',
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
+import { generateConstitutivaPDF } from '../utils/generateConstitutivaPDF';
+import { sortEmployees } from '../utils/employees';
+import SwipeableRow from '../components/SwipeableRow';
+import AdminLoginForm from '../components/AdminLoginForm';
+import { motion, AnimatePresence } from 'motion/react';
 export default function AdminView() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -250,7 +134,11 @@ export default function AdminView() {
   const handleGenerateManualConstancia = (e: React.FormEvent) => {
     e.preventDefault();
     if (!quickData.employeeName.trim() || !quickData.commercial_name.trim() || !quickData.address.trim() || !quickData.date.trim()) {
-      alert('Por favor llena todos los campos, o selecciona un acta existente para autocompletar.');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Campos incompletos',
+        text: 'Por favor llena todos los campos, o selecciona un acta existente para autocompletar.'
+      });
       return;
     }
 
@@ -284,246 +172,31 @@ export default function AdminView() {
 
   const handleDownloadPDF = async () => {
     if (!docInfo) return;
-    try {
-
-      // Pre-compress all signature images to reduce PDF size
-      const sortedEmps = sortEmployees(employees);
-      const compressedSignatures: Record<number, string> = {};
-      await Promise.all(
-        sortedEmps.map(async (emp) => {
-          if (emp.signature) {
-            compressedSignatures[emp.id] = await compressSignature(emp.signature);
-          }
-        })
-      );
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'letter'
-      });
-
-      const margin = 20; // 2cm
-      const pageWidth = doc.internal.pageSize.getWidth();
-      let currentY = 20;
-
-      // Local helper to add text and manage Y-axis
-      const addText = (text: string, size: number, style: 'normal' | 'bold' | 'italic', align: 'left' | 'center' | 'right' | 'justify', yOffset: number = 0) => {
-        doc.setFontSize(size);
-        doc.setFont('helvetica', style);
-        const textLines = doc.splitTextToSize(text, pageWidth - margin * 2);
-        doc.text(textLines, align === 'center' ? pageWidth / 2 : margin, currentY + yOffset, { align: align as any });
-        currentY += (textLines.length * size * 0.3527 * 1.5) + yOffset;
-      };
-
-      // Header section
-      addText('ACTA CONSTITUTIVA DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL', 13, 'bold', 'center');
-      currentY += 2;
-      addText(docInfo.commercial_name, 11, 'bold', 'center');
-      currentY += 2;
-      addText(`"${docInfo.company_name}"`, 11, 'bold', 'center');
-      currentY += 8;
-
-      // Body paragraphs
-      const fullAddress = `${docInfo.address}${docInfo.address ? ", " : ""}PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.`;
-      addText(`C. ${docInfo.commercial_name} RESPONSABLE DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL DE LA EMPRESA DENOMINADA "${docInfo.company_name}" y Siendo las ${docInfo.time_start} horas del día ${docInfo.date}, en el inmueble que ocupa la empresa, con domicilio, ${fullAddress} Se reúne la representante legal, así como lo empleados:`, 10, 'normal', 'left');
-      currentY += 4;
-      addText(`Con el objeto de constituir formalmente la Unidad Interna de Protección Civil de este inmueble.`, 10, 'normal', 'left');
-      currentY += 4;
-      addText(`Como consecuencia de los sucesos ocurridos en el año de 1985, el Gobierno Federal decidió instrumentar un sistema que permitiese una respuesta eficaz y eficiente de los diversos sectores de la sociedad ante la presencia de desastres naturales y/o humanos con el propósito de prevenir sus consecuencias o en su caso mitigarlas.`, 10, 'normal', 'left');
-      currentY += 4;
-      addText(`Por lo antes expuesto, y con fundamento en el Decreto por el que se aprueben las Bases para el Establecimiento del Sistema Nacional de Protección Civil.- Diario Oficial de la Federación del 6 de Mayo de 1986.- Manual de Organización y Operación del Sistema Nacional de Protección Civil.- Publicación de la Dirección General de Protección Civil del año de 1998.- Decreto por el que se crea el Consejo Nacional de Protección Civil.- Diario Oficial de la Federación del 11 de Mayo de 1990.- Programa de Protección Civil 1995-2000.- Diario Oficial de la Federación del 17 de Julio de 1996.`, 10, 'normal', 'left');
-      currentY += 4;
-      addText(`Se Constituye la Unidad Interna de Protección Civil, cuyos objetivos, integración y funciones se indican a continuación.`, 10, 'normal', 'left');
-      currentY += 8;
-
-      // 1. OBJETIVOS
-      addText('1. OBJETIVOS', 10, 'bold', 'left');
-      currentY += 2;
-      addText(`Adecuar el Reglamento Interior u ordenamiento jurídico correspondiente, para incluir la función de Protección Civil en esta institución; elaborar, establecer, operar y evaluar permanentemente el Programa Interno de Protección Civil, así como implantar los mecanismos de coordinación con las dependencias y entidades públicas, privadas y sociales, en sus niveles federal, estatal y municipal que conforman el Sistema Nacional de Protección Civil, con el fin de cumplir con los objetivos del mismo, a través de la ejecución del Programa, particularmente realizando actividades que conduzcan a salvaguardar la integridad física del personal, visitantes y de las instalaciones del Inmueble.`, 10, 'normal', 'left');
-      currentY += 8;
-
-      // 2. INTEGRACIÓN
-      doc.addPage(); currentY = margin;
-      addText('2. INTEGRACIÓN', 10, 'bold', 'left');
-      currentY += 2;
-      addText('La Unidad Interna de Protección Civil queda integrada por:', 10, 'normal', 'left');
-      currentY += 4;
-
-      const sortedEmployees = sortEmployees(employees);
-
-      const table1Body = sortedEmployees.length > 0
-        ? sortedEmployees.map(e => [e.name.toUpperCase(), e.role.toUpperCase(), e.brigade || 'MULTIBRIGADA'])
-        : [['Aún no hay firmas registradas.', '', '']];
-
-      autoTable(doc, {
-        startY: currentY,
-        head: [['NOMBRE', 'PUESTO EN LA EMPRESA', 'BRIGADA QUE INTEGRA']],
-        body: table1Body,
-        theme: 'grid',
-        headStyles: { fillColor: [232, 232, 232], textColor: 0, fontStyle: 'bold', halign: 'center' },
-        styles: { font: 'helvetica', fontSize: 9, cellPadding: 2, textColor: 0 },
-        columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 50 }, 2: { cellWidth: 50 } },
-        margin: { left: margin, right: margin }
-      });
-
-      currentY = (doc as any).lastAutoTable.finalY + 10;
-
-      // 3. FUNCIONES
-      if (currentY > 250) { doc.addPage(); currentY = margin; }
-      addText('3. FUNCIONES', 10, 'bold', 'left');
-      currentY += 2;
-      addText('Corresponde a los integrantes de la Unidad Interna de Protección Civil, llevar a cabo las siguientes funciones:', 10, 'normal', 'left');
-      currentY += 4;
-
-      const bulletPoints = [
-        'Integrar y Formalizar la Unidad Interna de Protección Civil.',
-        'Integrar las Brigadas Internas de Protección Civil.',
-        'Diseñar y promover la impartición de cursos de capacitación a los integrantes de las Brigadas Internas de Protección Civil.',
-        'Elaborar el diagnóstico de riesgos a los que está expuesta la zona donde se ubica el inmueble.',
-        'Elaborar e implementar medidas de prevención para cada tipo de calamidad, de acuerdo al riesgo potencial al que está expuesto el inmueble.',
-        'Definir áreas o zonas de seguridad internas y externas.',
-        'Realizar simulacros en el inmueble, de acuerdo a los planes de emergencia y procedimientos metodológicos previamente elaborados para cada desastre.',
-        'Elaborar y distribuir material de difusión y concientización para que el personal que labora en la dependencia.',
-        'Evaluar el avance y la eficacia del Programa Interno de Protección Civil.',
-        'Elaborar directorios e inventarios por inmueble, de la dependencia.',
-        'Programar y realizar ejercicios y simulacros.',
-        'Establecer mecanismos de coordinación con las instituciones responsables de la detección, monitoreo y pronóstico de los diferentes agentes perturbadores.',
-        'Establecer acciones permanentes de mantenimiento de las diferentes instalaciones del inmueble.',
-        'Determinar el equipo de seguridad que debe ser instalado en el inmueble.',
-        'Promover la colocación de señalamientos, de acuerdo a los lineamientos establecidos en la Norma Mexicana NMX-S-017-1996-SCFI.',
-        'Aplicar las normas de seguridad que permitan reducir al mínimo la incidencia de riesgos del personal y los bienes del inmueble en general.',
-        'Elaborar un plan de reconstrucción inicial, para restablecer las condiciones normales de operación del inmueble.'
-      ];
-
-      bulletPoints.forEach(bp => {
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        const bulletStr = `•  ${bp}`;
-        const lines = doc.splitTextToSize(bulletStr, pageWidth - margin * 2 - 5);
-        if (currentY + (lines.length * 5) > 270) { doc.addPage(); currentY = margin; }
-        doc.text(lines, margin + 5, currentY);
-        currentY += lines.length * 5 + 1;
-      });
-      currentY += 8;
-
-      // 4. ESQUEMA ORGANIZACIONAL — always on a new page
-      doc.addPage(); currentY = margin;
-      addText('4. ESQUEMA ORGANIZACIONAL', 10, 'bold', 'left');
-      currentY += 2;
-      addText('Para que la Unidad Interna de Protección Civil logre los objetivos y desempeñe las funciones antes descritas, contará con la estructura organizacional.', 10, 'normal', 'left');
-      currentY += 4;
-      addText(`Se firma la presente ACTA CONSTITUTIVA de la Unidad Interna de Protección Civil, por sus integrantes, en el lugar y fecha indicados, siendo las ${docInfo.time_end} horas.`, 10, 'normal', 'left');
-      currentY += 4;
-
-      const table2Body = sortedEmployees.length > 0
-        ? sortedEmployees.map(e => [e.name.toUpperCase(), e.role.toUpperCase(), ''])
-        : [['Aún no hay firmas registradas.', '', '']];
-
-      autoTable(doc, {
-        startY: currentY,
-        head: [['NOMBRE', 'PUESTO EN LA EMPRESA', 'FIRMA']],
-        body: table2Body,
-        theme: 'grid',
-        headStyles: { fillColor: [232, 232, 232], textColor: 0, fontStyle: 'bold', halign: 'center' },
-        styles: { font: 'helvetica', fontSize: 9, cellPadding: 2, textColor: 0, valign: 'middle' },
-        columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 50 }, 2: { cellWidth: 50, minCellHeight: 15 } },
-        margin: { left: margin, right: margin },
-        didDrawCell: function (data) {
-          if (data.column.index === 2 && data.cell.section === 'body' && sortedEmployees.length > 0) {
-            const emp = sortedEmployees[data.row.index];
-            if (emp && emp.signature) {
-              const dim = data.cell;
-              const imgW = 24;
-              const imgH = 9;
-              const xPos = dim.x + (dim.width - imgW) / 2;
-              const yPos = dim.y + (dim.height - imgH) / 2;
-              try {
-                doc.addImage(compressedSignatures[emp.id] || emp.signature, 'JPEG', xPos, yPos, imgW, imgH);
-              } catch (e) { console.error('Error drawing image', e); }
-            }
-          }
-        }
-      });
-
-      const safeName = docInfo.commercial_name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-      const fileName = `acta_constitutiva_${safeName}.pdf`;
-
-      console.log('Generating blob...');
-      const pdfBlob = doc.output('blob');
-      console.log('Blob size:', pdfBlob.size);
-      const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
-
-      console.log('Trying share...', navigator.canShare ? 'Supported' : 'Not supported');
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-      if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({
-            files: [file],
-            title: `Acta Constitutiva - ${docInfo.commercial_name}`,
-          });
-          console.log('Shared successfully');
-          return; // Success, exit
-        } catch (error) {
-          console.log('User cancelled share or share failed:', error);
-          return; // Stay on the page, don't fallback to doc.save
-        }
-      }
-
-      // Fallback for desktop browsers / browsers without file sharing
-      console.log('Saving file using JS...');
-      doc.save(fileName);
-      console.log('Save triggered.');
-    } catch (e: any) {
-      console.error('Fatal PDF Error:', e);
-      alert('Error al generar PDF: ' + (e?.message || JSON.stringify(e)));
-    }
+    await generateConstitutivaPDF(docInfo, employees);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password === 'admin123') {
+  const handleLogin = (passwordInput: string) => {
+    if (passwordInput === 'Becase26') {
       setIsAuthenticated(true);
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Contraseña incorrecta'
+      });
     }
   };
 
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
-        <form onSubmit={handleLogin} className="max-w-sm w-full bg-white rounded-2xl shadow-xl p-8 space-y-6">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900">Acceso Administrador</h2>
-            <p className="text-gray-500 text-sm mt-2">Ingresa la contraseña para continuar</p>
-          </div>
-          <div>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              placeholder="Contraseña"
-              autoFocus
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-gray-900 hover:bg-black text-white p-3 rounded-xl font-medium transition-colors"
-          >
-            Ingresar
-          </button>
-          <Link
-            to="/"
-            className="block text-center w-full text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors"
-          >
-            Volver al inicio
-          </Link>
-        </form>
-      </div>
-    );
+    return <AdminLoginForm onLogin={handleLogin} />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 px-4 sm:px-6 lg:px-8 font-sans">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-gray-100 py-8 px-4 sm:px-6 lg:px-8 font-sans"
+    >
       <div className="max-w-5xl mx-auto space-y-8">
 
         <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm">
@@ -1011,6 +684,6 @@ export default function AdminView() {
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

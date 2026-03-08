@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Users } from 'lucide-react';
+import { motion } from 'motion/react';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -8,7 +9,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 font-sans">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center space-y-8">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center space-y-8"
+      >
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Protección Civil</h1>
           <p className="text-gray-500">Sistema de Actas Constitutivas</p>
@@ -56,7 +62,7 @@ export default function Home() {
         <div className="text-gray-400 text-sm mt-4">
           v1.14
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

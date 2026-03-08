@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { DocumentInfo, Employee } from '../types';
+import Swal from 'sweetalert2';
 
 export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee) => {
     try {
@@ -99,6 +100,10 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         doc.save(fileName);
     } catch (error: any) {
         console.error('Error al generar constancia:', error);
-        alert('Error al generar constancia. Asegúrate de haber guardado la imagen vacía como "constancia_vacia.jpg" en la carpeta public. Detalles: ' + error.message);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al generar constancia',
+            text: `Asegúrate de haber guardado la imagen vacía como "constancia_vacia.jpg" en la carpeta public. Detalles: ${error.message}`
+        });
     }
 };

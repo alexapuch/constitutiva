@@ -1,7 +1,7 @@
 ﻿import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { DocumentInfo, Employee } from '../types';
-import { sortEmployees } from '../pages/PublicView';
+import { sortEmployees } from './employees';
 import { compressSignature } from './compressSignature';
 import { FIRMA_JORGE_BASE64 } from './firmaJorge';
 

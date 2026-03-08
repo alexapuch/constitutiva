@@ -1,10 +1,15 @@
 import { jsPDF } from 'jspdf';
 import { DocumentInfo, Employee } from '../types';
+import Swal from 'sweetalert2';
 
 export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employees: Employee[]) => {
     try {
         if (!employees || employees.length === 0) {
-            alert('No hay empleados registrados para generar constancias.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'No hay empleados',
+                text: 'No hay empleados registrados para generar constancias.'
+            });
             return;
         }
 
@@ -104,6 +109,10 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
         doc.save(fileName);
     } catch (error: any) {
         console.error('Error al generar constancias en lote:', error);
-        alert('Error al generar constancias en lote. ' + error.message);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al generar constancias en lote',
+            text: error.message
+        });
     }
 };
