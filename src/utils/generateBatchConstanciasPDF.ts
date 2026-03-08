@@ -9,7 +9,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
                 icon: 'warning',
                 title: 'No hay personas',
                 text: 'No hay firmas/personas registradas en esta acta para generar constancias.',
-                confirmButtonColor: '#e11d48'
+                confirmButtonColor: '#722F37'
             });
             return;
         }
@@ -114,7 +114,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             icon: 'error',
             title: 'Error',
             text: `Hubo un error crítico al generar las constancias. Detalles: ${error.message}`,
-            confirmButtonColor: '#e11d48'
+            confirmButtonColor: '#722F37'
         });
     }
 };

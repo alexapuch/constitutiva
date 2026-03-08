@@ -26,7 +26,7 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
                 icon: 'warning',
                 title: 'Firma requerida',
                 text: 'Por favor, dibuja tu firma antes de guardar.',
-                confirmButtonColor: '#e11d48'
+                confirmButtonColor: '#722F37'
             });
             return;
         }
@@ -36,7 +36,7 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
                 icon: 'warning',
                 title: 'Nombre requerido',
                 text: 'Por favor, ingresa tu nombre completo antes de guardar.',
-                confirmButtonColor: '#e11d48'
+                confirmButtonColor: '#722F37'
             });
             return;
         }
@@ -59,7 +59,7 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
                 icon: 'error',
                 title: 'Error',
                 text: 'Hubo un error al guardar la firma.',
-                confirmButtonColor: '#e11d48'
+                confirmButtonColor: '#722F37'
             });
         } finally {
             setIsSaving(false);

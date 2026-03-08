@@ -201,7 +201,7 @@ export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: 
             icon: 'error',
             title: 'Error de PDF',
             text: 'Hubo un error crítico al generar el Acta Constitutiva. Verifique la consola para más detalles.',
-            confirmButtonColor: '#e11d48'
+            confirmButtonColor: '#722F37'
         });
     }
 };

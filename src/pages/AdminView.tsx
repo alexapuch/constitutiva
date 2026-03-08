@@ -138,7 +138,7 @@ export default function AdminView() {
         icon: 'warning',
         title: 'Campos incompletos',
         text: 'Por favor llena todos los campos, o selecciona un acta existente para autocompletar.',
-        confirmButtonColor: '#e11d48'
+        confirmButtonColor: '#722F37'
       });
       return;
     }
@@ -184,7 +184,7 @@ export default function AdminView() {
         icon: 'error',
         title: 'Error',
         text: 'Contraseña incorrecta',
-        confirmButtonColor: '#e11d48'
+        confirmButtonColor: '#722F37'
       });
     }
   };
