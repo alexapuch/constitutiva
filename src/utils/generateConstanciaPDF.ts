@@ -50,11 +50,21 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         doc.text(docInfo.commercial_name.toUpperCase(), 118, 94.5, { align: 'left', maxWidth: 140 });
 
         // 3. Address
-        // Force "Playa del Carmen..." to the second line explicitly by passing an array of strings
-        const addressLine1 = docInfo.address.toUpperCase();
-        const addressLine2 = "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.";
+        const addressText = docInfo.address.trim().toUpperCase();
+        const pdcText = "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.";
+
+        // Determine layout based on address length
+        const maxAddressWidth = 155;
+        const addressLines = doc.splitTextToSize(addressText, maxAddressWidth);
+
+        // If the address fits in one line, array format forces a nice line break for Playa del Carmen.
+        // If the address wraps to multiple lines, concatenating prevents isolated short lines and extra forced jumps.
+        const finalAddress = addressLines.length === 1
+            ? [addressText, pdcText]
+            : `${addressText} ${pdcText}`;
+
         // Micro-adjustment up by 2px (0.5mm)
-        doc.text([addressLine1, addressLine2], 96, 100.5, { align: 'left', maxWidth: 155, lineHeightFactor: 1.5 });
+        doc.text(finalAddress, 96, 100.5, { align: 'left', maxWidth: maxAddressWidth, lineHeightFactor: 1.5 });
 
         // 4. Date
         doc.setFontSize(11);
