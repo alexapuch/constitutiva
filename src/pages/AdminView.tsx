@@ -275,6 +275,77 @@ export default function AdminView() {
           </div>
         </div>
 
+        {/* Quote History Section */}
+        <div className="bg-white shadow-md rounded-lg overflow-hidden">
+          <div className="p-6 border-b border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
+            <h2 className="text-xl font-bold flex items-center gap-2 text-gray-800">
+              <Calculator className="w-6 h-6 text-blue-600" />
+              Historial de Cotizaciones
+            </h2>
+            <div className="flex w-full md:w-auto gap-4 items-center">
+              <input
+                type="text"
+                placeholder="Buscar por cliente..."
+                value={quoteSearchTerm}
+                onChange={(e) => setQuoteSearchTerm(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-full md:w-64"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
+                <tr>
+                  <th className="px-6 py-3">Cliente</th>
+                  <th className="px-6 py-3">Fecha</th>
+                  <th className="px-6 py-3 text-right">Total</th>
+                  <th className="px-6 py-3 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {quotes
+                  .filter(q => q.client_name?.toLowerCase().includes(quoteSearchTerm.toLowerCase()))
+                  .map((quote) => (
+                    <tr key={quote.id} className="border-b hover:bg-gray-50">
+                      <td className="px-6 py-4 font-medium text-gray-900">{quote.client_name}</td>
+                      <td className="px-6 py-4">{quote.date}</td>
+                      <td className="px-6 py-4 text-right font-bold text-gray-700">
+                        ${Number(quote.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex justify-center gap-2">
+                          <button
+                            onClick={() => {
+                              setQuoteToEdit(quote);
+                              setShowQuoteModal(true);
+                            }}
+                            className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-200 transition-colors font-medium text-xs"
+                          >
+                            Editar / Imprimir
+                          </button>
+                          <button
+                            onClick={() => handleDeleteQuote(quote.id)}
+                            className="bg-red-100 text-red-700 px-3 py-1.5 rounded hover:bg-red-200 transition-colors font-medium text-xs"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                {quotes.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-8 text-center text-gray-500 italic">
+                      No hay cotizaciones registradas en el historial.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
           <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50">
             <h2 className="text-xl font-extrabold flex items-center gap-2 text-blue-900 tracking-tight">
@@ -640,76 +711,7 @@ export default function AdminView() {
 
       </div>
 
-      {/* Quote History Section */}
-      <div className="bg-white shadow-md rounded-lg overflow-hidden mt-8 mb-16">
-        <div className="p-6 border-b border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
-          <h2 className="text-xl font-bold flex items-center gap-2 text-gray-800">
-            <Calculator className="w-6 h-6 text-blue-600" />
-            Historial de Cotizaciones
-          </h2>
-          <div className="flex w-full md:w-auto gap-4 items-center">
-            <input
-              type="text"
-              placeholder="Buscar por cliente..."
-              value={quoteSearchTerm}
-              onChange={(e) => setQuoteSearchTerm(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-full md:w-64"
-            />
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
-              <tr>
-                <th className="px-6 py-3">Cliente</th>
-                <th className="px-6 py-3">Fecha</th>
-                <th className="px-6 py-3 text-right">Total</th>
-                <th className="px-6 py-3 text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {quotes
-                .filter(q => q.client_name?.toLowerCase().includes(quoteSearchTerm.toLowerCase()))
-                .map((quote) => (
-                  <tr key={quote.id} className="border-b hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">{quote.client_name}</td>
-                    <td className="px-6 py-4">{quote.date}</td>
-                    <td className="px-6 py-4 text-right font-bold text-gray-700">
-                      ${Number(quote.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex justify-center gap-2">
-                        <button
-                          onClick={() => {
-                            setQuoteToEdit(quote);
-                            setShowQuoteModal(true);
-                          }}
-                          className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-200 transition-colors font-medium text-xs"
-                        >
-                          Editar / Imprimir
-                        </button>
-                        <button
-                          onClick={() => handleDeleteQuote(quote.id)}
-                          className="bg-red-100 text-red-700 px-3 py-1.5 rounded hover:bg-red-200 transition-colors font-medium text-xs"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              {quotes.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500 italic">
-                    No hay cotizaciones registradas en el historial.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Quote History section moved to the top */}
 
       {showQuickModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
