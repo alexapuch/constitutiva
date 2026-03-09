@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { DocumentInfo, Employee } from '../types';
-import { Trash2, Save, FileText, Users, Plus, ArrowLeft, LogOut, Download, Award, Zap, X } from 'lucide-react';
+import { Trash2, Save, FileText, Users, Plus, ArrowLeft, LogOut, Download, Award, Zap, X, Calculator } from 'lucide-react';
 import { generateSimulacroPDF } from '../utils/generateSimulacroPDF';
 import { generateBatchConstanciasPDF } from '../utils/generateBatchConstanciasPDF';
 import { generateConstanciaPDF } from '../utils/generateConstanciaPDF';
@@ -10,6 +10,7 @@ import { generateConstitutivaPDF } from '../utils/generateConstitutivaPDF';
 import { sortEmployees } from '../utils/employees';
 import SwipeableRow from '../components/SwipeableRow';
 import AdminLoginForm from '../components/AdminLoginForm';
+import QuoteModal from '../components/QuoteModal';
 import { motion, AnimatePresence } from 'motion/react';
 export default function AdminView() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -21,12 +22,18 @@ export default function AdminView() {
 
   // Manual Constancia Generator State
   const [showQuickModal, setShowQuickModal] = useState(false);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [quickData, setQuickData] = useState({
     employeeName: '',
     commercial_name: '',
     address: '',
     date: ''
   });
+
+  // Quote History State
+  const [quotes, setQuotes] = useState<any[]>([]);
+  const [quoteSearchTerm, setQuoteSearchTerm] = useState('');
+  const [quoteToEdit, setQuoteToEdit] = useState<any | null>(null);
 
   useEffect(() => {
     if (showQuickModal) {
@@ -41,6 +48,7 @@ export default function AdminView() {
 
   useEffect(() => {
     fetchDocuments();
+    fetchQuotes();
   }, []);
 
   useEffect(() => {
@@ -57,6 +65,16 @@ export default function AdminView() {
     setDocuments(data);
     if (data.length > 0 && !selectedDocId) {
       setSelectedDocId(data[0].id);
+    }
+  };
+
+  const fetchQuotes = async () => {
+    try {
+      const res = await fetch('/api/quotes');
+      const data = await res.json();
+      setQuotes(data);
+    } catch (error) {
+      console.error('Error fetching quotes:', error);
     }
   };
 
@@ -115,9 +133,24 @@ export default function AdminView() {
     fetchDocuments();
   };
 
+  const handleDeleteQuote = async (id: string) => {
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: "La cotización se eliminará del historial. Esta acción no se puede deshacer.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
 
-
-  const handleDeleteEmployee = async (id: number) => {
+    if (result.isConfirmed) {
+      await fetch(`/api/quotes/${id}`, { method: 'DELETE' });
+      fetchQuotes();
+      Swal.fire('Eliminado', 'La cotización ha sido eliminada del historial.', 'success');
+    }
+  }; const handleDeleteEmployee = async (id: number) => {
     await fetch(`/api/employees/${id}`, { method: 'DELETE' });
     if (selectedDocId) fetchEmployees(selectedDocId);
   };
@@ -217,7 +250,15 @@ export default function AdminView() {
             <ArrowLeft className="w-5 h-5" />
             Volver al inicio
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <button
+              onClick={() => setShowQuoteModal(true)}
+              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors shadow-sm font-medium min-h-[44px]"
+              title="Generar cotización en PDF"
+            >
+              <Calculator className="w-5 h-5" />
+              <span className="hidden sm:inline">Cotización</span>
+            </button>
             <button
               onClick={() => setShowQuickModal(true)}
               className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors shadow-sm font-medium min-h-[44px]"
@@ -599,6 +640,77 @@ export default function AdminView() {
 
       </div>
 
+      {/* Quote History Section */}
+      <div className="bg-white shadow-md rounded-lg overflow-hidden mt-8 mb-16">
+        <div className="p-6 border-b border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
+          <h2 className="text-xl font-bold flex items-center gap-2 text-gray-800">
+            <Calculator className="w-6 h-6 text-blue-600" />
+            Historial de Cotizaciones
+          </h2>
+          <div className="flex w-full md:w-auto gap-4 items-center">
+            <input
+              type="text"
+              placeholder="Buscar por cliente..."
+              value={quoteSearchTerm}
+              onChange={(e) => setQuoteSearchTerm(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-full md:w-64"
+            />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
+              <tr>
+                <th className="px-6 py-3">Cliente</th>
+                <th className="px-6 py-3">Fecha</th>
+                <th className="px-6 py-3 text-right">Total</th>
+                <th className="px-6 py-3 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {quotes
+                .filter(q => q.client_name?.toLowerCase().includes(quoteSearchTerm.toLowerCase()))
+                .map((quote) => (
+                  <tr key={quote.id} className="border-b hover:bg-gray-50">
+                    <td className="px-6 py-4 font-medium text-gray-900">{quote.client_name}</td>
+                    <td className="px-6 py-4">{quote.date}</td>
+                    <td className="px-6 py-4 text-right font-bold text-gray-700">
+                      ${Number(quote.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex justify-center gap-2">
+                        <button
+                          onClick={() => {
+                            setQuoteToEdit(quote);
+                            setShowQuoteModal(true);
+                          }}
+                          className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-200 transition-colors font-medium text-xs"
+                        >
+                          Editar / Imprimir
+                        </button>
+                        <button
+                          onClick={() => handleDeleteQuote(quote.id)}
+                          className="bg-red-100 text-red-700 px-3 py-1.5 rounded hover:bg-red-200 transition-colors font-medium text-xs"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              {quotes.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500 italic">
+                    No hay cotizaciones registradas en el historial.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {showQuickModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] min-w-0 break-words">
@@ -720,6 +832,16 @@ export default function AdminView() {
           </div>
         </div>
       )}
+
+      <QuoteModal
+        isOpen={showQuoteModal}
+        onClose={() => {
+          setShowQuoteModal(false);
+          setQuoteToEdit(null);
+        }}
+        quoteToEdit={quoteToEdit}
+        onQuoteSaved={fetchQuotes}
+      />
     </motion.div>
   );
 }

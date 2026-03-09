@@ -135,4 +135,48 @@ app.delete('/api/employees/:id', async (req, res) => {
     res.json({ success: true });
 });
 
+// --- QUOTES ENDPOINTS ---
+
+// GET all quotes, ordered by latest
+app.get('/api/quotes', async (req, res) => {
+    const { data, error } = await supabase
+        .from('quotes')
+        .select('*')
+        .order('created_at', { ascending: false });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+});
+
+// POST create quote
+app.post('/api/quotes', async (req, res) => {
+    const { client_name, company_name, date, admin_name, admin_registration, admin_email, admin_phone, items, subtotal, iva, total } = req.body;
+    const { data, error } = await supabase
+        .from('quotes')
+        .insert({ client_name, company_name, date, admin_name, admin_registration, admin_email, admin_phone, items, subtotal, iva, total })
+        .select()
+        .single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+});
+
+// PUT update quote
+app.put('/api/quotes/:id', async (req, res) => {
+    const { client_name, company_name, date, admin_name, admin_registration, admin_email, admin_phone, items, subtotal, iva, total } = req.body;
+    const { data, error } = await supabase
+        .from('quotes')
+        .update({ client_name, company_name, date, admin_name, admin_registration, admin_email, admin_phone, items, subtotal, iva, total, updated_at: new Date().toISOString() })
+        .eq('id', req.params.id)
+        .select()
+        .single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+});
+
+// DELETE quote
+app.delete('/api/quotes/:id', async (req, res) => {
+    const { error } = await supabase.from('quotes').delete().eq('id', req.params.id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true });
+});
+
 export default app;
