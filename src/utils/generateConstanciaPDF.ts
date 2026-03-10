@@ -75,10 +75,10 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         doc.text(docInfo.date.toUpperCase(), 145, 124, { align: 'center' });
 
         // 5. Vigencia
-        doc.setFontSize(9);
+        doc.setFontSize(7);
         doc.setTextColor(100, 100, 100); // Dark gray
-        doc.setFont('helvetica', 'normal');
-        doc.text('VIGENCIA AÑO FISCAL', 145, 129, { align: 'center' });
+        doc.setFont('helvetica', 'bold');
+        doc.text('VIGENCIA AÑO FISCAL', 145, 131, { align: 'center' });
 
         // Generate output and download
         const safeName = emp.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
