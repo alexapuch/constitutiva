@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, FileText, Settings, Calculator } from 'lucide-react';
+import { X, Plus, Minus, Trash2, FileText, Settings, Calculator } from 'lucide-react';
 import { generateQuotePDF, QuoteData, QuoteItem } from '../utils/generateQuotePDF';
 
 interface QuoteModalProps {
@@ -20,7 +20,7 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
     const [adminName, setAdminName] = useState('JORGE HUMBERTO MEZA CONTRERAS');
     const [adminRegistration, setAdminRegistration] = useState('MPDC/SPCPRyB/AUT-DT/RPS/028/2026');
     const [adminEmail, setAdminEmail] = useState('jorgehmeza@yahoo.com.mx');
-    const [adminPhone, setAdminPhone] = useState('984 87 3 47 43');
+    const [adminPhone, setAdminPhone] = useState('984 87 6 47 43');
     const [companyName, setCompanyName] = useState('SEPRISA');
     const [showAdminSettings, setShowAdminSettings] = useState(false);
 
@@ -33,21 +33,16 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
         if (isOpen) {
             document.body.style.overflow = 'hidden';
             if (quoteToEdit) {
-                // Prefill form for editing
                 setClientName(quoteToEdit.client_name || '');
-                // Date back to YYYY-MM-DD if possible or leave it formatted if we can't parse easily
-                // The DB stores it formatted (e.g. '9 DE MARZO DEL 2026'). We'll leave the date input as is today unless we parse it.
-                // For simplicity, let's keep today's date for editing, or let the user pick.
                 setAdminName(quoteToEdit.admin_name || 'JORGE HUMBERTO MEZA CONTRERAS');
                 setAdminRegistration(quoteToEdit.admin_registration || 'MPDC/SPCPRyB/AUT-DT/RPS/028/2026');
                 setAdminEmail(quoteToEdit.admin_email || 'jorgehmeza@yahoo.com.mx');
-                setAdminPhone(quoteToEdit.admin_phone || '984 87 3 47 43');
+                setAdminPhone(quoteToEdit.admin_phone || '984 87 6 47 43');
                 setCompanyName(quoteToEdit.company_name || 'SEPRISA');
                 if (quoteToEdit.items && Array.isArray(quoteToEdit.items)) {
                     setItems(quoteToEdit.items);
                 }
             } else {
-                // Reset to default
                 setClientName('');
                 setItems([{ description: '', quantity: 1, unitPrice: 0, total: 0 }]);
             }
@@ -61,7 +56,6 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
         const newItems = [...items];
         const item = { ...newItems[index], [field]: value };
 
-        // Auto-calculate total
         if (field === 'quantity' || field === 'unitPrice') {
             const qty = parseFloat(item.quantity as any) || 0;
             const price = parseFloat(item.unitPrice as any) || 0;
@@ -92,13 +86,11 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
     const handleGenerateQuote = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Validate
         if (items.some(i => !i.description.trim())) {
             alert('Por favor, ingresa una descripción para todos los conceptos.');
             return;
         }
 
-        // Format Date nicely
         const dateObj = new Date(date + 'T00:00:00');
         const formattedDate = isNaN(dateObj.getTime()) ? date : dateObj.toLocaleDateString('es-ES', {
             day: 'numeric',
@@ -123,11 +115,9 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
         };
 
         try {
-            // Save to DB
             const method = quoteToEdit ? 'PUT' : 'POST';
             const url = quoteToEdit ? `/api/quotes/${quoteToEdit.id}` : '/api/quotes';
 
-            // Map variables to DB column names for the API payload
             const dbPayload = {
                 client_name: quoteData.clientName,
                 company_name: quoteData.companyName,
@@ -153,7 +143,6 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
             await generateQuotePDF(quoteData);
             onClose();
 
-            // Reset basic fields for next time
             setClientName('');
             setItems([{ description: '', quantity: 1, unitPrice: 0, total: 0 }]);
         } catch (error) {
@@ -171,227 +160,246 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl my-8 flex flex-col relative">
-                <div className="bg-blue-900 p-5 text-white flex justify-between items-center rounded-t-xl shrink-0">
-                    <h3 className="font-extrabold flex items-center gap-2 text-xl">
-                        <Calculator className="w-6 h-6 text-blue-300" />
+        <div
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+            style={{ overscrollBehavior: 'contain' }}
+        >
+            <div
+                className="bg-white w-full h-full md:h-auto md:max-h-[90vh] md:max-w-3xl md:rounded-xl md:shadow-2xl md:m-4 flex flex-col overflow-hidden"
+                style={{ overscrollBehavior: 'contain' }}
+            >
+                {/* Header */}
+                <div className="bg-blue-900 px-4 py-4 sm:p-5 text-white flex justify-between items-center shrink-0">
+                    <h3 className="font-extrabold flex items-center gap-2 text-lg">
+                        <Calculator className="w-5 h-5 text-blue-300" />
                         {quoteToEdit ? 'Editar Cotización' : 'Nueva Cotización'}
                     </h3>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="text-white/80 hover:text-white p-2 bg-blue-800/50 hover:bg-blue-800 rounded-lg transition-colors"
+                        className="text-white/80 hover:text-white p-2 bg-blue-800/50 hover:bg-blue-800 rounded-lg"
                     >
                         <X className="w-6 h-6" />
                     </button>
                 </div>
 
-                <form onSubmit={handleGenerateQuote} className="p-6 flex flex-col gap-8 max-h-[80vh] overflow-y-auto w-full">
-
+                {/* Scrollable form */}
+                <form
+                    onSubmit={handleGenerateQuote}
+                    className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 sm:px-6 space-y-6"
+                    style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+                >
                     {/* General Data */}
-                    <section className="space-y-4">
-                        <h4 className="text-lg font-bold text-gray-800 border-b pb-2 flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-blue-600" />
+                    <section className="space-y-3">
+                        <h4 className="text-base font-bold text-gray-800 border-b pb-2 flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-blue-600" />
                             Datos Generales
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Nombre del Cliente / Empresa *</label>
-                                <input
-                                    type="text"
-                                    required
-                                    placeholder="Ej. Hotel Paraiso"
-                                    value={clientName}
-                                    onChange={(e) => setClientName(e.target.value.toUpperCase())}
-                                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-600 focus:border-blue-600 bg-gray-50 uppercase"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Fecha de Cotización *</label>
-                                <input
-                                    type="date"
-                                    required
-                                    value={date}
-                                    onChange={(e) => setDate(e.target.value)}
-                                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-600 focus:border-blue-600 bg-gray-50"
-                                />
-                            </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-1">Cliente / Empresa *</label>
+                            <input
+                                type="text"
+                                required
+                                placeholder="Ej. Hotel Paraiso"
+                                value={clientName}
+                                onChange={(e) => setClientName(e.target.value.toUpperCase())}
+                                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 uppercase text-base"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-1">Fecha *</label>
+                            <input
+                                type="date"
+                                required
+                                value={date}
+                                onChange={(e) => setDate(e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-base"
+                            />
                         </div>
 
                         {/* Admin Settings Toggle */}
-                        <div className="mt-2">
-                            <button
-                                type="button"
-                                onClick={() => setShowAdminSettings(!showAdminSettings)}
-                                className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors"
-                            >
-                                <Settings className="w-4 h-4" />
-                                {showAdminSettings ? 'Ocultar datos del Emisor' : 'Configurar datos del Emisor (Administrador)'}
-                            </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowAdminSettings(!showAdminSettings)}
+                            className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                        >
+                            <Settings className="w-4 h-4" />
+                            {showAdminSettings ? 'Ocultar datos del Emisor' : 'Configurar datos del Emisor'}
+                        </button>
 
-                            {showAdminSettings && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mt-3 p-4 bg-blue-50/50 border border-blue-100 rounded-lg">
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
-                                        <input type="text" value={adminName} onChange={e => setAdminName(e.target.value)} className="w-full border-gray-300 rounded p-2 text-sm" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">Registro</label>
-                                        <input type="text" value={adminRegistration} onChange={e => setAdminRegistration(e.target.value)} className="w-full border-gray-300 rounded p-2 text-sm" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">Empresa</label>
-                                        <input type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} className="w-full border-gray-300 rounded p-2 text-sm" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">Correo</label>
-                                        <input type="email" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} className="w-full border-gray-300 rounded p-2 text-sm" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">Teléfono</label>
-                                        <input type="tel" value={adminPhone} onChange={e => setAdminPhone(e.target.value)} className="w-full border-gray-300 rounded p-2 text-sm" />
-                                    </div>
+                        {showAdminSettings && (
+                            <div className="space-y-3 p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
+                                    <input type="text" value={adminName} onChange={e => setAdminName(e.target.value)} className="w-full border-gray-300 rounded-lg p-2.5 text-sm" />
                                 </div>
-                            )}
-                        </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Registro</label>
+                                    <input type="text" value={adminRegistration} onChange={e => setAdminRegistration(e.target.value)} className="w-full border-gray-300 rounded-lg p-2.5 text-sm" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Empresa</label>
+                                    <input type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} className="w-full border-gray-300 rounded-lg p-2.5 text-sm" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Correo</label>
+                                    <input type="email" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} className="w-full border-gray-300 rounded-lg p-2.5 text-sm" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Teléfono</label>
+                                    <input type="tel" value={adminPhone} onChange={e => setAdminPhone(e.target.value)} className="w-full border-gray-300 rounded-lg p-2.5 text-sm" />
+                                </div>
+                            </div>
+                        )}
                     </section>
 
-                    {/* Table Items */}
-                    <section className="space-y-4">
+                    {/* Conceptos */}
+                    <section className="space-y-3">
                         <div className="flex justify-between items-center border-b pb-2">
-                            <h4 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                                <Calculator className="w-5 h-5 text-blue-600" />
+                            <h4 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                                <Calculator className="w-4 h-4 text-blue-600" />
                                 Conceptos
                             </h4>
                             <button
                                 type="button"
                                 onClick={addItem}
-                                className="text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold px-3 py-1.5 rounded flex items-center gap-1 transition-colors"
+                                className="text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"
                             >
                                 <Plus className="w-4 h-4" />
-                                Agregar Fila
+                                Agregar
                             </button>
                         </div>
 
-                        <div className="hidden md:grid grid-cols-12 gap-3 text-sm font-bold text-gray-500 uppercase px-2">
-                            <div className="col-span-6">Descripción</div>
-                            <div className="col-span-2 text-center">Cantidad</div>
-                            <div className="col-span-2 text-right">Precio Unitario</div>
-                            <div className="col-span-2 text-right pr-8">Total</div>
-                        </div>
-
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             {items.map((item, index) => (
-                                <div key={index} className="flex flex-col md:grid md:grid-cols-12 gap-3 items-center bg-gray-50 md:bg-transparent p-3 md:p-0 rounded-lg border border-gray-200 md:border-none relative group">
+                                <div key={index} className="bg-gray-50 rounded-lg border border-gray-200 p-3 space-y-3 relative">
+                                    {/* Delete button */}
+                                    {items.length > 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => removeItem(index)}
+                                            className="absolute top-2 right-2 text-red-400 hover:text-red-600 p-1"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    )}
 
-                                    {/* Remove Button for Mobile (top right) */}
-                                    <button
-                                        type="button"
-                                        onClick={() => removeItem(index)}
-                                        disabled={items.length === 1}
-                                        className="md:hidden absolute top-2 right-2 text-red-400 hover:text-red-600 disabled:opacity-30 p-1"
-                                    >
-                                        <Trash2 className="w-5 h-5" />
-                                    </button>
-
-                                    <div className="w-full md:col-span-6">
-                                        <label className="md:hidden block text-xs font-bold text-gray-500 mb-1">Descripción</label>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-1">Descripción</label>
                                         <input
                                             type="text"
                                             required
                                             placeholder="Ej. Elaboración de Programa Interno"
                                             value={item.description}
-                                            onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                                            className="w-full border border-gray-300 rounded p-2 focus:ring-1 focus:ring-blue-500 text-sm"
+                                            onChange={(e) => handleItemChange(index, 'description', e.target.value.toUpperCase())}
+                                            className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 text-base"
                                         />
                                     </div>
 
-                                    <div className="w-full md:col-span-2 flex justify-between md:block items-center">
-                                        <label className="md:hidden ext-xs font-bold text-gray-500">Cantidad</label>
-                                        <input
-                                            type="number"
-                                            required
-                                            min="0.1"
-                                            step="0.1"
-                                            value={item.quantity === 0 ? '' : item.quantity}
-                                            onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                                            className="w-24 md:w-full border border-gray-300 rounded p-2 text-center focus:ring-1 focus:ring-blue-500 text-sm"
-                                        />
-                                    </div>
-
-                                    <div className="w-full md:col-span-2 flex justify-between md:block items-center">
-                                        <label className="md:hidden ext-xs font-bold text-gray-500">Precio Unitario</label>
-                                        <div className="relative">
-                                            <span className="absolute left-3 top-2 text-gray-500 font-medium">$</span>
+                                    {/* Quantity stepper */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-1">Cantidad</label>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const current = parseFloat(item.quantity as any) || 0;
+                                                    if (current > 1) handleItemChange(index, 'quantity', current - 1);
+                                                }}
+                                                className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-700 font-bold text-xl shrink-0"
+                                            >
+                                                <Minus className="w-4 h-4" />
+                                            </button>
                                             <input
-                                                type="number"
+                                                type="text"
+                                                inputMode="decimal"
                                                 required
-                                                min="0"
-                                                step="0.01"
-                                                value={item.unitPrice === 0 ? '' : item.unitPrice}
-                                                onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
-                                                className="w-32 md:w-full border border-gray-300 rounded p-2 pl-7 text-right focus:ring-1 focus:ring-blue-500 text-sm font-mono"
+                                                value={item.quantity === 0 ? '' : item.quantity}
+                                                onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                                                className="flex-1 border border-gray-300 rounded-lg p-2.5 text-center focus:ring-2 focus:ring-blue-500 text-base font-bold"
                                             />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const current = parseFloat(item.quantity as any) || 0;
+                                                    handleItemChange(index, 'quantity', current + 1);
+                                                }}
+                                                className="w-10 h-10 flex items-center justify-center rounded-lg bg-blue-100 hover:bg-blue-200 active:bg-blue-300 text-blue-700 font-bold text-xl shrink-0"
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                            </button>
                                         </div>
                                     </div>
 
-                                    <div className="w-full md:col-span-2 flex justify-between md:justify-end items-center md:pr-10 relative">
-                                        <label className="md:hidden ext-xs font-bold text-gray-500">Total Fila</label>
-                                        <span className="font-mono font-bold text-gray-800 bg-gray-100 px-3 py-1.5 rounded w-32 md:w-full text-right block">
-                                            {formatCurrency(item.total)}
-                                        </span>
-
-                                        {/* Remove button PC */}
-                                        <button
-                                            type="button"
-                                            onClick={() => removeItem(index)}
-                                            disabled={items.length === 1}
-                                            className="hidden md:block absolute right-0 text-gray-400 hover:text-red-500 disabled:opacity-0 transition-colors p-1"
-                                            title="Eliminar fila"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 mb-1">Precio Unitario</label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">$</span>
+                                                <input
+                                                    type="text"
+                                                    inputMode="decimal"
+                                                    required
+                                                    placeholder="0.00"
+                                                    value={item.unitPrice === 0 ? '' : item.unitPrice}
+                                                    onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
+                                                    className="w-full border border-gray-300 rounded-lg p-2.5 pl-7 text-right focus:ring-2 focus:ring-blue-500 text-base font-mono"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 mb-1">Total</label>
+                                            <div className="font-mono font-bold text-gray-800 bg-gray-100 px-2.5 py-2.5 rounded-lg text-right text-base border border-gray-200">
+                                                {formatCurrency(item.total)}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </section>
 
-                    {/* Totals Calculation */}
-                    <section className="border-t pt-5 flex flex-col items-end gap-2 text-gray-800">
-                        <div className="w-full md:w-64 flex justify-between items-center text-sm">
+                    {/* Totals */}
+                    <section className="border-t pt-4 space-y-2">
+                        <div className="flex justify-between items-center text-sm">
                             <span className="font-bold text-gray-600">Subtotal:</span>
                             <span className="font-mono font-medium">{formatCurrency(subtotal)}</span>
                         </div>
-                        <div className="w-full md:w-64 flex justify-between items-center text-sm">
+                        <div className="flex justify-between items-center text-sm">
                             <span className="font-bold text-gray-600">IVA (16%):</span>
                             <span className="font-mono font-medium">{formatCurrency(iva)}</span>
                         </div>
-                        <div className="w-full md:w-64 flex justify-between items-center mt-2 pt-2 border-t-2 border-blue-900">
+                        <div className="flex justify-between items-center pt-2 border-t-2 border-blue-900">
                             <span className="font-bold text-lg text-blue-900">TOTAL:</span>
                             <span className="font-mono font-extrabold text-lg text-blue-900">{formatCurrency(total)}</span>
                         </div>
                     </section>
 
-                    <div className="mt-4 pt-6 flex justify-end gap-4 border-t sticky bottom-0 bg-white shadow-[0_-10px_10px_-10px_rgba(0,0,0,0.1)]">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-6 py-3 border-2 border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-gray-200 font-bold transition-all"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-8 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:ring-4 focus:ring-red-200 font-bold transition-all flex items-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-                        >
-                            <FileText className="w-5 h-5" />
-                            Generar Cotización
-                        </button>
-                    </div>
-
+                    {/* Spacer for sticky footer */}
+                    <div className="h-2" />
                 </form>
+
+                {/* Fixed footer buttons */}
+                <div className="shrink-0 px-4 py-3 sm:px-6 sm:py-4 border-t bg-white flex gap-3">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="flex-1 py-3 border-2 border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 font-bold text-sm"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            const form = (e.target as HTMLElement).closest('.flex.flex-col')?.querySelector('form');
+                            if (form) form.requestSubmit();
+                        }}
+                        className="flex-[2] py-3 bg-[#722F37] text-white rounded-lg hover:bg-[#5a252c] font-bold text-sm flex items-center justify-center gap-2"
+                    >
+                        <FileText className="w-4 h-4" />
+                        Generar Cotización
+                    </button>
+                </div>
             </div>
         </div>
     );

@@ -53,10 +53,6 @@ app.get('/api/documents/code/:code', async (req, res) => {
         return res.status(500).json({ error: error.message });
     }
 
-    if (data.is_active !== 1) {
-        return res.status(404).json({ error: 'El documento ya no está activo.' });
-    }
-
     res.json(data);
 });
 

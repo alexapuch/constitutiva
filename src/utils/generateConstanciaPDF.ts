@@ -2,10 +2,10 @@ import { jsPDF } from 'jspdf';
 import { DocumentInfo, Employee } from '../types';
 import Swal from 'sweetalert2';
 
-export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee) => {
+export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee, templateImage: string = '/constancia_vacia.png') => {
     try {
         // 1. URL to the empty template
-        const imgUrl = '/constancia_vacia.png';
+        const imgUrl = templateImage;
 
         // Convert image to base64
         const imgData = await fetch(imgUrl)

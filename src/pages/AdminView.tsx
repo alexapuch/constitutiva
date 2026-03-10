@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { DocumentInfo, Employee } from '../types';
-import { Trash2, Save, FileText, Users, Plus, ArrowLeft, LogOut, Download, Award, Zap, X, Calculator } from 'lucide-react';
+import { Trash2, Save, FileText, Users, Plus, LogOut, Download, Award, Zap, X, Calculator, Menu, Home, ClipboardList, FileSignature } from 'lucide-react';
 import { generateSimulacroPDF } from '../utils/generateSimulacroPDF';
 import { generateBatchConstanciasPDF } from '../utils/generateBatchConstanciasPDF';
 import { generateConstanciaPDF } from '../utils/generateConstanciaPDF';
@@ -23,20 +23,30 @@ export default function AdminView() {
   // Manual Constancia Generator State
   const [showQuickModal, setShowQuickModal] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const CONSTANCIA_TYPES = [
+    { id: 'completa', label: 'Completa (todos los rubros)', image: '/constancia_vacia.png' },
+    { id: 'evacuacion', label: 'Evacuación', image: '/constancia_evacuacion.png' },
+    { id: 'extintores', label: 'Uso y Manejo de Extintores', image: '/constancia_extintores.png' },
+    { id: 'primeros_auxilios', label: 'Primeros Auxilios', image: '/constancia_primeros_auxilios.png' },
+    { id: 'pa_extintores', label: 'Primeros Auxilios + Extintores', image: '/constancia_pa_extintores.png' },
+  ];
   const [quickData, setQuickData] = useState({
-    employeeName: '',
+    employeeNames: [''] as string[],
     commercial_name: '',
     address: '',
-    date: ''
+    date: '',
+    constanciaType: 'completa'
   });
 
   // Quote History State
   const [quotes, setQuotes] = useState<any[]>([]);
   const [quoteSearchTerm, setQuoteSearchTerm] = useState('');
   const [quoteToEdit, setQuoteToEdit] = useState<any | null>(null);
+  const [showQuoteDrawer, setShowQuoteDrawer] = useState(false);
+  const [showSideMenu, setShowSideMenu] = useState(false);
 
   useEffect(() => {
-    if (showQuickModal) {
+    if (showQuickModal || showQuoteDrawer || showSideMenu) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -44,12 +54,21 @@ export default function AdminView() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [showQuickModal]);
+  }, [showQuickModal, showQuoteDrawer, showSideMenu]);
 
   useEffect(() => {
     fetchDocuments();
     fetchQuotes();
   }, []);
+
+  // Scroll to top when authenticated view renders
+  useEffect(() => {
+    if (isAuthenticated) {
+      window.scrollTo(0, 0);
+      requestAnimationFrame(() => window.scrollTo(0, 0));
+      setTimeout(() => window.scrollTo(0, 0), 100);
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (selectedDocId) {
@@ -177,7 +196,8 @@ export default function AdminView() {
 
   const handleGenerateManualConstancia = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quickData.employeeName.trim() || !quickData.commercial_name.trim() || !quickData.address.trim() || !quickData.date.trim()) {
+    const names = quickData.employeeNames.filter(n => n.trim() !== '');
+    if (names.length === 0 || !quickData.commercial_name.trim() || !quickData.address.trim() || !quickData.date.trim()) {
       Swal.fire({
         icon: 'warning',
         title: 'Campos incompletos',
@@ -187,7 +207,6 @@ export default function AdminView() {
       return;
     }
 
-    // Create fake docInfo and employee objects to trick generateConstanciaPDF
     const fakeDocInfo: DocumentInfo = {
       id: 0,
       commercial_name: quickData.commercial_name.toUpperCase(),
@@ -199,18 +218,27 @@ export default function AdminView() {
       is_active: 1
     };
 
-    const fakeEmployee: Employee = {
-      id: 0,
-      document_id: 0,
-      name: quickData.employeeName.toUpperCase(),
-      role: '',
-      brigade: '',
-      signature: '' // Not needed for constancia background
-    };
+    const selectedType = CONSTANCIA_TYPES.find(t => t.id === quickData.constanciaType);
+    const templateImage = selectedType?.image || '/constancia_vacia.png';
 
-    generateConstanciaPDF(fakeDocInfo, fakeEmployee);
+    if (names.length === 1) {
+      const fakeEmployee: Employee = {
+        id: 0, document_id: 0,
+        name: names[0].toUpperCase(),
+        role: '', brigade: '', signature: ''
+      };
+      generateConstanciaPDF(fakeDocInfo, fakeEmployee, templateImage);
+    } else {
+      const fakeEmployees: Employee[] = names.map((name, i) => ({
+        id: i, document_id: 0,
+        name: name.toUpperCase(),
+        role: '', brigade: '', signature: ''
+      }));
+      generateBatchConstanciasPDF(fakeDocInfo, fakeEmployees, templateImage);
+    }
+
     setShowQuickModal(false);
-    setQuickData({ employeeName: '', commercial_name: '', address: '', date: '' });
+    setQuickData({ employeeNames: [''], commercial_name: '', address: '', date: '', constanciaType: 'completa' });
   };
 
   const docInfo = documents.find(d => d.id === selectedDocId);
@@ -238,113 +266,209 @@ export default function AdminView() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+    <div
       className="min-h-screen bg-gray-100 py-8 px-4 sm:px-6 lg:px-8 font-sans"
     >
+      {/* Side Menu Drawer - portal level to cover full viewport */}
+      <AnimatePresence>
+        {showSideMenu && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.1 }}
+              style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998 }}
+              className="bg-black"
+              onClick={() => setShowSideMenu(false)}
+            />
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'tween', duration: 0.15, ease: 'easeOut' }}
+              style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: '18rem', zIndex: 9999 }}
+              className="bg-white shadow-2xl flex flex-col"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-blue-900">
+                <span className="text-lg font-bold text-white">Panel Admin</span>
+                <button onClick={() => setShowSideMenu(false)} className="p-1 hover:bg-blue-800 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+
+              {/* Menu Items */}
+              <nav className="flex-1 py-4">
+                <p className="px-5 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Navegación</p>
+                <Link
+                  to="/"
+                  className="flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium"
+                  onClick={() => setShowSideMenu(false)}
+                >
+                  <Home className="w-5 h-5" />
+                  Inicio
+                </Link>
+
+                <div className="my-3 border-t border-gray-100" />
+                <p className="px-5 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Acciones</p>
+
+                <button
+                  onClick={() => { setShowSideMenu(false); setShowQuoteDrawer(true); }}
+                  className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium"
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  Historial de Cotizaciones
+                  {quotes.length > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{quotes.length}</span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => { setShowSideMenu(false); setShowQuoteModal(true); }}
+                  className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium"
+                >
+                  <Calculator className="w-5 h-5" />
+                  Nueva Cotización
+                </button>
+
+                <button
+                  onClick={() => { setShowSideMenu(false); setShowQuickModal(true); }}
+                  className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium"
+                >
+                  <FileSignature className="w-5 h-5" />
+                  Generar Constancia
+                </button>
+              </nav>
+
+              {/* Footer */}
+              <div className="p-5 border-t border-gray-200">
+                <button
+                  onClick={() => { setShowSideMenu(false); setIsAuthenticated(false); }}
+                  className="w-full flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 py-2.5 rounded-lg font-medium transition-colors"
+                >
+                  <LogOut className="w-5 h-5" />
+                  Cerrar Sesión
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       <div className="max-w-5xl mx-auto space-y-8">
 
-        <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm">
-          <Link to="/" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-            Volver al inicio
-          </Link>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <button
-              onClick={() => setShowQuoteModal(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors shadow-sm font-medium min-h-[44px]"
-              title="Generar cotización en PDF"
-            >
-              <Calculator className="w-5 h-5" />
-              <span className="hidden sm:inline">Cotización</span>
-            </button>
-            <button
-              onClick={() => setShowQuickModal(true)}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors shadow-sm font-medium min-h-[44px]"
-              title="Generar constancia sin necesidad de firma"
-            >
-              <FileText className="w-5 h-5" />
-              <span className="hidden sm:inline">Generar Constancia</span>
-            </button>
-            <span className="hidden sm:inline text-sm font-medium text-gray-400">v1.14</span>
-            <button onClick={() => setIsAuthenticated(false)} className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium transition-colors text-sm">
-              <LogOut className="w-5 h-5" />
-              Cerrar Sesión
-            </button>
-          </div>
+        {/* Compact top bar with hamburger menu */}
+        <div className="flex justify-between items-center bg-white px-4 py-3 rounded-lg shadow-sm">
+          <button
+            onClick={() => setShowSideMenu(true)}
+            className="flex items-center gap-2 text-gray-700 hover:text-gray-900 font-semibold transition-colors"
+          >
+            <Menu className="w-6 h-6" />
+            <span className="text-lg font-bold text-blue-900">Panel Admin</span>
+          </button>
+          <span className="text-sm font-medium text-gray-400">v1.14</span>
         </div>
 
-        {/* Quote History Section */}
-        <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          <div className="p-6 border-b border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
-            <h2 className="text-xl font-bold flex items-center gap-2 text-gray-800">
-              <Calculator className="w-6 h-6 text-blue-600" />
-              Historial de Cotizaciones
-            </h2>
-            <div className="flex w-full md:w-auto gap-4 items-center">
-              <input
-                type="text"
-                placeholder="Buscar por cliente..."
-                value={quoteSearchTerm}
-                onChange={(e) => setQuoteSearchTerm(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-full md:w-64"
+        {/* Quote History Drawer */}
+        <AnimatePresence>
+          {showQuoteDrawer && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.1 }}
+                className="fixed inset-0 bg-black z-40"
+                onClick={() => setShowQuoteDrawer(false)}
               />
-            </div>
-          </div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.12 }}
+                className="fixed inset-4 sm:inset-8 md:inset-12 lg:inset-y-12 lg:inset-x-[15%] bg-white rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden"
+              >
+                <div className="p-5 border-b border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
+                  <h2 className="text-lg font-bold flex items-center gap-2 text-gray-800">
+                    <Calculator className="w-5 h-5 text-blue-600" />
+                    Historial de Cotizaciones
+                  </h2>
+                  <button
+                    onClick={() => setShowQuoteDrawer(false)}
+                    className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-600" />
+                  </button>
+                </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
-                <tr>
-                  <th className="px-6 py-3">Cliente</th>
-                  <th className="px-6 py-3">Fecha</th>
-                  <th className="px-6 py-3 text-right">Total</th>
-                  <th className="px-6 py-3 text-center">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {quotes
-                  .filter(q => q.client_name?.toLowerCase().includes(quoteSearchTerm.toLowerCase()))
-                  .map((quote) => (
-                    <tr key={quote.id} className="border-b hover:bg-gray-50">
-                      <td className="px-6 py-4 font-medium text-gray-900">{quote.client_name}</td>
-                      <td className="px-6 py-4">{quote.date}</td>
-                      <td className="px-6 py-4 text-right font-bold text-gray-700">
-                        ${Number(quote.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex justify-center gap-2">
-                          <button
-                            onClick={() => {
-                              setQuoteToEdit(quote);
-                              setShowQuoteModal(true);
-                            }}
-                            className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-200 transition-colors font-medium text-xs"
-                          >
-                            Editar / Imprimir
-                          </button>
-                          <button
-                            onClick={() => handleDeleteQuote(quote.id)}
-                            className="bg-red-100 text-red-700 px-3 py-1.5 rounded hover:bg-red-200 transition-colors font-medium text-xs"
-                          >
-                            Eliminar
-                          </button>
+                <div className="p-4 border-b border-gray-100 shrink-0">
+                  <input
+                    type="text"
+                    placeholder="Buscar por cliente..."
+                    value={quoteSearchTerm}
+                    onChange={(e) => setQuoteSearchTerm(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                <div className="flex-1 overflow-y-auto">
+                  {quotes
+                    .filter(q => q.client_name?.toLowerCase().includes(quoteSearchTerm.toLowerCase()))
+                    .map((quote) => (
+                      <div key={quote.id} className="p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="font-semibold text-gray-900">{quote.client_name}</span>
+                          <span className="text-lg font-bold text-gray-700">
+                            ${Number(quote.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                {quotes.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-8 text-center text-gray-500 italic">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-500">{quote.date}</span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setQuoteToEdit(quote);
+                                setShowQuoteModal(true);
+                                setShowQuoteDrawer(false);
+                              }}
+                              className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-200 transition-colors font-medium text-xs"
+                            >
+                              Editar / Imprimir
+                            </button>
+                            <button
+                              onClick={() => handleDeleteQuote(quote.id)}
+                              className="bg-red-100 text-red-700 px-3 py-1.5 rounded hover:bg-red-200 transition-colors font-medium text-xs"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  {quotes.length === 0 && (
+                    <div className="p-8 text-center text-gray-500 italic">
                       No hay cotizaciones registradas en el historial.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 border-t border-gray-200 bg-gray-50 shrink-0">
+                  <button
+                    onClick={() => {
+                      setShowQuoteDrawer(false);
+                      setShowQuoteModal(true);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 bg-red-900 text-white px-4 py-2.5 rounded-md hover:bg-red-950 transition-colors font-medium"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Nueva Cotización
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
           <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50">
@@ -714,8 +838,8 @@ export default function AdminView() {
       {/* Quote History section moved to the top */}
 
       {showQuickModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] min-w-0 break-words">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center md:p-4 z-50">
+          <div className="bg-white shadow-xl w-full h-full md:h-auto md:max-h-[90vh] md:max-w-lg md:rounded-xl overflow-hidden flex flex-col min-w-0 break-words" style={{ overscrollBehavior: 'contain' }}>
             <div className="bg-blue-900 p-5 text-white flex justify-between items-center shrink-0">
               <h3 className="font-extrabold flex items-center gap-2 text-lg">
                 <FileText className="w-5 h-5" />
@@ -732,27 +856,93 @@ export default function AdminView() {
               </button>
             </div>
 
-            <form onSubmit={handleGenerateManualConstancia} className="p-6 space-y-4 overflow-y-auto overflow-x-hidden flex-1 w-full max-w-full">
+            <form id="constancia-form" onSubmit={handleGenerateManualConstancia} className="p-6 space-y-4 overflow-y-auto overflow-x-hidden flex-1 w-full max-w-full" style={{ overscrollBehavior: 'contain' }}>
               <p className="text-sm text-gray-600 mb-4">
                 Genera una constancia en PDF al instante para cualquier persona. Puedes escribir los datos de la empresa manualmente o autocompletarlos seleccionando un acta existente.
               </p>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Nombre de la Persona *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej. Juan Pérez López"
-                  value={quickData.employeeName}
-                  onChange={(e) => setQuickData({ ...quickData, employeeName: e.target.value.toUpperCase() })}
-                  className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-600 focus:border-blue-600"
-                />
+                <label className="block text-sm font-bold text-gray-700 mb-1">
+                  Nombre(s) de la(s) Persona(s) *
+                </label>
+                <div className="space-y-2">
+                  {quickData.employeeNames.map((name, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        required
+                        placeholder={`Ej. Juan Pérez López`}
+                        value={name}
+                        onChange={(e) => {
+                          const updated = [...quickData.employeeNames];
+                          updated[idx] = e.target.value.toUpperCase();
+                          setQuickData({ ...quickData, employeeNames: updated });
+                        }}
+                        className="w-full border border-gray-300 rounded-md p-3 text-base focus:ring-blue-600 focus:border-blue-600"
+                      />
+                      {quickData.employeeNames.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = quickData.employeeNames.filter((_, i) => i !== idx);
+                            setQuickData({ ...quickData, employeeNames: updated });
+                          }}
+                          className="shrink-0 w-10 h-10 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                          title="Quitar persona"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setQuickData({ ...quickData, employeeNames: [...quickData.employeeNames, ''] })}
+                  className="mt-2 flex items-center gap-1.5 text-sm text-blue-700 font-semibold hover:text-blue-900 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Agregar otra persona
+                </button>
+                {quickData.employeeNames.filter(n => n.trim()).length > 1 && (
+                  <p className="mt-1 text-xs text-blue-600 font-medium">
+                    Se generarán {quickData.employeeNames.filter(n => n.trim()).length} constancias en un solo PDF.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Tipo de Constancia *</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {CONSTANCIA_TYPES.map((type) => (
+                    <label
+                      key={type.id}
+                      className={`flex items-center gap-1.5 px-2.5 py-2 rounded-md border cursor-pointer transition-all text-center ${
+                        quickData.constanciaType === type.id
+                          ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
+                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="constanciaType"
+                        value={type.id}
+                        checked={quickData.constanciaType === type.id}
+                        onChange={(e) => setQuickData({ ...quickData, constanciaType: e.target.value })}
+                        className="w-3 h-3 text-blue-600 accent-blue-600 shrink-0"
+                      />
+                      <span className={`text-xs font-medium leading-tight ${quickData.constanciaType === type.id ? 'text-blue-800' : 'text-gray-600'}`}>
+                        {type.label}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div className="mt-6 pt-4 border-t border-gray-200">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Autocompletar datos desde acta existente (Opcional):</label>
                 <select
-                  className="w-full border border-gray-300 rounded-md p-3 bg-gray-50 focus:ring-blue-600"
+                  className="w-full border border-gray-300 rounded-md p-3 text-base bg-gray-50 focus:ring-blue-600"
                   onChange={(e) => handleQuickAutocomplete(e.target.value)}
                   defaultValue=""
                 >
@@ -773,7 +963,7 @@ export default function AdminView() {
                     required
                     value={quickData.commercial_name}
                     onChange={(e) => setQuickData({ ...quickData, commercial_name: e.target.value.toUpperCase() })}
-                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-600 focus:border-blue-600"
+                    className="w-full border border-gray-300 rounded-md p-3 text-base focus:ring-blue-600 focus:border-blue-600"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -783,7 +973,7 @@ export default function AdminView() {
                     required
                     value={quickData.address}
                     onChange={(e) => setQuickData({ ...quickData, address: e.target.value.toUpperCase() })}
-                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-600 focus:border-blue-600"
+                    className="w-full border border-gray-300 rounded-md p-3 text-base focus:ring-blue-600 focus:border-blue-600"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -804,7 +994,7 @@ export default function AdminView() {
                         setQuickData({ ...quickData, date: '' });
                       }
                     }}
-                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-600 focus:border-blue-600"
+                    className="w-full border border-gray-300 rounded-md p-3 text-base focus:ring-blue-600 focus:border-blue-600"
                   />
                   {quickData.date && (
                     <p className="text-xs text-blue-600 mt-2 font-medium">
@@ -814,23 +1004,27 @@ export default function AdminView() {
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-gray-200 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setShowQuickModal(false)}
-                  className="w-full sm:w-auto px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors font-bold min-h-[44px]"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="w-full sm:w-auto px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-bold flex items-center justify-center gap-2 min-h-[44px]"
-                >
-                  <Award className="w-5 h-5 shrink-0" />
-                  Descargar Constancia
-                </button>
-              </div>
             </form>
+
+            <div className="p-4 border-t border-gray-200 shrink-0 bg-white flex flex-col-reverse sm:flex-row justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowQuickModal(false)}
+                className="w-full sm:w-auto px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors font-bold min-h-[44px] text-base"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => { const form = document.getElementById('constancia-form') as HTMLFormElement; if (form) form.requestSubmit(); }}
+                className="w-full sm:w-auto px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-bold flex items-center justify-center gap-2 min-h-[44px] text-base"
+              >
+                <Award className="w-5 h-5 shrink-0" />
+                {quickData.employeeNames.filter(n => n.trim()).length > 1
+                  ? `Descargar ${quickData.employeeNames.filter(n => n.trim()).length} Constancias`
+                  : 'Descargar Constancia'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -844,6 +1038,6 @@ export default function AdminView() {
         quoteToEdit={quoteToEdit}
         onQuoteSaved={fetchQuotes}
       />
-    </motion.div>
+    </div>
   );
 }

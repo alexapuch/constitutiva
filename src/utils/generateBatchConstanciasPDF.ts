@@ -2,7 +2,7 @@ import { jsPDF } from 'jspdf';
 import { DocumentInfo, Employee } from '../types';
 import Swal from 'sweetalert2';
 
-export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employees: Employee[]) => {
+export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employees: Employee[], templateImage: string = '/constancia_vacia.png') => {
     try {
         if (!employees || employees.length === 0) {
             Swal.fire({
@@ -15,7 +15,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
         }
 
         // 1. URL to the empty template
-        const imgUrl = '/constancia_vacia.png';
+        const imgUrl = templateImage;
 
         // Convert image to base64
         const imgData = await fetch(imgUrl)
