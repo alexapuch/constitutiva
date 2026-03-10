@@ -87,7 +87,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             doc.setFontSize(7);
             doc.setTextColor(100, 100, 100); // Dark gray
             doc.setFont('helvetica', 'bold');
-            doc.text('VIGENCIA AÑO FISCAL', 143.94, 132.99, { align: 'center' });
+            doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
         }
 
         // Generate output and download
