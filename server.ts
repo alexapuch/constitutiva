@@ -11,7 +11,7 @@ const PORT = parseInt(process.env.PORT || '3000');
 app.use(express.json({ limit: '10mb' }));
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://hdpqihtbueodtermrqbm.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkcHFpaHRidWVvZHRlcm1ycWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NzUzNzYsImV4cCI6MjA4NzQ1MTM3Nn0.a1O7rfEnktapsaTb-8xi8aQxuDABYXLLD9VK2DSjcdI';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkcHFpaHRidWVvZHRlcm1ycWJtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTg3NTM3NiwiZXhwIjoyMDg3NDUxMzc2fQ.CnmygqPk7wXDugd4Awm2nBsgB8TMwRr-_ULPCNKEYeE';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -160,6 +160,82 @@ app.put('/api/quotes/:id', async (req, res) => {
 
 app.delete('/api/quotes/:id', async (req, res) => {
   const { error } = await supabase.from('quotes').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
+// --- PDF Versioning (Supabase Storage only, no extra table needed) ---
+const PDF_BUCKET = 'pdf-versions';
+
+app.post('/api/pdf-versions', async (req, res) => {
+  const { fileName, pdfBase64, documentId, type } = req.body;
+  if (!fileName || !pdfBase64) return res.status(400).json({ error: 'fileName and pdfBase64 required' });
+
+  let buffer: Buffer;
+  try {
+    buffer = Buffer.from(pdfBase64, 'base64');
+  } catch (error: any) {
+    console.error('Buffer creation failed:', error);
+    return res.status(400).json({ error: 'Base64 parsing failed: ' + error.message });
+  }
+
+  const timestamp = new Date().getTime(); // Use epoch to avoid ISO string character issues
+  const folder = documentId ? String(documentId) : 'manual';
+  
+  // Remove invalid characters for Supabase Storage keys
+  const cleanFileName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  const safeType = (type || 'pdf').replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  
+  const safeName = `${timestamp}_${safeType}_${cleanFileName}`;
+  const storagePath = `${folder}/${safeName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(PDF_BUCKET)
+    .upload(storagePath, buffer, { contentType: 'application/pdf', upsert: false });
+
+  if (uploadError) {
+    console.error('Supabase upload error:', uploadError);
+    return res.status(500).json({ error: 'Upload failed: ' + uploadError.message });
+  }
+
+  const { data: urlData } = supabase.storage.from(PDF_BUCKET).getPublicUrl(storagePath);
+
+  res.json({ fileName: safeName, storagePath, publicUrl: urlData.publicUrl, folder });
+});
+
+app.get('/api/pdf-versions', async (req, res) => {
+  const { folder } = req.query;
+  // List all folders first, then files inside
+  const results: any[] = [];
+
+  if (folder) {
+    const { data, error } = await supabase.storage.from(PDF_BUCKET).list(String(folder), { limit: 50, sortBy: { column: 'created_at', order: 'desc' } });
+    if (error) return res.status(500).json({ error: error.message });
+    for (const file of data || []) {
+      const { data: urlData } = supabase.storage.from(PDF_BUCKET).getPublicUrl(`${folder}/${file.name}`);
+      results.push({ ...file, folder, publicUrl: urlData.publicUrl });
+    }
+  } else {
+    const { data: folders, error } = await supabase.storage.from(PDF_BUCKET).list('', { limit: 100 });
+    if (error) return res.status(500).json({ error: error.message });
+    for (const f of folders || []) {
+      if (!f.name) continue;
+      const { data: files } = await supabase.storage.from(PDF_BUCKET).list(f.name, { limit: 20, sortBy: { column: 'created_at', order: 'desc' } });
+      for (const file of files || []) {
+        const { data: urlData } = supabase.storage.from(PDF_BUCKET).getPublicUrl(`${f.name}/${file.name}`);
+        results.push({ ...file, folder: f.name, publicUrl: urlData.publicUrl });
+      }
+    }
+    results.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  res.json(results.slice(0, 50));
+});
+
+app.delete('/api/pdf-versions', async (req, res) => {
+  const { path } = req.body;
+  if (!path) return res.status(400).json({ error: 'path required' });
+  const { error } = await supabase.storage.from(PDF_BUCKET).remove([path]);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ success: true });
 });

@@ -4,8 +4,10 @@ import { DocumentInfo, Employee } from '../types';
 import { compressSignature } from './compressSignature';
 import { sortEmployees } from './employees';
 import Swal from 'sweetalert2';
+import { savePdfVersion } from './savePdfVersion';
+import { generatePdfName } from './pdfNameGenerator';
 
-export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: Employee[]) => {
+export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: Employee[], preview: boolean = false): Promise<string | void> => {
     try {
         // Pre-compress all signature images to reduce PDF size
         const sortedEmps = sortEmployees(employees);
@@ -166,13 +168,20 @@ export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: 
             }
         });
 
-        const safeName = (docInfo.commercial_name || 'documento').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const fileName = `acta_constitutiva_${safeName}.pdf`;
+        const fileName = generatePdfName('ACTA CONSTITUTIVA', docInfo.commercial_name || 'DOCUMENTO', docInfo.date);
 
         console.log('Generating blob...');
         const pdfBlob = doc.output('blob');
         console.log('Blob size:', pdfBlob.size);
-        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+        if (preview) {
+            return URL.createObjectURL(pdfBlob);
+        }
+
+        // Background cloud save
+        savePdfVersion(pdfBlob, `${fileName}.pdf`, 'Acta Constitutiva', Object.keys(docInfo).length > 0 && docInfo.id ? docInfo.id : undefined).catch(err => console.error('Auto-save failed:', err));
+
+        const file = new File([pdfBlob], `${fileName}.pdf`, { type: 'application/pdf' });
 
         console.log('Trying share...', navigator.canShare ? 'Supported' : 'Not supported');
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -193,7 +202,7 @@ export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: 
 
         // Fallback for desktop browsers / browsers without file sharing
         console.log('Saving file using JS...');
-        doc.save(fileName);
+        doc.save(`${fileName}.pdf`);
         console.log('Save triggered.');
     } catch (e: any) {
         console.error('Fatal PDF Error:', e);

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(curl -s http://localhost:3000/src/pages/AdminView.tsx)",
+      "Bash(curl -s http://localhost:3000/src/main.tsx)",
+      "Bash(curl -s http://localhost:3000/src/pages/Home.tsx)",
+      "Bash(vercel --prod)",
+      "Bash(ls c:/Users/alexa/OneDrive/Escritorio/constitutiva/public/constancia*)",
+      "Bash(npx vite build)",
+      "Bash(ls -lh c:/Users/alexa/OneDrive/Escritorio/constitutiva/public/*.png)",
+      "Bash(npx --yes sharp-cli --help)",
+      "Bash(rm -f public/*_opt.png)",
+      "Bash(node -e \":*)",
+      "Bash(npm install --save-dev sharp)",
+      "Bash(npm uninstall sharp)"
+    ]
+  }
+}

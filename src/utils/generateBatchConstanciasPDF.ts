@@ -1,8 +1,10 @@
 import { jsPDF } from 'jspdf';
 import { DocumentInfo, Employee } from '../types';
 import Swal from 'sweetalert2';
+import { savePdfVersion } from './savePdfVersion';
+import { generatePdfName } from './pdfNameGenerator';
 
-export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employees: Employee[], templateImage: string = '/constancia_vacia.png') => {
+export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employees: Employee[], templateImage: string = '/constancia_vacia.png', preview: boolean = false): Promise<string | void> => {
     try {
         if (!employees || employees.length === 0) {
             Swal.fire({
@@ -90,30 +92,30 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
         }
 
-        // Generate output and download
-        const safeName = docInfo.commercial_name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const fileName = `constancias_lote_${safeName}.pdf`;
-
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        if (isMobile && navigator.canShare) {
+        // Preview mode: return blob URL
+        if (preview) {
             const pdfBlob = doc.output('blob');
-            const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
-            if (navigator.canShare({ files: [file] })) {
-                try {
-                    await navigator.share({
-                        files: [file],
-                        title: `Constancias - ${docInfo.commercial_name}`,
-                    });
-                    return; // Success, exit
-                } catch (error) {
-                    console.log('Share canceled or failed:', error);
-                    // DO NOT FALLTHROUGH on mobile
-                    return;
-                }
-            }
+            return URL.createObjectURL(pdfBlob);
         }
 
-        doc.save(fileName);
+        // Generate output and share/download
+        const pdfName = generatePdfName('CONSTANCIAS', docInfo.commercial_name, docInfo.date);
+        const pdfBlob = doc.output('blob');
+        
+        // Background cloud save
+        savePdfVersion(pdfBlob, `${pdfName}.pdf`, 'Constancias (Lote)', Object.keys(docInfo).length > 0 && docInfo.id ? docInfo.id : undefined).catch(err => console.error('Auto-save failed:', err));
+
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile && navigator.share) {
+            const file = new File([pdfBlob], `${pdfName}.pdf`, { type: 'application/pdf' });
+            try {
+                await navigator.share({ files: [file] });
+            } catch (err: any) {
+                if (err.name !== 'AbortError') throw err;
+            }
+        } else {
+            doc.save(`${pdfName}.pdf`);
+        }
     } catch (error: any) {
         console.error('Error al generar constancias en lote:', error);
         Swal.fire({

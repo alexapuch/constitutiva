@@ -1,14 +1,17 @@
-﻿import { jsPDF } from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { DocumentInfo, Employee } from '../types';
 import { sortEmployees } from './employees';
 import { compressSignature } from './compressSignature';
 import { FIRMA_JORGE_BASE64 } from './firmaJorge';
+import { savePdfVersion } from './savePdfVersion';
+import { generatePdfName } from './pdfNameGenerator';
 
 export const generateSimulacroPDF = async (
     docInfo: DocumentInfo,
-    employees: Employee[]
-) => {
+    employees: Employee[],
+    preview: boolean = false
+): Promise<string | void> => {
     const visitantes = docInfo.visitantes ?? 0;
     const usuarios = docInfo.usuarios ?? 0;
     const sotanos = docInfo.sotanos ?? 0;
@@ -291,6 +294,9 @@ export const generateSimulacroPDF = async (
     doc.text('CONCLUIDO EL EJERCICIO, FIRMAN AL CALCE LOS PRESENTES:', margin, currentY);
     currentY += 3;
 
+    const repLegal = sortedEmployeesAll.find(emp => emp.role === 'REPRESENTANTE LEGAL');
+    const repLegalSignature = repLegal ? compressedSignatures[repLegal.id] : null;
+
     autoTable(doc, {
         startY: currentY,
         theme: 'plain',
@@ -312,6 +318,17 @@ export const generateSimulacroPDF = async (
                     doc.addImage(FIRMA_JORGE_BASE64, 'JPEG', xPos, yPos, imgW, imgH);
                 } catch (e) { console.error('Error drawing Jorge signature', e); }
             }
+            // Draw representative legal signature in row 4 (POR EL INMUEBLE content row), column 0
+            if (data.cell.section === 'body' && data.row.index === 4 && data.column.index === 0 && repLegalSignature) {
+                const dim = data.cell;
+                const imgW = 45;
+                const imgH = 22;
+                const xPos = dim.x + (dim.width - imgW) / 2;
+                const yPos = dim.y + 1;
+                try {
+                    doc.addImage(repLegalSignature, 'JPEG', xPos, yPos, imgW, imgH);
+                } catch (e) { console.error('Error drawing rep legal signature', e); }
+            }
         },
         body: [
             [{ content: 'POR OBSERVADORES O ASESORES EXTERNOS', colSpan: 2 }],
@@ -322,8 +339,8 @@ export const generateSimulacroPDF = async (
             [{ content: 'Nombre, Cargo y Firma de los funcionarios, Observadores', colSpan: 2, styles: { halign: 'center' } }],
             [{ content: 'POR EL INMUEBLE', colSpan: 2 }],
             [
-                { content: ` \n\n${docInfo.commercial_name}`, styles: { minCellHeight: 18, halign: 'center', valign: 'bottom' } },
-                { content: '', styles: { minCellHeight: 18 } }
+                { content: ` \n\n\n\n${repLegal ? repLegal.name : docInfo.commercial_name}`, styles: { minCellHeight: repLegal ? 28 : 18, halign: 'center', valign: 'bottom' } },
+                { content: '', styles: { minCellHeight: repLegal ? 28 : 18 } }
             ],
             [{ content: 'Nombre, Cargo y Firma de los Funcionarios, Representantes', colSpan: 2, styles: { halign: 'center' } }]
         ]
@@ -369,11 +386,18 @@ export const generateSimulacroPDF = async (
         }
     });
 
-    const safeName = docInfo.commercial_name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    const fileName = `cedula_simulacro_${safeName}.pdf`;
+    const fileName = generatePdfName('CÉDULA SIMULACRO', docInfo.commercial_name, docInfo.date);
 
     const pdfBlob = doc.output('blob');
-    const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+    if (preview) {
+        return URL.createObjectURL(pdfBlob);
+    }
+
+    // Background cloud save
+    savePdfVersion(pdfBlob, `${fileName}.pdf`, 'Cédula Simulacro', Object.keys(docInfo).length > 0 && docInfo.id ? docInfo.id : undefined).catch(err => console.error('Auto-save failed:', err));
+
+    const file = new File([pdfBlob], `${fileName}.pdf`, { type: 'application/pdf' });
 
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -389,5 +413,5 @@ export const generateSimulacroPDF = async (
         }
     }
 
-    doc.save(fileName);
+    doc.save(`${fileName}.pdf`);
 };

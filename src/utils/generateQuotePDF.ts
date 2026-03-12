@@ -234,13 +234,13 @@ export const generateQuotePDF = async (quoteData: QuoteData) => {
 
 
         // Generate Output and save/share
-        const safeName = quoteData.clientName.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'cliente';
+        const safeName = quoteData.clientName.replace(/[^a-z0-9\s]/gi, '').trim() || 'cliente';
 
         // Format date as DDMMYYYY
         const now = new Date();
         const dateStr = `${String(now.getDate()).padStart(2, '0')}${String(now.getMonth() + 1).padStart(2, '0')}${now.getFullYear()}`;
 
-        const fileName = `cotizacion_${safeName}_${dateStr}.pdf`;
+        const fileName = `Cotizacion_${safeName}_${dateStr}.pdf`;
 
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         if (isMobile && navigator.canShare) {

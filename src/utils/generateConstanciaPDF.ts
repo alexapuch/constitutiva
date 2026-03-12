@@ -1,8 +1,10 @@
 import { jsPDF } from 'jspdf';
 import { DocumentInfo, Employee } from '../types';
 import Swal from 'sweetalert2';
+import { savePdfVersion } from './savePdfVersion';
+import { generatePdfName } from './pdfNameGenerator';
 
-export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee, templateImage: string = '/constancia_vacia.png') => {
+export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee, templateImage: string = '/constancia_vacia.png', preview: boolean = false): Promise<string | void> => {
     try {
         // 1. URL to the empty template
         const imgUrl = templateImage;
@@ -80,30 +82,30 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         doc.setFont('helvetica', 'bold');
         doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
 
-        // Generate output and download
-        const safeName = emp.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const fileName = `constancia_${safeName}.pdf`;
-
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        if (isMobile && navigator.canShare) {
+        // Preview mode: return blob URL
+        if (preview) {
             const pdfBlob = doc.output('blob');
-            const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
-            if (navigator.canShare({ files: [file] })) {
-                try {
-                    await navigator.share({
-                        files: [file],
-                        title: `Constancia - ${emp.name}`,
-                    });
-                    return; // Success, exit
-                } catch (error) {
-                    console.log('Share canceled or failed:', error);
-                    // DO NOT FALLTHROUGH on mobile. doc.save() on iOS overrides the current tab.
-                    return;
-                }
-            }
+            return URL.createObjectURL(pdfBlob);
         }
 
-        doc.save(fileName);
+        // Generate output and share/download
+        const pdfName = generatePdfName('CONSTANCIA', docInfo.commercial_name, docInfo.date);
+        const pdfBlob = doc.output('blob');
+        
+        // Background cloud save
+        savePdfVersion(pdfBlob, `${pdfName}.pdf`, 'Constancia', Object.keys(docInfo).length > 0 && docInfo.id ? docInfo.id : undefined).catch(err => console.error('Auto-save failed:', err));
+
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile && navigator.share) {
+            const file = new File([pdfBlob], `${pdfName}.pdf`, { type: 'application/pdf' });
+            try {
+                await navigator.share({ files: [file] });
+            } catch (err: any) {
+                if (err.name !== 'AbortError') throw err;
+            }
+        } else {
+            doc.save(`${pdfName}.pdf`);
+        }
     } catch (error: any) {
         console.error('Error al generar constancia:', error);
         Swal.fire({

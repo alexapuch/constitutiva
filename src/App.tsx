@@ -6,6 +6,7 @@
 import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import OfflineBanner from './components/OfflineBanner';
+import { ThemeProvider } from './context/ThemeContext';
 
 const Home = lazy(() => import('./pages/Home'));
 const PublicView = lazy(() => import('./pages/PublicView'));
@@ -29,16 +30,18 @@ function ScrollToTop() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <OfflineBanner />
-      <ScrollToTop />
-      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100"><div className="w-8 h-8 border-4 border-blue-900 border-t-transparent rounded-full animate-spin" /></div>}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/acta" element={<PublicView />} />
-          <Route path="/admin" element={<AdminView />} />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <OfflineBanner />
+        <ScrollToTop />
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><div className="w-8 h-8 border-4 border-blue-900 border-t-transparent rounded-full animate-spin" /></div>}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/acta" element={<PublicView />} />
+            <Route path="/admin" element={<AdminView />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
