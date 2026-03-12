@@ -16,7 +16,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 // GET all documents
 app.get('/api/documents', async (req, res) => {
     const { activeOnly } = req.query;
-    let query = supabase.from('document_info').select('*');
+    let query = supabase.from('document_info').select('*').order('id', { ascending: false });
     if (activeOnly === 'true') {
         query = query.eq('is_active', 1);
     }
