@@ -155,7 +155,7 @@ export default function AdminView() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [showQuickModal, showQuoteDrawer, showSideMenu, showCartaResponsiva]);
+  }, [showQuickModal, showQuoteDrawer, showSideMenu, showCartaResponsiva, showHistoryDrawer, previewUrl]);
 
   useEffect(() => {
     fetchDocuments();
