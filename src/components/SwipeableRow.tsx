@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -12,29 +12,54 @@ export default function SwipeableRow({
     onClick: () => void;
 }) {
     const [translateX, setTranslateX] = useState(0);
-    const [isSwiping, setIsSwiping] = useState(false);
+    const swipingRef = useRef(false);
     const startX = useRef(0);
     const startY = useRef(0);
     const currentX = useRef(0);
     const isHorizontalSwipe = useRef<boolean | null>(null);
     const DELETE_THRESHOLD = 80;
 
+    // Safety: reset swiping state if touchend is missed (e.g. alert, focus loss)
+    useEffect(() => {
+        const handleGlobalTouchEnd = () => {
+            if (swipingRef.current) {
+                swipingRef.current = false;
+                if (currentX.current < -DELETE_THRESHOLD) {
+                    setTranslateX(-100);
+                } else {
+                    setTranslateX(0);
+                }
+            }
+        };
+        window.addEventListener('touchend', handleGlobalTouchEnd, { passive: true });
+        window.addEventListener('touchcancel', handleGlobalTouchEnd, { passive: true });
+        return () => {
+            window.removeEventListener('touchend', handleGlobalTouchEnd);
+            window.removeEventListener('touchcancel', handleGlobalTouchEnd);
+        };
+    }, []);
+
     const handleTouchStart = useCallback((e: React.TouchEvent) => {
         startX.current = e.touches[0].clientX;
         startY.current = e.touches[0].clientY;
         currentX.current = 0;
         isHorizontalSwipe.current = null;
-        setIsSwiping(true);
+        swipingRef.current = true;
     }, []);
 
     const handleTouchMove = useCallback((e: React.TouchEvent) => {
-        if (!isSwiping) return;
+        if (!swipingRef.current) return;
         const diffX = e.touches[0].clientX - startX.current;
         const diffY = e.touches[0].clientY - startY.current;
 
         if (isHorizontalSwipe.current === null) {
-            if (Math.abs(diffX) > 5 || Math.abs(diffY) > 5) {
+            if (Math.abs(diffX) > 10 || Math.abs(diffY) > 10) {
                 isHorizontalSwipe.current = Math.abs(diffX) > Math.abs(diffY);
+                if (!isHorizontalSwipe.current) {
+                    // Vertical scroll detected — stop intercepting
+                    swipingRef.current = false;
+                    return;
+                }
             }
             return;
         }
@@ -44,10 +69,10 @@ export default function SwipeableRow({
         const clampedX = Math.min(0, Math.max(diffX, -120));
         currentX.current = clampedX;
         setTranslateX(clampedX);
-    }, [isSwiping]);
+    }, []);
 
     const handleTouchEnd = useCallback(() => {
-        setIsSwiping(false);
+        swipingRef.current = false;
         if (currentX.current < -DELETE_THRESHOLD) {
             setTranslateX(-100);
         } else {
@@ -102,7 +127,7 @@ export default function SwipeableRow({
                 onClick={handleRowClick}
                 style={{
                     transform: `translateX(${translateX}px)`,
-                    transition: isSwiping ? 'none' : 'transform 0.3s ease',
+                    transition: swipingRef.current ? 'none' : 'transform 0.3s ease',
                     position: 'relative',
                     zIndex: 1,
                     backgroundColor: 'white',
