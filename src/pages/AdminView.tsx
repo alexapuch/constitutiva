@@ -497,7 +497,8 @@ export default function AdminView() {
 
   return (
     <div
-      className="min-h-screen bg-gray-100 dark:bg-gray-900 py-8 px-4 sm:px-6 lg:px-8 font-sans transition-colors"
+      className="min-h-screen bg-gray-100 dark:bg-gray-900 pb-8 px-4 sm:px-6 lg:px-8 font-sans transition-colors"
+      style={{ paddingTop: 'max(2rem, env(safe-area-inset-top))' }}
     >
       {/* Side Menu Drawer - portal level to cover full viewport */}
       <AnimatePresence>
@@ -521,7 +522,7 @@ export default function AdminView() {
               className="bg-white dark:bg-gray-800 shadow-2xl flex flex-col"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-blue-900">
+              <div className="flex items-center justify-between px-5 pb-5 border-b border-gray-200 bg-blue-900" style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top))' }}>
                 <span className="text-lg font-bold text-white">Panel Admin</span>
                 <button onClick={() => setShowSideMenu(false)} className="p-1 hover:bg-blue-800 rounded-full transition-colors">
                   <X className="w-5 h-5 text-white" />
