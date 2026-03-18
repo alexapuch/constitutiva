@@ -3,6 +3,7 @@ import { DocumentInfo, Employee } from '../types';
 import Swal from 'sweetalert2';
 import { savePdfVersion } from './savePdfVersion';
 import { generatePdfName } from './pdfNameGenerator';
+import { hasChinese, loadChineseFont } from './loadChineseFont';
 
 export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee, templateImage: string = '/constancia_vacia.png', preview: boolean = false): Promise<string | void> => {
     try {
@@ -32,6 +33,11 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         const docWidth = doc.internal.pageSize.getWidth();
         const docHeight = doc.internal.pageSize.getHeight();
 
+        // Load Chinese font if any field contains Chinese characters
+        const needsChinese = hasChinese(emp.name) || hasChinese(docInfo.commercial_name) || hasChinese(docInfo.address);
+        const chineseFontLoaded = needsChinese ? await loadChineseFont(doc) : false;
+        const font = chineseFontLoaded ? 'NotoSansSC' : 'helvetica';
+
         // Note: If using a PNG, change 'JPEG' to 'PNG'
         // JS PDF usually handles base64 urls dynamically, but let's assume JPEG as standard photo format
         const imgType = imgData.startsWith('data:image/png') ? 'PNG' : 'JPEG';
@@ -40,7 +46,7 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         // Text position settings
 
         // 1. Name of the employee
-        doc.setFont('helvetica', 'bold');
+        doc.setFont(font, 'bold');
         doc.setTextColor(27, 54, 93); // Dark blue from the template
         doc.setFontSize(22);
         // Move up further for Name
@@ -72,14 +78,14 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         // 4. Date
         doc.setFontSize(11);
         doc.setTextColor(255, 255, 255); // White text inside red banner
-        doc.setFont('helvetica', 'bold');
+        doc.setFont(font, 'bold');
         // Shift slightly down and left based on visual feedback
         doc.text(docInfo.date.toUpperCase(), 145, 124, { align: 'center' });
 
         // 5. Vigencia
         doc.setFontSize(7);
         doc.setTextColor(100, 100, 100); // Dark gray
-        doc.setFont('helvetica', 'bold');
+        doc.setFont(font, 'bold');
         doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
 
         // Preview mode: return blob URL

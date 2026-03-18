@@ -29,13 +29,18 @@ export default function AdminView() {
 
   // Manual Constancia Generator State
   const [showQuickModal, setShowQuickModal] = useState(false);
+  const [locationSection, setLocationSection] = useState<'pdc' | 'tulum' | null>('pdc');
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const CONSTANCIA_TYPES = [
-    { id: 'completa', label: 'Completa (todos los rubros)', image: '/constancia_vacia.png' },
-    { id: 'evacuacion', label: 'Evacuación', image: '/constancia_evacuacion.png' },
-    { id: 'extintores', label: 'Uso y Manejo de Extintores', image: '/constancia_extintores.png' },
-    { id: 'primeros_auxilios', label: 'Primeros Auxilios', image: '/constancia_primeros_auxilios.png' },
-    { id: 'pa_extintores', label: 'Primeros Auxilios + Extintores', image: '/constancia_pa_extintores.png' },
+    { id: 'completa',           label: 'Completa (todos los rubros)',    image: '/constancia_vacia.png',                  location: 'pdc' },
+    { id: 'evacuacion',         label: 'Evacuación',                     image: '/constancia_evacuacion.png',             location: 'pdc' },
+    { id: 'extintores',         label: 'Uso y Manejo de Extintores',     image: '/constancia_extintores.png',             location: 'pdc' },
+    { id: 'primeros_auxilios',  label: 'Primeros Auxilios',              image: '/constancia_primeros_auxilios.png',      location: 'pdc' },
+    { id: 'pa_extintores',      label: 'Primeros Auxilios + Extintores', image: '/constancia_pa_extintores.png',          location: 'pdc' },
+    { id: 'evacuacion_tulum',        label: 'Evacuación',                     image: '/constancia_evacuacion_tulum.png',        location: 'tulum' },
+    { id: 'extintores_tulum',        label: 'Uso y Manejo de Extintores',     image: '/constancias_extintores_tulum.png',       location: 'tulum' },
+    { id: 'primeros_auxilios_tulum', label: 'Primeros Auxilios',              image: '/constancia_primeros_auxilios_tulum.png', location: 'tulum' },
+    { id: 'pa_extintores_tulum',     label: 'Primeros Auxilios + Extintores', image: '/constancia_pa_extintores_tulum.png',     location: 'tulum' },
   ];
   const [quickData, setQuickData] = useState({
     employeeNames: [''],
@@ -1463,29 +1468,81 @@ export default function AdminView() {
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Tipo de Constancia *</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {CONSTANCIA_TYPES.map((type) => (
-                    <label
-                      key={type.id}
-                      className={`flex items-center gap-1.5 px-2.5 py-2 rounded-md border cursor-pointer transition-all text-center ${
-                        quickData.constanciaType === type.id
-                          ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="constanciaType"
-                        value={type.id}
-                        checked={quickData.constanciaType === type.id}
-                        onChange={(e) => setQuickData({ ...quickData, constanciaType: e.target.value })}
-                        className="w-3 h-3 text-blue-600 accent-blue-600 shrink-0"
-                      />
-                      <span className={`text-xs font-medium leading-tight ${quickData.constanciaType === type.id ? 'text-blue-800' : 'text-gray-600'}`}>
-                        {type.label}
-                      </span>
-                    </label>
-                  ))}
+
+                {/* Playa del Carmen section */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setLocationSection(locationSection === 'pdc' ? null : 'pdc')}
+                    className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+                  >
+                    <span className="text-sm font-semibold text-gray-700">📍 Playa del Carmen</span>
+                    <span className="text-gray-400 text-xs">{locationSection === 'pdc' ? '▲' : '▼'}</span>
+                  </button>
+                  {locationSection === 'pdc' && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-2">
+                      {CONSTANCIA_TYPES.filter(t => t.location === 'pdc').map((type) => (
+                        <label
+                          key={type.id}
+                          className={`flex items-center gap-1.5 px-2.5 py-2 rounded-md border cursor-pointer transition-all ${
+                            quickData.constanciaType === type.id
+                              ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
+                              : 'border-gray-200 hover:border-gray-300 bg-white'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="constanciaType"
+                            value={type.id}
+                            checked={quickData.constanciaType === type.id}
+                            onChange={(e) => setQuickData({ ...quickData, constanciaType: e.target.value })}
+                            className="w-3 h-3 text-blue-600 accent-blue-600 shrink-0"
+                          />
+                          <span className={`text-xs font-medium leading-tight ${quickData.constanciaType === type.id ? 'text-blue-800' : 'text-gray-600'}`}>
+                            {type.label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Tulum section */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setLocationSection(locationSection === 'tulum' ? null : 'tulum')}
+                    className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+                  >
+                    <span className="text-sm font-semibold text-gray-700">📍 Tulum</span>
+                    <span className="text-gray-400 text-xs">{locationSection === 'tulum' ? '▲' : '▼'}</span>
+                  </button>
+                  {locationSection === 'tulum' && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-2">
+                      {CONSTANCIA_TYPES.filter(t => t.location === 'tulum').map((type) => (
+                        <label
+                          key={type.id}
+                          className={`flex items-center gap-1.5 px-2.5 py-2 rounded-md border cursor-pointer transition-all ${
+                            quickData.constanciaType === type.id
+                              ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
+                              : 'border-gray-200 hover:border-gray-300 bg-white'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="constanciaType"
+                            value={type.id}
+                            checked={quickData.constanciaType === type.id}
+                            onChange={(e) => setQuickData({ ...quickData, constanciaType: e.target.value })}
+                            className="w-3 h-3 text-blue-600 accent-blue-600 shrink-0"
+                          />
+                          <span className={`text-xs font-medium leading-tight ${quickData.constanciaType === type.id ? 'text-blue-800' : 'text-gray-600'}`}>
+                            {type.label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
