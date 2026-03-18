@@ -660,9 +660,10 @@ export default function AdminView() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.97 }}
                 transition={{ duration: 0.12 }}
-                className="fixed inset-4 sm:inset-8 md:inset-12 lg:inset-y-12 lg:inset-x-[15%] bg-white rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden"
+                className="fixed inset-x-4 bottom-4 sm:inset-x-8 sm:bottom-8 md:inset-12 lg:inset-y-12 lg:inset-x-[15%] bg-white rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden"
+                style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
               >
-                <div className="px-5 pb-5 border-b border-gray-200 bg-gray-50 flex justify-between items-center shrink-0" style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top))' }}>
+                <div className="px-5 py-5 border-b border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
                   <h2 className="text-lg font-bold flex items-center gap-2 text-gray-800">
                     <Calculator className="w-5 h-5 text-blue-600" />
                     Historial de Cotizaciones
@@ -1397,7 +1398,8 @@ export default function AdminView() {
       {showQuickModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center md:p-4 z-50">
           <div className="bg-white dark:bg-gray-800 shadow-xl w-full h-full md:h-auto md:max-h-[90vh] md:max-w-lg md:rounded-xl overflow-hidden flex flex-col min-w-0 break-words" style={{ overscrollBehavior: 'contain' }}>
-            <div className="bg-blue-900 px-5 pb-5 text-white flex justify-between items-center shrink-0" style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top))' }}>
+            <div className="bg-blue-900 shrink-0 md:hidden" style={{ height: 'env(safe-area-inset-top)' }} />
+            <div className="bg-blue-900 px-5 py-5 text-white flex justify-between items-center shrink-0">
               <h3 className="font-extrabold flex items-center gap-2 text-lg">
                 <FileText className="w-5 h-5" />
                 Nueva Constancia

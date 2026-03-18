@@ -168,8 +168,10 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
                 className="bg-white w-full h-full md:h-auto md:max-h-[90vh] md:max-w-3xl md:rounded-xl md:shadow-2xl md:m-4 flex flex-col overflow-hidden"
                 style={{ overscrollBehavior: 'contain' }}
             >
+                {/* Safe area spacer for iPhone PWA notch */}
+                <div className="bg-blue-900 shrink-0 md:hidden" style={{ height: 'env(safe-area-inset-top)' }} />
                 {/* Header */}
-                <div className="bg-blue-900 px-4 pb-4 sm:px-5 sm:pb-5 text-white flex justify-between items-center shrink-0" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
+                <div className="bg-blue-900 px-4 py-4 sm:px-5 sm:py-5 text-white flex justify-between items-center shrink-0">
                     <h3 className="font-extrabold flex items-center gap-2 text-lg">
                         <Calculator className="w-5 h-5 text-blue-300" />
                         {quoteToEdit ? 'Editar Cotización' : 'Nueva Cotización'}
