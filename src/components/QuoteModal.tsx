@@ -169,7 +169,7 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
                 style={{ overscrollBehavior: 'contain' }}
             >
                 {/* Header */}
-                <div className="bg-blue-900 px-4 py-4 sm:p-5 text-white flex justify-between items-center shrink-0">
+                <div className="bg-blue-900 px-4 pb-4 sm:px-5 sm:pb-5 text-white flex justify-between items-center shrink-0" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
                     <h3 className="font-extrabold flex items-center gap-2 text-lg">
                         <Calculator className="w-5 h-5 text-blue-300" />
                         {quoteToEdit ? 'Editar Cotización' : 'Nueva Cotización'}
