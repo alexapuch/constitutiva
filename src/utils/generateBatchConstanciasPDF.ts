@@ -75,7 +75,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
 
             // 3. Address
             const addressText = docInfo.address.trim().toUpperCase();
-            const pdcText = "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.";
+            const pdcText = templateImage.includes('_tulum') ? "TULUM, QUINTANA ROO, MÉXICO." : "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.";
 
             const maxAddressWidth = 155;
             const addressLines = doc.splitTextToSize(addressText, maxAddressWidth);

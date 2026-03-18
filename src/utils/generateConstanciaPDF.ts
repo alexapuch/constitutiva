@@ -60,7 +60,7 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
 
         // 3. Address
         const addressText = docInfo.address.trim().toUpperCase();
-        const pdcText = "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.";
+        const pdcText = templateImage.includes('_tulum') ? "TULUM, QUINTANA ROO, MÉXICO." : "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.";
 
         // Determine layout based on address length
         const maxAddressWidth = 155;
