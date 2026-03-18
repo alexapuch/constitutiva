@@ -14,7 +14,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       {/* Cabecera Azul de SEPRISA */}
-      <div className="bg-[#0B152A] w-full px-4 md:px-8 py-4 shadow-md flex items-center justify-between z-10">
+      <div className="bg-[#0B152A] w-full px-4 md:px-8 pb-4 shadow-md flex items-center justify-between z-10" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-4">
           <div className="bg-transparent rounded-full overflow-hidden w-14 h-14 md:w-16 md:h-16 flex items-center justify-center">
             <img
