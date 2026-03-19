@@ -34,7 +34,11 @@ export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: 
             doc.setFontSize(size);
             doc.setFont('helvetica', style);
             const textLines = doc.splitTextToSize(text, pageWidth - margin * 2);
-            doc.text(textLines, align === 'center' ? pageWidth / 2 : margin, currentY + yOffset, { align: align as any });
+            if (align === 'justify') {
+                doc.text(text, margin, currentY + yOffset, { align: 'justify', maxWidth: pageWidth - margin * 2, lineHeightFactor: 1.5 });
+            } else {
+                doc.text(textLines, align === 'center' ? pageWidth / 2 : margin, currentY + yOffset, { align: align as any, lineHeightFactor: 1.5 });
+            }
             currentY += (textLines.length * size * 0.3527 * 1.5) + yOffset;
         };
 
@@ -53,21 +57,21 @@ export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: 
         const cityPrefix = addrParts[1]?.trim() === 'TULUM' ? 'TULUM' : 'PLAYA DEL CARMEN';
         const fullAddress = `${baseAddress}${baseAddress ? ", " : ""}${cityPrefix}, QUINTANA ROO, MÉXICO.`;
         
-        addText(`C. ${docInfo.commercial_name || ''} RESPONSABLE DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL DE LA EMPRESA DENOMINADA "${docInfo.company_name || ''}" y Siendo las ${docInfo.time_start || ''} horas del día ${docInfo.date || ''}, en el inmueble que ocupa la empresa, con domicilio, ${fullAddress} Se reúne la representante legal, así como lo empleados:`, 10, 'normal', 'left');
+        addText(`C. ${docInfo.commercial_name || ''} RESPONSABLE DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL DE LA EMPRESA DENOMINADA "${docInfo.company_name || ''}" y Siendo las ${docInfo.time_start || ''} horas del día ${docInfo.date || ''}, en el inmueble que ocupa la empresa, con domicilio, ${fullAddress} Se reúne la representante legal, así como lo empleados:`, 10, 'normal', 'justify');
         currentY += 4;
-        addText(`Con el objeto de constituir formalmente la Unidad Interna de Protección Civil de este inmueble.`, 10, 'normal', 'left');
+        addText(`Con el objeto de constituir formalmente la Unidad Interna de Protección Civil de este inmueble.`, 10, 'normal', 'justify');
         currentY += 4;
-        addText(`Como consecuencia de los sucesos ocurridos en el año de 1985, el Gobierno Federal decidió instrumentar un sistema que permitiese una respuesta eficaz y eficiente de los diversos sectores de la sociedad ante la presencia de desastres naturales y/o humanos con el propósito de prevenir sus consecuencias o en su caso mitigarlas.`, 10, 'normal', 'left');
+        addText(`Como consecuencia de los sucesos ocurridos en el año de 1985, el Gobierno Federal decidió instrumentar un sistema que permitiese una respuesta eficaz y eficiente de los diversos sectores de la sociedad ante la presencia de desastres naturales y/o humanos con el propósito de prevenir sus consecuencias o en su caso mitigarlas.`, 10, 'normal', 'justify');
         currentY += 4;
-        addText(`Por lo antes expuesto, y con fundamento en el Decreto por el que se aprueben las Bases para el Establecimiento del Sistema Nacional de Protección Civil.- Diario Oficial de la Federación del 6 de Mayo de 1986.- Manual de Organización y Operación del Sistema Nacional de Protección Civil.- Publicación de la Dirección General de Protección Civil del año de 1998.- Decreto por el que se crea el Consejo Nacional de Protección Civil.- Diario Oficial de la Federación del 11 de Mayo de 1990.- Programa de Protección Civil 1995-2000.- Diario Oficial de la Federación del 17 de Julio de 1996.`, 10, 'normal', 'left');
+        addText(`Por lo antes expuesto, y con fundamento en el Decreto por el que se aprueben las Bases para el Establecimiento del Sistema Nacional de Protección Civil.- Diario Oficial de la Federación del 6 de Mayo de 1986.- Manual de Organización y Operación del Sistema Nacional de Protección Civil.- Publicación de la Dirección General de Protección Civil del año de 1998.- Decreto por el que se crea el Consejo Nacional de Protección Civil.- Diario Oficial de la Federación del 11 de Mayo de 1990.- Programa de Protección Civil 1995-2000.- Diario Oficial de la Federación del 17 de Julio de 1996.`, 10, 'normal', 'justify');
         currentY += 4;
-        addText(`Se Constituye la Unidad Interna de Protección Civil, cuyos objetivos, integración y funciones se indican a continuación.`, 10, 'normal', 'left');
+        addText(`Se Constituye la Unidad Interna de Protección Civil, cuyos objetivos, integración y funciones se indican a continuación.`, 10, 'normal', 'justify');
         currentY += 8;
 
         // 1. OBJETIVOS
         addText('1. OBJETIVOS', 10, 'bold', 'left');
         currentY += 2;
-        addText(`Adecuar el Reglamento Interior u ordenamiento jurídico correspondiente, para incluir la función de Protección Civil en esta institución; elaborar, establecer, operar y evaluar permanentemente el Programa Interno de Protección Civil, así como implantar los mecanismos de coordinación con las dependencias y entidades públicas, privadas y sociales, en sus niveles federal, estatal y municipal que conforman el Sistema Nacional de Protección Civil, con el fin de cumplir con los objetivos del mismo, a través de la ejecución del Programa, particularmente realizando actividades que conduzcan a salvaguardar la integridad física del personal, visitantes y de las instalaciones del Inmueble.`, 10, 'normal', 'left');
+        addText(`Adecuar el Reglamento Interior u ordenamiento jurídico correspondiente, para incluir la función de Protección Civil en esta institución; elaborar, establecer, operar y evaluar permanentemente el Programa Interno de Protección Civil, así como implantar los mecanismos de coordinación con las dependencias y entidades públicas, privadas y sociales, en sus niveles federal, estatal y municipal que conforman el Sistema Nacional de Protección Civil, con el fin de cumplir con los objetivos del mismo, a través de la ejecución del Programa, particularmente realizando actividades que conduzcan a salvaguardar la integridad física del personal, visitantes y de las instalaciones del Inmueble.`, 10, 'normal', 'justify');
         currentY += 8;
 
         // 2. INTEGRACIÓN
@@ -100,7 +104,7 @@ export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: 
         if (currentY > 250) { doc.addPage(); currentY = margin; }
         addText('3. FUNCIONES', 10, 'bold', 'left');
         currentY += 2;
-        addText('Corresponde a los integrantes de la Unidad Interna de Protección Civil, llevar a cabo las siguientes funciones:', 10, 'normal', 'left');
+        addText('Corresponde a los integrantes de la Unidad Interna de Protección Civil, llevar a cabo las siguientes funciones:', 10, 'normal', 'justify');
         currentY += 4;
 
         const bulletPoints = [
@@ -129,7 +133,7 @@ export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: 
             const bulletStr = `•  ${bp}`;
             const lines = doc.splitTextToSize(bulletStr, pageWidth - margin * 2 - 5);
             if (currentY + (lines.length * 5) > 270) { doc.addPage(); currentY = margin; }
-            doc.text(lines, margin + 5, currentY);
+            doc.text(bulletStr, margin + 5, currentY, { align: 'justify', maxWidth: pageWidth - margin * 2 - 5, lineHeightFactor: 1.5 });
             currentY += lines.length * 5 + 1;
         });
         currentY += 8;
@@ -138,9 +142,9 @@ export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: 
         doc.addPage(); currentY = margin;
         addText('4. ESQUEMA ORGANIZACIONAL', 10, 'bold', 'left');
         currentY += 2;
-        addText('Para que la Unidad Interna de Protección Civil logre los objetivos y desempeñe las funciones antes descritas, contará con la estructura organizacional.', 10, 'normal', 'left');
+        addText('Para que la Unidad Interna de Protección Civil logre los objetivos y desempeñe las funciones antes descritas, contará con la estructura organizacional.', 10, 'normal', 'justify');
         currentY += 4;
-        addText(`Se firma la presente ACTA CONSTITUTIVA de la Unidad Interna de Protección Civil, por sus integrantes, en el lugar y fecha indicados, siendo las ${docInfo.time_end || ''} horas.`, 10, 'normal', 'left');
+        addText(`Se firma la presente ACTA CONSTITUTIVA de la Unidad Interna de Protección Civil, por sus integrantes, en el lugar y fecha indicados, siendo las ${docInfo.time_end || ''} horas.`, 10, 'normal', 'justify');
         currentY += 4;
 
         const table2Body = sortedEmployees.length > 0
