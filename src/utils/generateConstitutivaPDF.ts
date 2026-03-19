@@ -46,8 +46,13 @@ export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: 
         addText(`"${docInfo.company_name || ''}"`, 11, 'bold', 'center');
         currentY += 8;
 
-        // Body paragraphs
-        const fullAddress = `${docInfo.address}${docInfo.address ? ", " : ""}PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.`;
+        // Address processing
+        const rawAddress = docInfo.address || '';
+        const addrParts = rawAddress.split('|');
+        const baseAddress = addrParts[0] ? addrParts[0].trim() : '';
+        const cityPrefix = addrParts[1]?.trim() === 'TULUM' ? 'TULUM' : 'PLAYA DEL CARMEN';
+        const fullAddress = `${baseAddress}${baseAddress ? ", " : ""}${cityPrefix}, QUINTANA ROO, MÉXICO.`;
+        
         addText(`C. ${docInfo.commercial_name || ''} RESPONSABLE DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL DE LA EMPRESA DENOMINADA "${docInfo.company_name || ''}" y Siendo las ${docInfo.time_start || ''} horas del día ${docInfo.date || ''}, en el inmueble que ocupa la empresa, con domicilio, ${fullAddress} Se reúne la representante legal, así como lo empleados:`, 10, 'normal', 'left');
         currentY += 4;
         addText(`Con el objeto de constituir formalmente la Unidad Interna de Protección Civil de este inmueble.`, 10, 'normal', 'left');

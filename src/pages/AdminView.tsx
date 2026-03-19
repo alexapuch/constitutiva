@@ -1251,16 +1251,41 @@ export default function AdminView() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dirección del Inmueble</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Dirección del Inmueble y Ciudad</label>
+                  <div className="flex flex-col md:flex-row gap-4 mb-2">
+                     <label className="flex items-center gap-2 text-sm text-gray-700">
+                       <input 
+                         type="radio" 
+                         name="city_selector" 
+                         checked={((docInfo.address || '').split('|')[1]?.trim() || 'PLAYA DEL CARMEN') === 'PLAYA DEL CARMEN'}
+                         onChange={() => updateSelectedDoc('address', (docInfo.address || '').split('|')[0].trim() + ' | PLAYA DEL CARMEN')} 
+                         className="text-blue-600 focus:ring-blue-500"
+                       /> Playa del Carmen
+                     </label>
+                     <label className="flex items-center gap-2 text-sm text-gray-700">
+                       <input 
+                         type="radio" 
+                         name="city_selector" 
+                         checked={((docInfo.address || '').split('|')[1]?.trim()) === 'TULUM'}
+                         onChange={() => updateSelectedDoc('address', (docInfo.address || '').split('|')[0].trim() + ' | TULUM')} 
+                         className="text-blue-600 focus:ring-blue-500"
+                       /> Tulum
+                     </label>
+                  </div>
                   <textarea
                     rows={2}
-                    value={docInfo.address}
-                    onChange={(e) => updateSelectedDoc('address', e.target.value.toUpperCase())}
+                    value={(docInfo.address || '').split('|')[0].trim()}
+                    onChange={(e) => {
+                       const currentCity = (docInfo.address || '').split('|')[1]?.trim() || 'PLAYA DEL CARMEN';
+                       updateSelectedDoc('address', e.target.value.toUpperCase() + ' | ' + currentCity);
+                    }}
                     className="w-full border border-gray-300 rounded-t-md p-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Ej. Calle 6 bis entre 25 y 30, Col. Centro"
                   />
                   <div className="w-full bg-gray-100 border border-t-0 border-gray-300 rounded-b-md px-3 py-2 text-sm font-semibold text-gray-700 select-none">
-                    PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.
+                    {((docInfo.address || '').split('|')[1]?.trim() || 'PLAYA DEL CARMEN') === 'TULUM' 
+                       ? "TULUM, QUINTANA ROO, MÉXICO." 
+                       : "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO."}
                   </div>
                 </div>
 

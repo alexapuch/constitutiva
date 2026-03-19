@@ -49,6 +49,12 @@ export const generateSimulacroPDF = async (
     doc.text('1. DATOS GENERALES DE LA EMPRESA', margin, currentY);
     currentY += 3;
 
+    // Address processing
+    const rawAddress = docInfo.address || '';
+    const addrParts = rawAddress.split('|');
+    const baseAddress = addrParts[0] ? addrParts[0].trim() : '';
+    const cityPrefix = addrParts[1]?.trim() === 'TULUM' ? 'TULUM' : 'PLAYA DEL CARMEN';
+
     autoTable(doc, {
         startY: currentY,
         theme: 'plain',
@@ -56,7 +62,7 @@ export const generateSimulacroPDF = async (
         body: [
             [{ content: `Nombre, denominación o razón social: ${docInfo.commercial_name}`, colSpan: 7 }],
             [{ content: `Giro o actividad productiva principal del establecimiento: ${docInfo.activity || ''}`, colSpan: 7 }],
-            [{ content: `Dirección del establecimiento o inmueble: ${docInfo.address}${docInfo.address ? ", " : ""}PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.`, colSpan: 7 }],
+            [{ content: `Dirección del establecimiento o inmueble: ${baseAddress}${baseAddress ? ", " : ""}${cityPrefix}, QUINTANA ROO, MÉXICO.`, colSpan: 7 }],
             [
                 { content: 'El inmueble cuenta con:', colSpan: 2 },
                 { content: 'Estacionamiento   (X) Sí   ( ) No', colSpan: 2 },

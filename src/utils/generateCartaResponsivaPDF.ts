@@ -36,10 +36,16 @@ export const generateCartaResponsivaPDF = async (data: CartaResponsivaData, prev
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(fs);
 
+        // Fetch dynamic city
+        const rawAddress = data.direccion || '';
+        const addrParts = rawAddress.split('|');
+        const baseAddress = addrParts[0] ? addrParts[0].trim() : '';
+        const cityPrefix = addrParts[1]?.trim() === 'TULUM' ? 'TULUM' : 'PLAYA DEL CARMEN';
+
         // Date header
         let y = 30;
         doc.setFont('helvetica', 'normal');
-        doc.text(`PLAYA DEL CARMEN QUINTANA ROO, A ${data.fecha.toUpperCase()}`, docWidth - margin, y, { align: 'right' });
+        doc.text(`${cityPrefix} QUINTANA ROO, A ${data.fecha.toUpperCase()}`, docWidth - margin, y, { align: 'right' });
 
         // Addressee
         y += 18;
@@ -47,9 +53,9 @@ export const generateCartaResponsivaPDF = async (data: CartaResponsivaData, prev
         doc.text('LICENCIADO DARWIN MANUEL COVARRUBIAS GÓNGORA', margin, y);
         y += 4.5;
         doc.setFont('helvetica', 'normal');
-        doc.text('SECRETARIO DE PROTECCIÓN CIVIL, PREVENCIÓN DE RIESGOS Y BOMBEROS', margin, y);
+        doc.text(`SECRETARIO DE PROTECCIÓN CIVIL, PREVENCIÓN DE RIESGOS Y BOMBEROS`, margin, y);
         y += 4.5;
-        doc.text('DEL MUNICIPIO DE PLAYA DEL CARMEN.', margin, y);
+        doc.text(`DEL MUNICIPIO DE ${cityPrefix}.`, margin, y);
         y += 4.5;
         doc.setFont('helvetica', 'bold');
         doc.text('P R E S E N T E', margin, y);
@@ -57,7 +63,7 @@ export const generateCartaResponsivaPDF = async (data: CartaResponsivaData, prev
         // First paragraph (FVU in bold at the end)
         y += 20;
         doc.setFont('helvetica', 'normal');
-        const p1Text = `POR MEDIO DE LA PRESENTE MANIFIESTO QUE LOS DATOS, INFORMES Y DOCUMENTACIÓN QUE INTEGRAN LA CARPETA DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL A NOMBRE DE "${data.razonSocial.toUpperCase()}" DE NOMBRE COMERCIAL "${data.nombreComercial.toUpperCase()}" GIRO COMERCIAL "${data.giroComercial.toUpperCase()}" Y DIRECCIÓN: ${data.direccion.toUpperCase()}, PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO. SON VERÍDICOS. CON`;
+        const p1Text = `POR MEDIO DE LA PRESENTE MANIFIESTO QUE LOS DATOS, INFORMES Y DOCUMENTACIÓN QUE INTEGRAN LA CARPETA DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL A NOMBRE DE "${data.razonSocial.toUpperCase()}" DE NOMBRE COMERCIAL "${data.nombreComercial.toUpperCase()}" GIRO COMERCIAL "${data.giroComercial.toUpperCase()}" Y DIRECCIÓN: ${baseAddress.toUpperCase()}, ${cityPrefix}, QUINTANA ROO, MÉXICO. SON VERÍDICOS. CON`;
         const fvuText = ` FVU-2026-${data.fvu}`;
         const p1Full = p1Text + fvuText;
         const lines1 = doc.splitTextToSize(p1Full, usableWidth);
