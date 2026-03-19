@@ -17,6 +17,42 @@ import QuoteModal from '../components/QuoteModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../utils/supabaseClient';
+import { Document, Page, pdfjs } from 'react-pdf';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
+function LazyPage({ pageNumber, containerWidth }: { pageNumber: number; containerWidth: number }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className="mb-4 shadow-lg flex justify-center bg-gray-300" style={{ minHeight: containerWidth * 1.414 || 600, width: containerWidth || '100%' }}>
+      {isVisible ? (
+        <Page
+          pageNumber={pageNumber}
+          width={containerWidth}
+          renderTextLayer={false}
+          renderAnnotationLayer={false}
+          loading={null}
+        />
+      ) : null}
+    </div>
+  );
+}
 export default function AdminView() {
   const { theme, toggleTheme } = useTheme();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -136,6 +172,29 @@ export default function AdminView() {
   const [previewType, setPreviewType] = useState('');
   const [previewName, setPreviewName] = useState('');
   const [savingVersion, setSavingVersion] = useState(false);
+  const [numPages, setNumPages] = useState<number | null>(null);
+  const pdfContainerRef = useRef<HTMLDivElement>(null);
+  const [pdfWidth, setPdfWidth] = useState<number>(0);
+
+  useEffect(() => {
+    if (previewUrl && pdfContainerRef.current) {
+       setTimeout(() => {
+          if (pdfContainerRef.current) {
+            setPdfWidth(Math.max(pdfContainerRef.current.offsetWidth - 32, 300));
+          }
+       }, 100);
+       
+       const handleResize = () => {
+         if (pdfContainerRef.current) {
+           setPdfWidth(Math.max(pdfContainerRef.current.offsetWidth - 32, 300));
+         }
+       };
+       window.addEventListener('resize', handleResize);
+       return () => window.removeEventListener('resize', handleResize);
+    } else {
+       setNumPages(null);
+    }
+  }, [previewUrl]);
 
   // Carta Responsiva State (with autosave restore)
   const [showCartaResponsiva, setShowCartaResponsiva] = useState(false);
@@ -1815,11 +1874,18 @@ export default function AdminView() {
               </button>
             </div>
           </div>
-          <iframe
-            src={previewUrl}
-            className="flex-1 w-full bg-gray-200"
-            title="Vista previa del PDF"
-          />
+          <div ref={pdfContainerRef} className="flex-1 w-full bg-gray-200 overflow-y-auto p-4 flex flex-col items-center">
+            <Document
+              file={previewUrl}
+              onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+              loading={<div className="text-gray-500 py-10 font-bold">Cargando documento...</div>}
+              className="flex flex-col items-center"
+            >
+              {Array.from(new Array(numPages || 0), (_, index) => (
+                <LazyPage key={`page_${index + 1}`} pageNumber={index + 1} containerWidth={pdfWidth} />
+              ))}
+            </Document>
+          </div>
         </div>
       )}
     </div>
