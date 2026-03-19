@@ -192,18 +192,14 @@ export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: 
                     files: [file],
                     title: `Acta Constitutiva - ${docInfo.commercial_name}`,
                 });
-                console.log('Shared successfully');
-                return; // Success, exit
-            } catch (error) {
-                console.log('User cancelled share or share failed:', error);
-                // Fallback for user cancellation or share fail
+                return;
+            } catch (err: any) {
+                if (err.name !== 'AbortError') console.error('Share error:', err);
+                return;
             }
         }
 
-        // Fallback for desktop browsers / browsers without file sharing
-        console.log('Saving file using JS...');
         doc.save(`${fileName}.pdf`);
-        console.log('Save triggered.');
     } catch (e: any) {
         console.error('Fatal PDF Error:', e);
         Swal.fire({
