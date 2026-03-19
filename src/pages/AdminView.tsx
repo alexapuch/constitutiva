@@ -1283,9 +1283,10 @@ export default function AdminView() {
                     placeholder="Ej. Calle 6 bis entre 25 y 30, Col. Centro"
                   />
                   <div className="w-full bg-gray-100 border border-t-0 border-gray-300 rounded-b-md px-3 py-2 text-sm font-semibold text-gray-700 select-none">
-                    {((docInfo.address || '').split('|')[1]?.trim() || 'PLAYA DEL CARMEN') === 'TULUM' 
+                    {((docInfo.address || '').split('|')[0].trim() ? ", " : "") + 
+                    (((docInfo.address || '').split('|')[1]?.trim() || 'PLAYA DEL CARMEN') === 'TULUM' 
                        ? "TULUM, QUINTANA ROO, MÉXICO." 
-                       : "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO."}
+                       : "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.")}
                   </div>
                 </div>
 
