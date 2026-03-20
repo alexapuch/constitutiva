@@ -21,3 +21,19 @@ export function compressSignature(dataUrl: string, maxWidth = 200, quality = 0.5
         img.src = dataUrl;
     });
 }
+
+/**
+ * Synchronous version: compresses directly from a canvas element,
+ * skipping the async PNG→Image loading step.
+ */
+export function compressSignatureFromCanvas(sourceCanvas: HTMLCanvasElement, maxWidth = 300, quality = 0.6): string {
+    const ratio = Math.min(maxWidth / sourceCanvas.width, 1);
+    const target = document.createElement('canvas');
+    target.width = sourceCanvas.width * ratio;
+    target.height = sourceCanvas.height * ratio;
+    const ctx = target.getContext('2d')!;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, target.width, target.height);
+    ctx.drawImage(sourceCanvas, 0, 0, target.width, target.height);
+    return target.toDataURL('image/jpeg', quality);
+}

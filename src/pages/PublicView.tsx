@@ -47,21 +47,23 @@ export default function PublicView() {
   const handleSaveSignature = async (name: string, role: string, brigade: string, signatureData: string) => {
     if (!docInfo?.id) return;
 
+    // Optimistic update: show employee in list immediately
+    const tempId = -Date.now();
+    setEmployees(prev => [...prev, { id: tempId, document_id: docInfo.id, name, role, brigade, signature: signatureData }]);
+
     const res = await fetch(`/api/documents/${docInfo.id}/employees`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name,
-        role,
-        brigade,
-        signature: signatureData
-      })
+      body: JSON.stringify({ name, role, brigade, signature: signatureData })
     });
 
     if (res.ok) {
-      setIsModalOpen(false);
-      fetchEmployees(docInfo.id);
+      const { id } = await res.json();
+      // Replace temp entry with real ID from server
+      setEmployees(prev => prev.map(e => e.id === tempId ? { ...e, id } : e));
     } else {
+      // Rollback on error
+      setEmployees(prev => prev.filter(e => e.id !== tempId));
       throw new Error('Error al guardar la firma');
     }
   };

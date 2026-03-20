@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 import { X } from 'lucide-react';
-import { compressSignature } from '../utils/compressSignature';
+import { compressSignatureFromCanvas } from '../utils/compressSignature';
 import { motion, AnimatePresence } from 'motion/react';
 import Swal from 'sweetalert2';
 
@@ -15,7 +15,7 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
     const [name, setName] = useState('');
     const [role, setRole] = useState('EMPLEADO');
     const [brigade] = useState('MULTIBRIGADA');
-    const [isSaving, setIsSaving] = useState(false);
+    const [isSaving] = useState(false);
     const sigCanvas = useRef<SignatureCanvas>(null);
 
     useEffect(() => {
@@ -52,29 +52,24 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
             return;
         }
 
-        setIsSaving(true);
-        try {
-            const rawSignature = sigCanvas.current.getCanvas().toDataURL('image/png');
-            const signatureData = await compressSignature(rawSignature, 300, 0.6);
+        // Compress synchronously from canvas (no async PNG→Image step)
+        const signatureData = compressSignatureFromCanvas(sigCanvas.current.getCanvas(), 300, 0.6);
+        const savedName = name.trim().toUpperCase();
 
-            await onSave(name.trim().toUpperCase(), role, brigade, signatureData);
+        // Close modal immediately — upload happens in background
+        setName('');
+        setRole('EMPLEADO');
+        sigCanvas.current.clear();
+        onClose();
 
-            // Clear form after success
-            setName('');
-            setRole('EMPLEADO');
-            sigCanvas.current.clear();
-            onClose();
-        } catch (e) {
-            console.error(e);
+        onSave(savedName, role, brigade, signatureData).catch(() => {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
                 text: 'Hubo un error al guardar la firma.',
                 confirmButtonColor: '#722F37'
             });
-        } finally {
-            setIsSaving(false);
-        }
+        });
     };
 
     return (
