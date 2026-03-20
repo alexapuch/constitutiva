@@ -123,22 +123,19 @@ router.post('/documents/:id/employees', async (req, res) => {
         .single();
     if (error) return res.status(500).json({ error: error.message });
 
-    // Respond immediately so the client doesn't wait for the notification
-    res.json({ id: data.id });
+    // Send WhatsApp notification before responding so Vercel doesn't kill the function early
+    try {
+        const { data: docData } = await supabase
+            .from('document_info')
+            .select('commercial_name')
+            .eq('id', docId)
+            .single();
+        const actaName = docData?.commercial_name || 'Sin nombre';
+        const msg = encodeURIComponent(`🔔 Nueva firma en Acta: ${actaName}\n👤 Firmó: ${name}\n📋 Cargo: ${role || 'N/A'}`);
+        await fetch(`https://api.callmebot.com/whatsapp.php?phone=+5219848790569&text=${msg}&apikey=2048530`);
+    } catch { /* ignore notification errors */ }
 
-    // Send WhatsApp notification in the background (non-blocking)
-    void (async () => {
-        try {
-            const { data: docData } = await supabase
-                .from('document_info')
-                .select('commercial_name')
-                .eq('id', docId)
-                .single();
-            const actaName = docData?.commercial_name || 'Sin nombre';
-            const msg = encodeURIComponent(`🔔 Nueva firma en Acta: ${actaName}\n👤 Firmó: ${name}\n📋 Cargo: ${role || 'N/A'}`);
-            await fetch(`https://api.callmebot.com/whatsapp.php?phone=+5219848790569&text=${msg}&apikey=2048530`);
-        } catch { /* ignore notification errors */ }
-    })();
+    res.json({ id: data.id });
 });
 
 // DELETE employee
