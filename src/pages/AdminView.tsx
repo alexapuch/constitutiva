@@ -285,6 +285,17 @@ export default function AdminView() {
     setDocuments(docs => docs.map(d => d.id === selectedDocId ? { ...d, [field]: value } : d));
   };
 
+  const handleUppercaseChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: keyof DocumentInfo
+  ) => {
+    const input = e.target;
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    updateSelectedDoc(field, e.target.value.toUpperCase());
+    requestAnimationFrame(() => { input.setSelectionRange(start, end); });
+  };
+
   const docInfo = documents.find(d => d.id === selectedDocId);
 
   const handleDownloadPDF = async () => {
@@ -491,7 +502,7 @@ export default function AdminView() {
                   <input
                     type="text"
                     value={docInfo.commercial_name}
-                    onChange={(e) => updateSelectedDoc('commercial_name', e.target.value.toUpperCase())}
+                    onChange={(e) => handleUppercaseChange(e, 'commercial_name')}
                     className="w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white"
                   />
                 </div>
@@ -623,7 +634,7 @@ export default function AdminView() {
                   <input
                     type="text"
                     value={docInfo.activity || ''}
-                    onChange={(e) => updateSelectedDoc('activity', e.target.value.toUpperCase())}
+                    onChange={(e) => handleUppercaseChange(e, 'activity')}
                     className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Ej. HOTEL U HOSPEDAJE TEMPORAL"
                   />
