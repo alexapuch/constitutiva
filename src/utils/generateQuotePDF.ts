@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Swal from 'sweetalert2';
 import { FIRMA_JORGE_BASE64 } from './firmaJorge';
+import { savePdf } from './savePdf';
 
 export interface QuoteItem {
     description: string;
@@ -242,26 +243,8 @@ export const generateQuotePDF = async (quoteData: QuoteData) => {
 
         const fileName = `Cotizacion_${safeName}_${dateStr}.pdf`;
 
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        if (isMobile && navigator.canShare) {
-            const pdfBlob = doc.output('blob');
-            const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
-            if (navigator.canShare({ files: [file] })) {
-                try {
-                    await navigator.share({
-                        files: [file],
-                        title: `Cotización - ${quoteData.clientName}`,
-                    });
-                    return; // Success, exit
-                } catch (error) {
-                    console.log('Share canceled or failed:', error);
-                    // Fallthrough on failure unless overriding tab on iOS is bad, but generally we just return.
-                    return;
-                }
-            }
-        }
-
-        doc.save(fileName);
+        const pdfBlob = doc.output('blob');
+        await savePdf(pdfBlob, fileName, `Cotización - ${quoteData.clientName}`);
     } catch (error: any) {
         console.error('Error al generar cotización:', error);
         Swal.fire({

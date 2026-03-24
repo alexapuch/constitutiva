@@ -3,6 +3,7 @@ import { DocumentInfo, Employee } from '../types';
 import Swal from 'sweetalert2';
 import { savePdfVersion } from './savePdfVersion';
 import { generatePdfName } from './pdfNameGenerator';
+import { savePdf } from './savePdf';
 import { hasChinese, loadChineseFont } from './loadChineseFont';
 
 export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employees: Employee[], templateImage: string = '/constancia_vacia.png', preview: boolean = false): Promise<string | void> => {
@@ -112,17 +113,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
         // Background cloud save
         savePdfVersion(pdfBlob, `${pdfName}.pdf`, 'Constancias (Lote)', Object.keys(docInfo).length > 0 && docInfo.id ? docInfo.id : undefined).catch(err => console.error('Auto-save failed:', err));
 
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        if (isMobile && navigator.share) {
-            const file = new File([pdfBlob], `${pdfName}.pdf`, { type: 'application/pdf' });
-            try {
-                await navigator.share({ files: [file] });
-            } catch (err: any) {
-                if (err.name !== 'AbortError') throw err;
-            }
-        } else {
-            doc.save(`${pdfName}.pdf`);
-        }
+        await savePdf(pdfBlob, `${pdfName}.pdf`);
     } catch (error: any) {
         console.error('Error al generar constancias en lote:', error);
         Swal.fire({

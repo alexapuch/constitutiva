@@ -6,6 +6,7 @@ import { sortEmployees } from './employees';
 import Swal from 'sweetalert2';
 import { savePdfVersion } from './savePdfVersion';
 import { generatePdfName } from './pdfNameGenerator';
+import { savePdf } from './savePdf';
 
 export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: Employee[], preview: boolean = false): Promise<string | void> => {
     try {
@@ -190,25 +191,7 @@ export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: 
         // Background cloud save
         savePdfVersion(pdfBlob, `${fileName}.pdf`, 'Acta Constitutiva', Object.keys(docInfo).length > 0 && docInfo.id ? docInfo.id : undefined).catch(err => console.error('Auto-save failed:', err));
 
-        const file = new File([pdfBlob], `${fileName}.pdf`, { type: 'application/pdf' });
-
-        console.log('Trying share...', navigator.canShare ? 'Supported' : 'Not supported');
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-        if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-                await navigator.share({
-                    files: [file],
-                    title: `Acta Constitutiva - ${docInfo.commercial_name}`,
-                });
-                return;
-            } catch (err: any) {
-                if (err.name !== 'AbortError') console.error('Share error:', err);
-                return;
-            }
-        }
-
-        doc.save(`${fileName}.pdf`);
+        await savePdf(pdfBlob, `${fileName}.pdf`, `Acta Constitutiva - ${docInfo.commercial_name}`);
     } catch (e: any) {
         console.error('Fatal PDF Error:', e);
         Swal.fire({
