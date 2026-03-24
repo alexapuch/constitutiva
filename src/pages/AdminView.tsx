@@ -22,7 +22,7 @@ import QuoteHistoryDrawer from '../components/admin/QuoteHistoryDrawer';
 import PdfHistoryDrawer from '../components/admin/PdfHistoryDrawer';
 import PdfPreviewModal from '../components/admin/PdfPreviewModal';
 import CartaResponsivaView from '../components/admin/CartaResponsivaView';
-import ManualConstanciaModal, { CONSTANCIA_TYPES } from '../components/admin/ManualConstanciaModal';
+import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
 import { Menu } from 'lucide-react';
 
 export default function AdminView() {
@@ -891,15 +891,16 @@ export default function AdminView() {
            };
            const selectedType = CONSTANCIA_TYPES.find(t => t.id === qd.constanciaType);
            const templateImage = selectedType?.image || '/constancia_vacia.png';
-           
+           const prefix = CONSTANCIA_PDF_PREFIX[qd.constanciaType] || 'CONSTANCIA';
+
            if (names.length === 1) {
              const fakeEmployee = { id: 0, document_id: 0, name: names[0].toUpperCase(), role: '', brigade: '', signature: '' };
-             await generateConstanciaPDF(fakeDocInfo, fakeEmployee as any, templateImage);
-             addToHistory('Constancia', generatePdfName('CONSTANCIA', qd.commercial_name, fakeDocInfo.date));
+             await generateConstanciaPDF(fakeDocInfo, fakeEmployee as any, templateImage, false, prefix);
+             addToHistory('Constancia', generatePdfName(prefix, qd.commercial_name, fakeDocInfo.date));
            } else {
              const fakeEmployees = names.map((name: string, i: number) => ({ id: i, document_id: 0, name: name.toUpperCase(), role: '', brigade: '', signature: '' }));
-             await generateBatchConstanciasPDF(fakeDocInfo, fakeEmployees as any, templateImage);
-             addToHistory('Constancias (Lote)', generatePdfName('CONSTANCIAS', qd.commercial_name, fakeDocInfo.date));
+             await generateBatchConstanciasPDF(fakeDocInfo, fakeEmployees as any, templateImage, false, prefix);
+             addToHistory('Constancias (Lote)', generatePdfName(prefix, qd.commercial_name, fakeDocInfo.date));
            }
         }}
         onPreview={async (qd) => {
@@ -910,12 +911,13 @@ export default function AdminView() {
            };
            const selectedType = CONSTANCIA_TYPES.find(t => t.id === qd.constanciaType);
            const templateImage = selectedType?.image || '/constancia_vacia.png';
+           const prefix = CONSTANCIA_PDF_PREFIX[qd.constanciaType] || 'CONSTANCIA';
            if (names.length === 1) {
              const fakeEmp = { id: 0, document_id: 0, name: names[0].toUpperCase(), role: '', brigade: '', signature: '' };
-             await handlePreview(() => generateConstanciaPDF(fakeDocInfo, fakeEmp as any, templateImage, true), 'Constancia', generatePdfName('CONSTANCIA', qd.commercial_name, fakeDocInfo.date));
+             await handlePreview(() => generateConstanciaPDF(fakeDocInfo, fakeEmp as any, templateImage, true, prefix), 'Constancia', generatePdfName(prefix, qd.commercial_name, fakeDocInfo.date));
            } else {
              const fakeEmps = names.map((name: string, i: number) => ({ id: i, document_id: 0, name: name.toUpperCase(), role: '', brigade: '', signature: '' }));
-             await handlePreview(() => generateBatchConstanciasPDF(fakeDocInfo, fakeEmps as any, templateImage, true), 'Constancias (Lote)', generatePdfName('CONSTANCIAS', qd.commercial_name, fakeDocInfo.date));
+             await handlePreview(() => generateBatchConstanciasPDF(fakeDocInfo, fakeEmps as any, templateImage, true, prefix), 'Constancias (Lote)', generatePdfName(prefix, qd.commercial_name, fakeDocInfo.date));
            }
         }}
       />

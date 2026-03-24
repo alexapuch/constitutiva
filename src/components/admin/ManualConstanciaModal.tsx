@@ -11,6 +11,19 @@ interface ManualConstanciaModalProps {
   onPreview: (data: any) => Promise<void>;
 }
 
+export const CONSTANCIA_PDF_PREFIX: Record<string, string> = {
+  'completa':                'CONSTANCIAS',
+  'evacuacion':              'CONSTANCIA EVA',
+  'extintores':              'CONSTANCIA UYME',
+  'primeros_auxilios':       'CONSTANCIA P.A.',
+  'pa_extintores':           'CONSTANCIA P.A.-UYME',
+  'completa_tulum':          'CONSTANCIAS',
+  'evacuacion_tulum':        'CONSTANCIA EVA',
+  'extintores_tulum':        'CONSTANCIA UYME',
+  'primeros_auxilios_tulum': 'CONSTANCIA P.A.',
+  'pa_extintores_tulum':     'CONSTANCIA P.A.-UYME',
+};
+
 export const CONSTANCIA_TYPES = [
   { id: 'completa',           label: 'Completa (todos los rubros)',    image: '/constancia_vacia.png',                  location: 'pdc' },
   { id: 'evacuacion',         label: 'Evacuación',                     image: '/constancia_evacuacion.png',             location: 'pdc' },
