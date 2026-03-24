@@ -272,10 +272,9 @@ export default function ManualConstanciaModal({
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Dirección de la Empresa *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Dirección de la Empresa</label>
               <input
                 type="text"
-                required
                 value={quickData.address}
                 onChange={(e) => setQuickData({ ...quickData, address: e.target.value.toUpperCase() })}
                 className="w-full border border-gray-300 rounded-md p-3 text-base focus:ring-blue-600 focus:border-blue-600"
