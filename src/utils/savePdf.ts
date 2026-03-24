@@ -30,7 +30,27 @@ export const savePdf = async (blob: Blob, fileName: string, title?: string): Pro
     return;
   }
 
-  // 3. Lógica para Safari normal y otros navegadores (Descarga clásica)
+  // 3. iOS Safari normal: también usa navigator.share (igual que PWA)
+  if (isIos) {
+    const file = new File([blob], fileName, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: title || fileName });
+        URL.revokeObjectURL(blobUrl);
+        return;
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+      }
+    }
+    // Respaldo iOS Safari
+    window.location.assign(blobUrl);
+    return;
+  }
+
+  // 4. Desktop / Android: descarga clásica
   const downloadLink = document.createElement('a');
   downloadLink.href = blobUrl;
   downloadLink.download = fileName;
