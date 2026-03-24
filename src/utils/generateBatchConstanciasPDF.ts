@@ -79,11 +79,17 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             const pdcText = templateImage.includes('_tulum') ? "TULUM, QUINTANA ROO, MÉXICO." : "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.";
 
             const maxAddressWidth = 155;
-            const addressLines = doc.splitTextToSize(addressText, maxAddressWidth);
 
-            const finalAddress = addressLines.length === 1
-                ? [addressText, pdcText]
-                : `${addressText} ${pdcText}`;
+            let finalAddress: string | string[];
+            if (!addressText) {
+                // No address: show city/state on the first line only
+                finalAddress = pdcText;
+            } else {
+                const addressLines = doc.splitTextToSize(addressText, maxAddressWidth);
+                finalAddress = addressLines.length === 1
+                    ? [addressText, pdcText]
+                    : `${addressText} ${pdcText}`;
+            }
 
             doc.text(finalAddress, 96, 100.5, { align: 'left', maxWidth: maxAddressWidth, lineHeightFactor: 1.5 });
 

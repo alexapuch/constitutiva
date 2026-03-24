@@ -63,15 +63,19 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         const addressText = docInfo.address.trim().toUpperCase();
         const pdcText = templateImage.includes('_tulum') ? "TULUM, QUINTANA ROO, MÉXICO." : "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.";
 
-        // Determine layout based on address length
         const maxAddressWidth = 155;
-        const addressLines = doc.splitTextToSize(addressText, maxAddressWidth);
 
-        // If the address fits in one line, array format forces a nice line break for Playa del Carmen.
-        // If the address wraps to multiple lines, concatenating prevents isolated short lines and extra forced jumps.
-        const finalAddress = addressLines.length === 1
-            ? [addressText, pdcText]
-            : `${addressText} ${pdcText}`;
+        let finalAddress: string | string[];
+        if (!addressText) {
+            // No address: show city/state on the first line only
+            finalAddress = pdcText;
+        } else {
+            // Address present: keep original layout
+            const addressLines = doc.splitTextToSize(addressText, maxAddressWidth);
+            finalAddress = addressLines.length === 1
+                ? [addressText, pdcText]
+                : `${addressText} ${pdcText}`;
+        }
 
         // Micro-adjustment up by 2px (0.5mm)
         doc.text(finalAddress, 96, 100.5, { align: 'left', maxWidth: maxAddressWidth, lineHeightFactor: 1.5 });
