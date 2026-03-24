@@ -55,7 +55,7 @@ export default function ManualConstanciaModal({
   const handleGenerateManualConstancia = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const names = quickData.employeeNames.filter(n => n.trim() !== '');
-    if (names.length === 0 || !quickData.commercial_name.trim() || !quickData.address.trim() || !quickData.date.trim()) {
+    if (names.length === 0 || !quickData.commercial_name.trim() || !quickData.date.trim()) {
       Swal.fire({
         icon: 'warning',
         title: 'Campos incompletos',
@@ -69,7 +69,7 @@ export default function ManualConstanciaModal({
 
   const handlePreviewManualConstancia = async () => {
     const names = quickData.employeeNames.filter((n: string) => n.trim() !== '');
-    if (names.length === 0 || !quickData.commercial_name.trim() || !quickData.address.trim() || !quickData.date.trim()) {
+    if (names.length === 0 || !quickData.commercial_name.trim() || !quickData.date.trim()) {
       Swal.fire({ icon: 'warning', title: 'Campos incompletos', text: 'Por favor llena todos los campos.', confirmButtonColor: '#722F37' });
       return;
     }
