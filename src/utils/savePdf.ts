@@ -1,33 +1,43 @@
 export const savePdf = async (blob: Blob, fileName: string, title?: string): Promise<void> => {
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isMobile = isIOS || /Android/i.test(navigator.userAgent);
+  const blobUrl = URL.createObjectURL(blob);
 
-    // Try Web Share API first on mobile (works in Safari and in iOS PWA on iOS 15+)
-    if (isMobile && navigator.share) {
-        const file = new File([blob], fileName, { type: 'application/pdf' });
-        const canShare = navigator.canShare ? navigator.canShare({ files: [file] }) : true;
-        if (canShare) {
-            try {
-                await navigator.share({ files: [file], title });
-                return;
-            } catch (err: any) {
-                if (err.name === 'AbortError') return; // user cancelled — do nothing
-                // share failed (e.g. gesture timeout in PWA) — fall through
-            }
-        }
-    }
+  // 1. Detección de entorno
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase());
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+  const isIosPwa = isIos && isStandalone;
 
-    // iOS fallback: open blob URL so the native PDF viewer handles save/share
-    if (isIOS) {
-        window.location.href = URL.createObjectURL(blob);
+  // 2. Lógica exclusiva para PWA en iOS
+  if (isIosPwa) {
+    const file = new File([blob], fileName, { type: 'application/pdf' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: title || fileName,
+        });
         return;
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          console.log('El usuario canceló el diálogo.');
+          return;
+        }
+        console.warn('navigator.share falló en PWA, usando el visor como respaldo...', error);
+      }
     }
+    // Respaldo de PWA
+    window.location.assign(blobUrl);
+    return;
+  }
 
-    // Desktop / Android fallback
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  // 3. Lógica para Safari normal y otros navegadores (Descarga clásica)
+  const downloadLink = document.createElement('a');
+  downloadLink.href = blobUrl;
+  downloadLink.download = fileName;
+
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
 };
