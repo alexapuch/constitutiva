@@ -1,5 +1,9 @@
 export const getCompactDate = (dateStr?: string) => {
   if (dateStr) {
+    // ISO format: YYYY-MM-DD
+    const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (isoMatch) return `${isoMatch[3]}${isoMatch[2]}${isoMatch[1]}`;
+
     const months: Record<string, string> = {
       'enero': '01', 'febrero': '02', 'marzo': '03', 'abril': '04',
       'mayo': '05', 'junio': '06', 'julio': '07', 'agosto': '08',

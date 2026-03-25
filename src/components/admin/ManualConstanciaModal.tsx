@@ -46,7 +46,8 @@ export default function ManualConstanciaModal({
     constanciaType: 'completa',
     commercial_name: '',
     address: '',
-    date: ''
+    date: '',
+    dateISO: ''
   });
 
   const handleQuickAutocomplete = (docId: string) => {
@@ -95,7 +96,8 @@ export default function ManualConstanciaModal({
       constanciaType: 'completa',
       commercial_name: '',
       address: '',
-      date: ''
+      date: '',
+      dateISO: ''
     });
     onClose();
   };
@@ -306,9 +308,9 @@ export default function ManualConstanciaModal({
                       month: 'long',
                       year: 'numeric'
                     });
-                    setQuickData({ ...quickData, date: formattedDate });
+                    setQuickData({ ...quickData, date: formattedDate, dateISO: e.target.value });
                   } else {
-                    setQuickData({ ...quickData, date: '' });
+                    setQuickData({ ...quickData, date: '', dateISO: '' });
                   }
                 }}
                 className="w-full border border-gray-300 rounded-md p-3 text-base focus:ring-blue-600 focus:border-blue-600"

@@ -6,7 +6,7 @@ import { generatePdfName } from './pdfNameGenerator';
 import { savePdf } from './savePdf';
 import { hasChinese, loadChineseFont } from './loadChineseFont';
 
-export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee, templateImage: string = '/constancia_vacia.png', preview: boolean = false, pdfPrefix: string = 'CONSTANCIA'): Promise<string | void> => {
+export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee, templateImage: string = '/constancia_vacia.png', preview: boolean = false, pdfPrefix: string = 'CONSTANCIA', fileDate?: string): Promise<string | void> => {
     try {
         // 1. URL to the empty template
         const imgUrl = templateImage;
@@ -100,7 +100,7 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         }
 
         // Generate output and share/download
-        const pdfName = generatePdfName(pdfPrefix, docInfo.commercial_name, docInfo.date);
+        const pdfName = generatePdfName(pdfPrefix, docInfo.commercial_name, fileDate || docInfo.date);
         const pdfBlob = doc.output('blob');
         
         // Background cloud save
