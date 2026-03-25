@@ -29,5 +29,5 @@ export const generatePdfName = (type: string, companyName: string, dateStr?: str
   const compactDate = getCompactDate(dateStr);
   const safeCompany = (companyName || '').toUpperCase().trim();
   const normalizedCompany = safeCompany.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  return `${type} - ${normalizedCompany} - ${compactDate}`.replace(/[\/\\?%*:|"<>]/g, '-');
+  return `${type}-${normalizedCompany}-${compactDate}`.replace(/[\/\\?%*:|"<>]/g, '-');
 };
