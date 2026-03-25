@@ -49,6 +49,8 @@ export default function ManualConstanciaModal({
     date: '',
     dateISO: ''
   });
+  const [showBulkPaste, setShowBulkPaste] = useState(false);
+  const [bulkText, setBulkText] = useState('');
 
   const handleQuickAutocomplete = (docId: string) => {
     if (!docId) {
@@ -164,14 +166,57 @@ export default function ManualConstanciaModal({
                 </div>
               ))}
             </div>
-            <button
-              type="button"
-              onClick={() => setQuickData({ ...quickData, employeeNames: [...quickData.employeeNames, ''] })}
-              className="mt-2 flex items-center gap-1.5 text-sm text-blue-700 font-semibold hover:text-blue-900 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Agregar otra persona
-            </button>
+            <div className="mt-2 flex items-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setQuickData({ ...quickData, employeeNames: [...quickData.employeeNames, ''] })}
+                className="flex items-center gap-1.5 text-sm text-blue-700 font-semibold hover:text-blue-900 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Agregar otra persona
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowBulkPaste(v => !v); setBulkText(''); }}
+                className="flex items-center gap-1.5 text-sm text-purple-700 font-semibold hover:text-purple-900 transition-colors"
+              >
+                <Filter className="w-4 h-4" />
+                {showBulkPaste ? 'Cancelar pegado múltiple' : 'Pegar lista de nombres'}
+              </button>
+            </div>
+
+            {showBulkPaste && (
+              <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg space-y-2">
+                <p className="text-xs text-purple-700 font-medium">
+                  Pega aquí la lista de nombres (uno por línea). Se agregarán a los nombres ya capturados.
+                </p>
+                <textarea
+                  rows={6}
+                  placeholder={"Juan Pérez López\nMaría García Torres\nCarlos Ramírez Vega\n..."}
+                  value={bulkText}
+                  onChange={(e) => setBulkText(e.target.value)}
+                  className="w-full border border-purple-300 rounded-md p-2 text-sm focus:ring-purple-500 focus:border-purple-500 resize-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newNames = bulkText
+                      .split('\n')
+                      .map(n => n.trim().toUpperCase())
+                      .filter(n => n.length > 0);
+                    if (newNames.length === 0) return;
+                    const existing = quickData.employeeNames.filter(n => n.trim() !== '');
+                    setQuickData({ ...quickData, employeeNames: [...existing, ...newNames] });
+                    setBulkText('');
+                    setShowBulkPaste(false);
+                  }}
+                  className="w-full py-2 bg-purple-600 text-white rounded-md text-sm font-bold hover:bg-purple-700 transition-colors"
+                >
+                  Agregar {bulkText.split('\n').filter(n => n.trim()).length || 0} nombres a la lista
+                </button>
+              </div>
+            )}
+
             {quickData.employeeNames.filter(n => n.trim()).length > 1 && (
               <p className="mt-1 text-xs text-blue-600 font-medium">
                 Se generarán {quickData.employeeNames.filter(n => n.trim()).length} constancias en un solo PDF.
