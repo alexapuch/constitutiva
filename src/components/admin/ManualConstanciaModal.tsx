@@ -132,9 +132,22 @@ export default function ManualConstanciaModal({
           </p>
 
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">
-              Nombre(s) de la(s) Persona(s) *
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-bold text-gray-700">
+                Nombre(s) de la(s) Persona(s) *
+              </label>
+              {quickData.employeeNames.filter(n => n.trim()).length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setQuickData({ ...quickData, employeeNames: [''] })}
+                  className="flex items-center gap-1 text-xs text-red-600 font-semibold hover:text-red-800 transition-colors"
+                  title="Eliminar todos los nombres"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Eliminar todos
+                </button>
+              )}
+            </div>
             <div className="space-y-2">
               {quickData.employeeNames.map((name, idx) => (
                 <div key={idx} className="flex gap-2 items-center">
