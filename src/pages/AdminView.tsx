@@ -592,20 +592,28 @@ export default function AdminView() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Dirección del Inmueble y Ciudad</label>
                   <div className="flex flex-col md:flex-row gap-4 mb-2">
                      <label className="flex items-center gap-2 text-sm text-gray-700">
-                       <input 
-                         type="radio" 
-                         name="city_selector" 
+                       <input
+                         type="radio"
+                         name="city_selector"
                          checked={((docInfo.address || '').split(/\s*\|\s*/)[1] || 'PLAYA DEL CARMEN') === 'PLAYA DEL CARMEN'}
-                         onChange={() => updateSelectedDoc('address', (docInfo.address || '').split(/\s*\|\s*/)[0] + ' | PLAYA DEL CARMEN')} 
+                         onChange={async () => {
+                           const newAddr = (docInfo.address || '').split(/\s*\|\s*/)[0] + ' | PLAYA DEL CARMEN';
+                           updateSelectedDoc('address', newAddr);
+                           if (selectedDocId) await supabase.from('document_info').update({ address: newAddr }).eq('id', selectedDocId);
+                         }}
                          className="text-blue-600 focus:ring-blue-500"
                        /> Playa del Carmen
                      </label>
                      <label className="flex items-center gap-2 text-sm text-gray-700">
-                       <input 
-                         type="radio" 
-                         name="city_selector" 
+                       <input
+                         type="radio"
+                         name="city_selector"
                          checked={((docInfo.address || '').split(/\s*\|\s*/)[1]) === 'TULUM'}
-                         onChange={() => updateSelectedDoc('address', (docInfo.address || '').split(/\s*\|\s*/)[0] + ' | TULUM')} 
+                         onChange={async () => {
+                           const newAddr = (docInfo.address || '').split(/\s*\|\s*/)[0] + ' | TULUM';
+                           updateSelectedDoc('address', newAddr);
+                           if (selectedDocId) await supabase.from('document_info').update({ address: newAddr }).eq('id', selectedDocId);
+                         }}
                          className="text-blue-600 focus:ring-blue-500"
                        /> Tulum
                      </label>
@@ -706,7 +714,7 @@ export default function AdminView() {
                 <div className="flex flex-wrap items-center gap-3 mt-4">
                   <div className="flex-1 sm:flex-none flex items-center gap-1">
                     <button
-                      onClick={async () => { if (docInfo) { await generateBatchConstanciasPDF(docInfo, employees); addToHistory('Constancias (Lote)', generatePdfName('CONSTANCIAS', docInfo.commercial_name, docInfo.date)); } }}
+                      onClick={async () => { if (docInfo) { const isTulum = (docInfo.address || '').split(/\s*\|\s*/)[1] === 'TULUM'; const tmpl = isTulum ? '/constancia_vacia_tulum.png' : '/constancia_vacia.png'; await generateBatchConstanciasPDF(docInfo, employees, tmpl); addToHistory('Constancias (Lote)', generatePdfName('CONSTANCIAS', docInfo.commercial_name, docInfo.date)); } }}
                       disabled={employees.length === 0}
                       className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-l-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm font-bold min-h-[44px]"
                       title="Descargar Todas las Constancias"
@@ -715,7 +723,7 @@ export default function AdminView() {
                       <span className="whitespace-nowrap">Constancias (Lote)</span>
                     </button>
                     <button
-                      onClick={() => { if (docInfo) handlePreview(() => generateBatchConstanciasPDF(docInfo, employees, undefined, true), 'Constancias (Lote)', generatePdfName('CONSTANCIAS', docInfo.commercial_name, docInfo.date)); }}
+                      onClick={() => { if (docInfo) { const isTulum = (docInfo.address || '').split(/\s*\|\s*/)[1] === 'TULUM'; const tmpl = isTulum ? '/constancia_vacia_tulum.png' : '/constancia_vacia.png'; handlePreview(() => generateBatchConstanciasPDF(docInfo, employees, tmpl, true), 'Constancias (Lote)', generatePdfName('CONSTANCIAS', docInfo.commercial_name, docInfo.date)); } }}
                       disabled={employees.length === 0}
                       className="flex items-center justify-center bg-blue-500 text-white px-2.5 py-2 rounded-r-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px]"
                       title="Vista Previa"
