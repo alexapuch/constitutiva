@@ -1,0 +1,22 @@
+const fetchDocuments = useCallback(async () => {
+    const res = await fetch('/api/documents');
+    const data = await res.json();
+    setDocuments(data);
+    if (data.length > 0 && !selectedDocId) {
+      setSelectedDocId(data[0].id);
+    }
+  }, [selectedDocId]);
+
+  // Fetch history when drawer opens
+  useEffect(() => {
+    if (showHistoryDrawer) fetchPdfHistory();
+  }, [showHistoryDrawer, fetchPdfHistory]);
+
+  // Auto-refresh: when tab becomes visible again
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchPdfHistory();
+        fetchDocuments();
+      }
+    };

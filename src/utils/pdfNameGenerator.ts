@@ -2,7 +2,7 @@ export const getCompactDate = (dateStr?: string) => {
   if (dateStr) {
     // ISO format: YYYY-MM-DD
     const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (isoMatch) return `${isoMatch[3]}${isoMatch[2]}${isoMatch[1]}`;
+    if (isoMatch) return `${isoMatch[3]}${isoMatch[2]}${isoMatch[1].slice(2)}`;
 
     const months: Record<string, string> = {
       'enero': '01', 'febrero': '02', 'marzo': '03', 'abril': '04',
@@ -15,13 +15,13 @@ export const getCompactDate = (dateStr?: string) => {
       if (day.length === 1) day = '0' + day;
       const month = months[parts[1].trim()] || '01';
       const year = parts[2].trim();
-      return `${day}${month}${year}`;
+      return `${day}${month}${year.slice(-2)}`;
     }
   }
   const d = new Date();
   const day = d.getDate().toString().padStart(2, '0');
   const month = (d.getMonth() + 1).toString().padStart(2, '0');
-  const year = d.getFullYear();
+  const year = d.getFullYear().toString().slice(-2);
   return `${day}${month}${year}`;
 };
 

@@ -124,9 +124,39 @@ export default function Home() {
             </div>
 
             <button
-              onClick={() => {
-                navigator.clipboard.writeText(currentUrl);
-                alert('¡Enlace copiado al portapapeles!');
+              onClick={async () => {
+                try {
+                  if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(currentUrl);
+                  } else {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = currentUrl;
+                    textArea.style.position = "absolute";
+                    textArea.style.left = "-999999px";
+                    document.body.prepend(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    textArea.remove();
+                  }
+                  import('sweetalert2').then(Swal => {
+                    Swal.default.fire({
+                      icon: 'success',
+                      title: '¡Copiado!',
+                      text: '¡Enlace copiado al portapapeles!',
+                      timer: 2000,
+                      showConfirmButton: false
+                    });
+                  });
+                } catch (e) {
+                  import('sweetalert2').then(Swal => {
+                    Swal.default.fire({
+                      icon: 'error',
+                      title: 'Error',
+                      text: 'No se pudo copiar el enlace',
+                      timer: 2000
+                    });
+                  });
+                }
               }}
               className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100 py-3 rounded-lg font-medium transition-colors"
             >

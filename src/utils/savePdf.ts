@@ -1,3 +1,5 @@
+import Swal from 'sweetalert2';
+
 export const savePdf = async (blob: Blob, fileName: string, title?: string): Promise<void> => {
   const blobUrl = URL.createObjectURL(blob);
 
@@ -6,47 +8,53 @@ export const savePdf = async (blob: Blob, fileName: string, title?: string): Pro
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
   const isIosPwa = isIos && isStandalone;
 
-  // 2. Lógica exclusiva para PWA en iOS
-  if (isIosPwa) {
-    const file = new File([blob], fileName, { type: 'application/pdf' });
+  const file = new File([blob], fileName, { type: 'application/pdf' });
 
+  const tryShare = async () => {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
         await navigator.share({
           files: [file],
           title: title || fileName,
         });
-        return;
+        return true;
       } catch (error: any) {
         if (error.name === 'AbortError') {
-          console.log('El usuario canceló el diálogo.');
-          return;
+          return true; // user cancelled but it's fine
         }
-        console.warn('navigator.share falló en PWA, usando el visor como respaldo...', error);
       }
     }
-    // Respaldo de PWA
-    window.location.assign(blobUrl);
-    return;
-  }
+    return false;
+  };
 
-  // 3. iOS Safari normal: también usa navigator.share (igual que PWA)
-  if (isIos) {
-    const file = new File([blob], fileName, { type: 'application/pdf' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: title || fileName });
-        URL.revokeObjectURL(blobUrl);
-        return;
-      } catch (error: any) {
-        if (error.name === 'AbortError') {
-          URL.revokeObjectURL(blobUrl);
-          return;
+  if (isIosPwa || isIos) {
+    // Attempt direct share first.
+    const success = await tryShare();
+    if (success) {
+      if (!isIosPwa) { URL.revokeObjectURL(blobUrl); }
+      return;
+    }
+
+    // Fallback: If it silently failed or required user interaction gesture, we show a Swal
+    // button, so when the user clicks 'Compartir/Guardar', we get a fresh synchronous gesture.
+    Swal.fire({
+      title: 'Documento Listo',
+      text: 'Presiona el botón para descargar o compartir el archivo.',
+      icon: 'success',
+      showCancelButton: true,
+      confirmButtonText: 'Compartir / Guardar',
+      cancelButtonText: 'Cerrar',
+      confirmButtonColor: '#1f3769'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const shareSuccess = await tryShare();
+        if (!shareSuccess) {
+           if (!isStandalone) { window.location.assign(blobUrl); }
+           else { Swal.fire('Aviso', 'No se pudo exportar automáticamente. Intenta usar otro navegador.', 'error'); }
         }
       }
-    }
-    // Respaldo iOS Safari
-    window.location.assign(blobUrl);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    });
     return;
   }
 

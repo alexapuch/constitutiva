@@ -1,0 +1,2 @@
+﻿src/pages/AdminView.tsx(152,29): error TS1127: Invalid character.
+src/pages/AdminView.tsx(906,1): error TS1160: Unterminated template literal.

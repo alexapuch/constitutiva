@@ -517,10 +517,36 @@ export default function AdminView() {
                       className="w-full border border-gray-200 bg-gray-50 rounded-md p-2 text-gray-600 font-mono"
                     />
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         if (docInfo.access_code) {
-                          navigator.clipboard.writeText(docInfo.access_code);
-                          alert('Código copiado al portapapeles');
+                          try {
+                            if (navigator.clipboard && window.isSecureContext) {
+                              await navigator.clipboard.writeText(docInfo.access_code);
+                            } else {
+                              const textArea = document.createElement("textarea");
+                              textArea.value = docInfo.access_code;
+                              textArea.style.position = "absolute";
+                              textArea.style.left = "-999999px";
+                              document.body.prepend(textArea);
+                              textArea.select();
+                              document.execCommand('copy');
+                              textArea.remove();
+                            }
+                            Swal.fire({
+                              icon: 'success',
+                              title: '¡Copiado!',
+                              text: 'Código copiado al portapapeles',
+                              timer: 2000,
+                              showConfirmButton: false
+                            });
+                          } catch (err) {
+                            Swal.fire({
+                              icon: 'error',
+                              title: 'Error',
+                              text: 'No se pudo copiar el código',
+                              timer: 2000
+                            });
+                          }
                         }
                       }}
                       className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md transition-colors text-sm font-bold whitespace-nowrap min-h-[44px] flex items-center"
