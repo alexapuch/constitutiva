@@ -437,7 +437,7 @@ export default function AdminView() {
                       onDelete={() => handleDeleteDocument(doc.id)}
                       onClick={() => {
                         setSelectedDocId(doc.id);
-                        setTimeout(() => { editSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+                        setTimeout(() => { editSectionRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' }); }, 150);
                       }}
                     >
                       <div className={`flex flex-col p-4 rounded-xl border cursor-pointer transition-all shadow-sm ${selectedDocId === doc.id ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-400 ring-1 ring-blue-400' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-300 hover:shadow-md'}`}>
@@ -487,9 +487,10 @@ export default function AdminView() {
                   Editar Información del Acta Seleccionada
                 </h2>
                 <button
+                  type="button"
                   onClick={handleSaveDocInfo}
                   disabled={isSaving}
-                  className="flex items-center justify-center gap-2 bg-blue-900 text-white px-6 py-2 rounded-md font-bold hover:bg-blue-800 transition-colors shadow-md disabled:opacity-50 min-h-[44px]"
+                  className="flex items-center justify-center gap-2 bg-blue-900 text-white px-6 py-2 rounded-md font-bold hover:bg-blue-800 transition-colors shadow-md disabled:opacity-50 min-h-[44px] touch-manipulation cursor-pointer"
                 >
                   <Save className="w-5 h-5" />
                   {isSaving ? 'Guardando...' : 'Guardar Cambios'}
@@ -517,6 +518,7 @@ export default function AdminView() {
                       className="w-full border border-gray-200 bg-gray-50 rounded-md p-2 text-gray-600 font-mono"
                     />
                     <button
+                      type="button"
                       onClick={async () => {
                         if (docInfo.access_code) {
                           try {
@@ -549,13 +551,14 @@ export default function AdminView() {
                           }
                         }
                       }}
-                      className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md transition-colors text-sm font-bold whitespace-nowrap min-h-[44px] flex items-center"
+                      className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md transition-colors text-sm font-bold whitespace-nowrap min-h-[44px] flex items-center touch-manipulation cursor-pointer"
                     >
                       Copiar
                     </button>
                     <button
+                      type="button"
                       onClick={handleRegenerateCode}
-                      className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-2 rounded-md transition-colors text-sm font-bold whitespace-nowrap min-h-[44px] flex items-center"
+                      className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-2 rounded-md transition-colors text-sm font-bold whitespace-nowrap min-h-[44px] flex items-center touch-manipulation cursor-pointer"
                     >
                       Regenerar
                     </button>
@@ -818,8 +821,9 @@ export default function AdminView() {
                         </td>
                         <td className="p-3 text-center flex justify-center gap-2">
                           <button
+                            type="button"
                             onClick={async (e) => { e.stopPropagation(); if (docInfo) { await generateConstanciaPDF(docInfo, emp); addToHistory('Constancia', generatePdfName('CONSTANCIA', docInfo.commercial_name, docInfo.date)); } }}
-                            className="text-indigo-500 hover:text-indigo-700 p-2 rounded-full hover:bg-indigo-50 transition-colors"
+                            className="text-indigo-500 hover:text-indigo-700 p-2 rounded-full hover:bg-indigo-50 transition-colors touch-manipulation cursor-pointer"
                             title="Descargar Constancia"
                           >
                             <Award className="w-5 h-5" />
