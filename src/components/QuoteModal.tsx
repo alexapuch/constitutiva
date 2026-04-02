@@ -274,7 +274,8 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
 
                         <div className="space-y-4">
                             {items.map((item, index) => (
-                                <div key={index} className="bg-gray-50 rounded-lg border border-gray-200 p-3 space-y-3 relative">
+                                <React.Fragment key={index}>
+                                <div className="bg-gray-50 rounded-lg border border-gray-200 p-3 space-y-3 relative">
                                     {/* Delete button */}
                                     {items.length > 1 && (
                                         <button
@@ -365,6 +366,7 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
                                     <Plus className="w-4 h-4" />
                                     Agregar concepto
                                 </button>
+                                </React.Fragment>
                             ))}
                         </div>
                     </section>
