@@ -357,6 +357,14 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
                                         </div>
                                     </div>
                                 </div>
+                                <button
+                                    type="button"
+                                    onClick={addItem}
+                                    className="w-full text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-3 py-2 rounded-lg flex items-center justify-center gap-1 border border-blue-200 border-dashed"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Agregar concepto
+                                </button>
                             ))}
                         </div>
                     </section>
