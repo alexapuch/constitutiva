@@ -7,10 +7,7 @@ interface ConstanciaData {
     folio: string;
     employee_name: string;
     created_at: string;
-    document_info: {
-        commercial_name: string;
-        company_name: string;
-    } | null;
+    commercial_name: string | null;
 }
 
 export default function VerificarConstancia() {
@@ -27,7 +24,7 @@ export default function VerificarConstancia() {
                 console.log('[Verificar] buscando folio:', folio);
                 const { data: result, error } = await supabase
                     .from('constancias')
-                    .select('folio, employee_name, created_at, document_info(commercial_name, company_name)')
+                    .select('folio, employee_name, created_at, commercial_name')
                     .eq('folio', folio)
                     .maybeSingle();
                 console.log('[Verificar] result:', result, 'error:', error);
@@ -72,7 +69,7 @@ export default function VerificarConstancia() {
         );
     }
 
-    const companyName = data!.document_info?.commercial_name || data!.document_info?.company_name || '—';
+    const companyName = data!.commercial_name || '—';
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-10">

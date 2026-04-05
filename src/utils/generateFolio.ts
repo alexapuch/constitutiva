@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient';
 
-export const generateFolio = async (documentId: number | undefined, employeeName: string): Promise<string> => {
+export const generateFolio = async (documentId: number | undefined, employeeName: string, commercialName?: string): Promise<string> => {
     const year = new Date().getFullYear().toString().slice(-2);
 
     // Count existing constancias this year to get next sequential number
@@ -16,6 +16,7 @@ export const generateFolio = async (documentId: number | undefined, employeeName
     const { error: insertError } = await supabase.from('constancias').insert({
         document_id: documentId ?? null,
         employee_name: employeeName,
+        commercial_name: commercialName ?? null,
         folio,
     });
 

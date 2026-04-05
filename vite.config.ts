@@ -50,6 +50,8 @@ export default defineConfig(({mode}) => {
           ],
         },
         workbox: {
+          navigateFallback: 'index.html',
+          navigateFallbackDenylist: [/^\/api\//],
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           runtimeCaching: [
             {

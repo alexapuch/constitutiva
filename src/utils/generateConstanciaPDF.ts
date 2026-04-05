@@ -100,7 +100,7 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
 
         // 6. QR Code de verificación
-        const folio = await generateFolio(docInfo.id, emp.name);
+        const folio = await generateFolio(docInfo.id, emp.name, docInfo.commercial_name);
         const verifyUrl = `${window.location.origin}/verificar/${folioToSlug(folio)}`;
         const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 200 });
         const qrSize = 18;
