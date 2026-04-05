@@ -301,6 +301,18 @@ router.get('/pdf-history', async (req, res) => {
 });
 
 router.delete('/pdf-history-clear', async (req, res) => {
+    // Get all file paths before deleting
+    const { data: records } = await supabase.from('pdf_history').select('file_path');
+
+    // Delete files from Storage
+    if (records && records.length > 0) {
+        const paths = records.map((r: any) => r.file_path).filter(Boolean);
+        if (paths.length > 0) {
+            await supabase.storage.from('pdf-versions').remove(paths);
+        }
+    }
+
+    // Delete all pdf_history records
     const { error } = await supabase.from('pdf_history').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     if (error) return res.status(500).json({ error: error.message });
     res.json({ success: true });
