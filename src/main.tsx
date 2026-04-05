@@ -5,10 +5,10 @@ import App from './App.tsx';
 import './index.css';
 
 // Register the service worker with auto-update
-registerSW({
+const updateSW = registerSW({
   onNeedRefresh() {
-    // Auto-update when new content is available
-    console.log('[PWA] New content available, updating...');
+    // Automatically apply update without asking
+    updateSW(true);
   },
   onOfflineReady() {
     console.log('[PWA] App ready for offline use');
