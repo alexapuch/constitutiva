@@ -114,7 +114,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             // 6. QR Code de verificación
             const folio = await generateFolio(docInfo.id, emp.name, docInfo.commercial_name);
             const verifyUrl = `${window.location.origin}/api/verificar/${folioToSlug(folio)}`;
-            const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 80, type: 'image/jpeg', rendererOpts: { quality: 0.8 } });
+            const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 80 });
             const qrSize = 18;
             const qrPad = 2;
             const qrX = 234;
@@ -125,7 +125,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             doc.setDrawColor(220, 20, 20);
             doc.setLineWidth(1.2);
             doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 3, 3, 'S');
-            doc.addImage(qrDataUrl, 'JPEG', qrX, qrY, qrSize, qrSize);
+            doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
         }
 
         // Preview mode: return blob URL
