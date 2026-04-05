@@ -38,7 +38,11 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             orientation: 'landscape',
             unit: 'mm',
             format: [279.4, 157.16], // Custom 16:9 format matching 1920x1080 to prevent squishing
-            compress: true
+            compress: true,
+            encryption: {
+                ownerPassword: 'Meyersound1##',
+                userPermissions: ['print']
+            }
         });
 
         const docWidth = doc.internal.pageSize.getWidth();
