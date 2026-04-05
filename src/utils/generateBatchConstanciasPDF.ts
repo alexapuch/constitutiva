@@ -56,8 +56,18 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
         const chineseFontLoaded = needsChinese ? await loadChineseFont(doc) : false;
         const font = chineseFontLoaded ? 'NotoSansSC' : 'helvetica';
 
-        // Note: If using a PNG, change 'JPEG' to 'PNG'
-        const imgType = imgData.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+        // Convert template to JPEG in-memory to reduce PDF size
+        const imgJpeg = await new Promise<string>((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                canvas.getContext('2d')!.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/jpeg', 0.88));
+            };
+            img.src = imgData;
+        });
 
         for (let i = 0; i < employees.length; i++) {
             const emp = employees[i];
@@ -66,8 +76,8 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
                 doc.addPage();
             }
 
-            // Image background
-            doc.addImage(imgData, imgType, 0, 0, docWidth, docHeight, 'template', 'FAST');
+            // Image background (JPEG for smaller file size, cached as 'template')
+            doc.addImage(imgJpeg, 'JPEG', 0, 0, docWidth, docHeight, 'template', 'FAST');
 
             // 1. Name of the employee
             doc.setFont(font, 'bold');
@@ -111,21 +121,32 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             doc.setFont(font, 'bold');
             doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
 
-            // 6. QR Code de verificación
+            // 6. QR Code de verificación (vector, sin imagen rasterizada)
             const folio = await generateFolio(docInfo.id, emp.name, docInfo.commercial_name);
             const verifyUrl = `${window.location.origin}/api/verificar/${folioToSlug(folio)}`;
-            const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 80 });
+            const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'L' });
             const qrSize = 18;
             const qrPad = 2;
             const qrX = 234;
             const qrY = 107.5;
-            // Marco rojo vino redondeado
+            // Marco blanco con borde rojo redondeado
             doc.setFillColor(255, 255, 255);
             doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 3, 3, 'F');
             doc.setDrawColor(220, 20, 20);
             doc.setLineWidth(1.2);
             doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 3, 3, 'S');
-            doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
+            // Dibujar módulos del QR como rectángulos vectoriales
+            const modules = qrMatrix.modules;
+            const modCount = modules.size;
+            const cellSize = qrSize / modCount;
+            doc.setFillColor(0, 0, 0);
+            for (let row = 0; row < modCount; row++) {
+                for (let col = 0; col < modCount; col++) {
+                    if (modules.data[row * modCount + col]) {
+                        doc.rect(qrX + col * cellSize, qrY + row * cellSize, cellSize, cellSize, 'F');
+                    }
+                }
+            }
         }
 
         // Preview mode: return blob URL
