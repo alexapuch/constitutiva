@@ -924,7 +924,7 @@ export default function AdminView() {
         onGenerate={async (qd) => {
            const names = qd.employeeNames.filter((n: string) => n.trim() !== '');
            const fakeDocInfo = {
-             id: 0, commercial_name: qd.commercial_name.toUpperCase(), company_name: '',
+             id: undefined, commercial_name: qd.commercial_name.toUpperCase(), company_name: '',
              date: qd.date, time_start: '', time_end: '', address: qd.address.toUpperCase(), is_active: 1
            };
            const selectedType = CONSTANCIA_TYPES.find(t => t.id === qd.constanciaType);
@@ -945,7 +945,7 @@ export default function AdminView() {
         onPreview={async (qd) => {
            const names = qd.employeeNames.filter((n: string) => n.trim() !== '');
            const fakeDocInfo = {
-             id: 0, commercial_name: qd.commercial_name.toUpperCase(), company_name: '',
+             id: undefined, commercial_name: qd.commercial_name.toUpperCase(), company_name: '',
              date: qd.date, time_start: '', time_end: '', address: qd.address.toUpperCase(), is_active: 1
            };
            const selectedType = CONSTANCIA_TYPES.find(t => t.id === qd.constanciaType);
