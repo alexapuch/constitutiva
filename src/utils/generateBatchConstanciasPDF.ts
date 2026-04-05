@@ -1,5 +1,7 @@
 import { jsPDF } from 'jspdf';
+import QRCode from 'qrcode';
 import { DocumentInfo, Employee } from '../types';
+import { generateFolio, folioToSlug } from './generateFolio';
 import Swal from 'sweetalert2';
 import { savePdfVersion } from './savePdfVersion';
 import { generatePdfName } from './pdfNameGenerator';
@@ -108,6 +110,22 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             doc.setTextColor(100, 100, 100); // Dark gray
             doc.setFont(font, 'bold');
             doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
+
+            // 6. QR Code de verificación
+            const folio = await generateFolio(docInfo.id, emp.name);
+            const verifyUrl = `${window.location.origin}/verificar/${folioToSlug(folio)}`;
+            const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 200 });
+            const qrSize = 18;
+            const qrPad = 2;
+            const qrX = 234;
+            const qrY = 107.5;
+            // Marco rojo vino redondeado
+            doc.setFillColor(255, 255, 255);
+            doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 3, 3, 'F');
+            doc.setDrawColor(220, 20, 20);
+            doc.setLineWidth(1.2);
+            doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 3, 3, 'S');
+            doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
         }
 
         // Preview mode: return blob URL
