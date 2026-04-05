@@ -101,7 +101,7 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
 
         // 6. QR Code de verificación
         const folio = await generateFolio(docInfo.id, emp.name, docInfo.commercial_name);
-        const verifyUrl = `${window.location.origin}/verificar/${folioToSlug(folio)}`;
+        const verifyUrl = `${window.location.origin}/api/verificar/${folioToSlug(folio)}`;
         const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 200 });
         const qrSize = 18;
         const qrPad = 2;
