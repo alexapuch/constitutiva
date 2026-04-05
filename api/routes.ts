@@ -96,8 +96,25 @@ router.patch('/documents/:id/regenerate-code', async (req, res) => {
 
 // DELETE document
 router.delete('/documents/:id', async (req, res) => {
-    const { error } = await supabase.from('document_info').delete().eq('id', req.params.id);
+    const id = req.params.id;
+
+    // 1. Delete all files in Storage folder for this document
+    const { data: files } = await supabase.storage.from('pdf-versions').list(id);
+    if (files && files.length > 0) {
+        const paths = files.map((f: any) => `${id}/${f.name}`);
+        await supabase.storage.from('pdf-versions').remove(paths);
+    }
+
+    // 2. Delete pdf_history records for this document
+    await supabase.from('pdf_history').delete().like('file_path', `${id}/%`);
+
+    // 3. Delete constancias linked to this document
+    await supabase.from('constancias').delete().eq('document_id', id);
+
+    // 4. Delete the document itself (employees cascade via FK)
+    const { error } = await supabase.from('document_info').delete().eq('id', id);
     if (error) return res.status(500).json({ error: error.message });
+
     res.json({ success: true });
 });
 
