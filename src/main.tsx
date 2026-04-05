@@ -5,7 +5,7 @@ import App from './App.tsx';
 import './index.css';
 
 // Force clear old service workers once per app version
-const SW_VERSION = '3';
+const SW_VERSION = '4';
 if ('serviceWorker' in navigator && localStorage.getItem('sw_version') !== SW_VERSION) {
   navigator.serviceWorker.getRegistrations().then(regs => {
     Promise.all(regs.map(reg => reg.unregister())).then(() => {
