@@ -289,6 +289,25 @@ router.delete('/pdf-history-clear', async (req, res) => {
     res.json({ success: true });
 });
 
+// POST crear folio para constancia
+router.post('/constancias/folio', async (req, res) => {
+    const { document_id, employee_name } = req.body;
+    const year = new Date().getFullYear().toString().slice(-2);
+    const { count } = await supabase
+        .from('constancias')
+        .select('*', { count: 'exact', head: true })
+        .like('folio', `%/${year}`);
+    const nextNum = ((count ?? 0) + 1).toString().padStart(4, '0');
+    const folio = `${nextNum}/${year}`;
+    const { error } = await supabase.from('constancias').insert({
+        document_id: document_id ?? null,
+        employee_name,
+        folio,
+    });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ folio });
+});
+
 // GET verificar constancia - server-side HTML (bypasses React bundle cache issues)
 router.get('/verificar/:folio', async (req, res) => {
     const folio = req.params.folio.replace('-', '/');
