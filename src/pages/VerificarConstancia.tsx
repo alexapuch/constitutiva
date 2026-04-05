@@ -22,18 +22,26 @@ export default function VerificarConstancia() {
     useEffect(() => {
         const fetchDoc = async () => {
             if (!id) { setNotFound(true); setLoading(false); return; }
-            const folio = slugToFolio(id);
-            const { data: result, error } = await supabase
-                .from('constancias')
-                .select('folio, employee_name, created_at, document_info(commercial_name, company_name)')
-                .eq('folio', folio)
-                .single();
-            if (error || !result) {
+            try {
+                const folio = slugToFolio(id);
+                console.log('[Verificar] buscando folio:', folio);
+                const { data: result, error } = await supabase
+                    .from('constancias')
+                    .select('folio, employee_name, created_at, document_info(commercial_name, company_name)')
+                    .eq('folio', folio)
+                    .maybeSingle();
+                console.log('[Verificar] result:', result, 'error:', error);
+                if (error || !result) {
+                    setNotFound(true);
+                } else {
+                    setData(result as ConstanciaData);
+                }
+            } catch (e) {
+                console.error('[Verificar] excepción:', e);
                 setNotFound(true);
-            } else {
-                setData(result as ConstanciaData);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
         fetchDoc();
     }, [id]);
