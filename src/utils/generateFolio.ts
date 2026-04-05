@@ -2,7 +2,7 @@ export const generateFolio = async (documentId: number | undefined, employeeName
     const res = await fetch('/api/constancias/folio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ document_id: documentId ?? null, employee_name: employeeName }),
+        body: JSON.stringify({ document_id: documentId ?? null, employee_name: employeeName, commercial_name: commercialName ?? null }),
     });
     if (!res.ok) {
         console.error('[Folio] Error del servidor:', await res.text());

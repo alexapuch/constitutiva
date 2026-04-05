@@ -291,7 +291,7 @@ router.delete('/pdf-history-clear', async (req, res) => {
 
 // POST crear folio para constancia
 router.post('/constancias/folio', async (req, res) => {
-    const { document_id, employee_name } = req.body;
+    const { document_id, employee_name, commercial_name } = req.body;
     const year = new Date().getFullYear().toString().slice(-2);
     const { count } = await supabase
         .from('constancias')
@@ -302,6 +302,7 @@ router.post('/constancias/folio', async (req, res) => {
     const { error } = await supabase.from('constancias').insert({
         document_id: document_id ?? null,
         employee_name,
+        commercial_name: commercial_name ?? null,
         folio,
     });
     if (error) return res.status(500).json({ error: error.message });
@@ -313,7 +314,7 @@ router.get('/verificar/:folio', async (req, res) => {
     const folio = req.params.folio.replace('-', '/');
     const { data, error } = await supabase
         .from('constancias')
-        .select('folio, employee_name, created_at, document_id')
+        .select('folio, employee_name, created_at, document_id, commercial_name')
         .eq('folio', folio)
         .maybeSingle();
 
@@ -328,9 +329,9 @@ router.get('/verificar/:folio', async (req, res) => {
             </div>`;
     } else {
         const fecha = new Date(data.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
-        // Get company name
-        let empresa = '—';
-        if (data.document_id) {
+        // Get company name: from constancias.commercial_name or from document_info
+        let empresa = data.commercial_name || '—';
+        if (!data.commercial_name && data.document_id) {
             const { data: doc } = await supabase.from('document_info').select('commercial_name').eq('id', data.document_id).single();
             if (doc) empresa = doc.commercial_name;
         }
