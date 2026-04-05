@@ -329,7 +329,7 @@ export default function AdminView() {
       }
       const backup = {
         exportDate: new Date().toISOString(),
-        version: 'v1.18', // Same arbitrary version flag
+        version: 'v1.19', // Same arbitrary version flag
         documents: allDocs,
         employees: allEmployees,
         quotes: allQuotes,
@@ -398,7 +398,7 @@ export default function AdminView() {
             <Menu className="w-6 h-6" />
             <span className="text-lg font-bold text-blue-900 dark:text-blue-300">Panel Admin</span>
           </button>
-          <span className="text-sm font-medium text-gray-400">v1.18</span>
+          <span className="text-sm font-medium text-gray-400">v1.19</span>
         </div>
 
         {activeTab === 'dashboard' && (
