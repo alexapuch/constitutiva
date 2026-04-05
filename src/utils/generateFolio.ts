@@ -7,17 +7,23 @@ export const generateFolio = async (documentId: number | undefined, employeeName
     const { count } = await supabase
         .from('constancias')
         .select('*', { count: 'exact', head: true })
-        .like('folio', `%-${year}`);
+        .like('folio', `%/${year}`);
 
     const nextNum = ((count ?? 0) + 1).toString().padStart(4, '0');
     const folio = `${nextNum}/${year}`;
 
     // Insert record
-    await supabase.from('constancias').insert({
+    const { error: insertError } = await supabase.from('constancias').insert({
         document_id: documentId ?? null,
         employee_name: employeeName,
         folio,
     });
+
+    if (insertError) {
+        console.error('[Folio] Error al insertar:', insertError);
+    } else {
+        console.log('[Folio] Insertado correctamente:', folio);
+    }
 
     return folio;
 };
