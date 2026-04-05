@@ -4,21 +4,13 @@ import {registerSW} from 'virtual:pwa-register';
 import App from './App.tsx';
 import './index.css';
 
-// Unregister any old service workers and force fresh reload
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(registrations => {
-    registrations.forEach(reg => {
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              newWorker.postMessage({ type: 'SKIP_WAITING' });
-              window.location.reload();
-            }
-          });
-        }
-      });
+// Force clear old service workers once per app version
+const SW_VERSION = '3';
+if ('serviceWorker' in navigator && localStorage.getItem('sw_version') !== SW_VERSION) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    Promise.all(regs.map(reg => reg.unregister())).then(() => {
+      localStorage.setItem('sw_version', SW_VERSION);
+      window.location.reload();
     });
   });
 }
