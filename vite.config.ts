@@ -12,6 +12,8 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
+        injectRegister: false,
+        selfDestroying: true,
         includeAssets: [
           'seprisa-logo.png',
           'constancia_vacia.png',
