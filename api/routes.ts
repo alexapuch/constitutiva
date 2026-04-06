@@ -243,12 +243,19 @@ router.post('/pdf-versions', async (req, res) => {
     const { data: urlData } = supabase.storage.from(PDF_BUCKET).getPublicUrl(storagePath);
 
     // Insert into pdf_history table to trigger Realtime
-    await supabase.from('pdf_history').insert({
+    const { error: histError } = await supabase.from('pdf_history').insert({
         name: safeName,
         file_path: storagePath,
         public_url: urlData.publicUrl,
         type: type || 'PDF'
     });
+
+    if (histError) {
+        // If pdf_history insert fails, remove the orphaned Storage file to avoid ghost files
+        await supabase.storage.from(PDF_BUCKET).remove([storagePath]);
+        console.error('pdf_history insert failed, rolled back Storage file:', histError);
+        return res.status(500).json({ error: 'Failed to record PDF history: ' + histError.message });
+    }
 
     res.json({ fileName: safeName, storagePath, publicUrl: urlData.publicUrl, folder });
 });
@@ -301,10 +308,10 @@ router.get('/pdf-history', async (req, res) => {
 });
 
 router.delete('/pdf-history-clear', async (req, res) => {
-    // Get all file paths before deleting
+    // 1. Get file paths tracked in pdf_history
     const { data: records } = await supabase.from('pdf_history').select('file_path');
 
-    // Delete files from Storage
+    // 2. Delete tracked Storage files
     if (records && records.length > 0) {
         const paths = records.map((r: any) => r.file_path).filter(Boolean);
         if (paths.length > 0) {
@@ -312,7 +319,14 @@ router.delete('/pdf-history-clear', async (req, res) => {
         }
     }
 
-    // Delete all pdf_history records
+    // 3. Also delete any orphaned files in the 'manual' folder that aren't in pdf_history
+    const { data: manualFiles } = await supabase.storage.from('pdf-versions').list('manual');
+    if (manualFiles && manualFiles.length > 0) {
+        const orphanPaths = manualFiles.map((f: any) => `manual/${f.name}`);
+        await supabase.storage.from('pdf-versions').remove(orphanPaths);
+    }
+
+    // 4. Delete all pdf_history records
     const { error } = await supabase.from('pdf_history').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     if (error) return res.status(500).json({ error: error.message });
     res.json({ success: true });
