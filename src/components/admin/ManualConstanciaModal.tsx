@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Filter, X, Trash2, Plus, Eye, Award, FileText } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Filter, X, Trash2, Plus, Eye, Award, FileText, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { DocumentInfo } from '../../types';
 import Swal from 'sweetalert2';
 
@@ -51,6 +52,55 @@ export default function ManualConstanciaModal({
   });
   const [showBulkPaste, setShowBulkPaste] = useState(false);
   const [bulkText, setBulkText] = useState('');
+  const [excelNames, setExcelNames] = useState<string[]>([]);
+  const [showExcelPreview, setShowExcelPreview] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const buffer = evt.target?.result;
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        const HEADER_KEYWORDS = ['nombre', 'name', 'names', 'nombres', 'empleado', 'employee'];
+        const extracted = rows
+          .map(row => String(row[0] ?? '').trim().toUpperCase())
+          .filter((val, idx) => {
+            if (!val || val.length < 2) return false;
+            // Omitir primera fila si parece encabezado
+            if (idx === 0 && HEADER_KEYWORDS.some(k => val.toLowerCase().includes(k))) return false;
+            return true;
+          });
+
+        if (extracted.length === 0) {
+          Swal.fire({ icon: 'warning', title: 'Sin nombres', text: 'No se encontraron nombres en la columna A del archivo.', confirmButtonColor: '#722F37' });
+          return;
+        }
+
+        setExcelNames(prev => [...prev, ...extracted]);
+
+        Swal.fire({
+          icon: 'success',
+          title: `${extracted.length} nombres cargados`,
+          text: 'Los nombres de la columna A fueron agregados desde el archivo.',
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Error al leer el archivo', text: 'Asegúrate de que sea un archivo .xlsx o .csv válido.', confirmButtonColor: '#722F37' });
+      } finally {
+        // Limpiar input para permitir subir el mismo archivo de nuevo
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
 
   const handleQuickAutocomplete = (docId: string) => {
     if (!docId) {
@@ -68,10 +118,15 @@ export default function ManualConstanciaModal({
     }
   };
 
+  // Combina nombres manuales + Excel para la generación
+  const allNames = [
+    ...quickData.employeeNames.filter(n => n.trim() !== ''),
+    ...excelNames,
+  ];
+
   const handleGenerateManualConstancia = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const names = quickData.employeeNames.filter(n => n.trim() !== '');
-    if (names.length === 0 || !quickData.commercial_name.trim() || !quickData.date.trim()) {
+    if (allNames.length === 0 || !quickData.commercial_name.trim() || !quickData.date.trim()) {
       Swal.fire({
         icon: 'warning',
         title: 'Campos incompletos',
@@ -80,16 +135,15 @@ export default function ManualConstanciaModal({
       });
       return;
     }
-    await onGenerate(quickData);
+    await onGenerate({ ...quickData, employeeNames: allNames });
   };
 
   const handlePreviewManualConstancia = async () => {
-    const names = quickData.employeeNames.filter((n: string) => n.trim() !== '');
-    if (names.length === 0 || !quickData.commercial_name.trim() || !quickData.date.trim()) {
+    if (allNames.length === 0 || !quickData.commercial_name.trim() || !quickData.date.trim()) {
       Swal.fire({ icon: 'warning', title: 'Campos incompletos', text: 'Por favor llena todos los campos.', confirmButtonColor: '#722F37' });
       return;
     }
-    await onPreview(quickData);
+    await onPreview({ ...quickData, employeeNames: allNames });
   };
 
   const handleCloseQuickModal = () => {
@@ -101,6 +155,8 @@ export default function ManualConstanciaModal({
       date: '',
       dateISO: ''
     });
+    setExcelNames([]);
+    setShowExcelPreview(false);
     onClose();
   };
 
@@ -196,6 +252,22 @@ export default function ManualConstanciaModal({
                 <Filter className="w-4 h-4" />
                 {showBulkPaste ? 'Cancelar pegado múltiple' : 'Pegar lista de nombres'}
               </button>
+              {/* Input oculto para Excel/CSV */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.csv"
+                className="hidden"
+                onChange={handleExcelUpload}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 text-sm text-emerald-700 font-semibold hover:text-emerald-900 transition-colors"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                Subir Excel / CSV
+              </button>
             </div>
 
             {showBulkPaste && (
@@ -230,12 +302,52 @@ export default function ManualConstanciaModal({
               </div>
             )}
 
-            {quickData.employeeNames.filter(n => n.trim()).length > 1 && (
+            {allNames.length > 1 && (
               <p className="mt-1 text-xs text-blue-600 font-medium">
-                Se generarán {quickData.employeeNames.filter(n => n.trim()).length} constancias en un solo PDF.
+                Se generarán {allNames.length} constancias en un solo PDF.
               </p>
             )}
           </div>
+
+          {/* ── Resumen de nombres cargados desde Excel ── */}
+          {excelNames.length > 0 && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="text-sm font-bold text-emerald-800">
+                    {excelNames.length} nombres cargados desde Excel
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowExcelPreview(v => !v)}
+                    className="text-xs text-emerald-700 font-semibold hover:underline"
+                  >
+                    {showExcelPreview ? 'Ocultar' : 'Ver primeros 5'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setExcelNames([]); setShowExcelPreview(false); }}
+                    className="text-xs text-red-500 font-semibold hover:text-red-700 hover:underline"
+                  >
+                    Quitar
+                  </button>
+                </div>
+              </div>
+              {showExcelPreview && (
+                <ul className="text-xs text-emerald-900 space-y-0.5 pl-1">
+                  {excelNames.slice(0, 5).map((n, i) => (
+                    <li key={i} className="truncate">• {n}</li>
+                  ))}
+                  {excelNames.length > 5 && (
+                    <li className="text-emerald-600 font-medium">... y {excelNames.length - 5} más</li>
+                  )}
+                </ul>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-2">Tipo de Constancia *</label>
@@ -401,12 +513,12 @@ export default function ManualConstanciaModal({
           </button>
           <button
             type="button"
-            onClick={() => { const form = document.getElementById('constancia-form') as HTMLFormElement; if (form) form.requestSubmit(); }}
+            onClick={handleGenerateManualConstancia}
             className="w-full sm:w-auto px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-bold flex items-center justify-center gap-2 min-h-[44px] text-base"
           >
             <Award className="w-5 h-5 shrink-0" />
-            {quickData.employeeNames.filter(n => n.trim()).length > 1
-              ? `Descargar ${quickData.employeeNames.filter(n => n.trim()).length} Constancias`
+            {allNames.length > 1
+              ? `Descargar ${allNames.length} Constancias`
               : 'Descargar Constancia'}
           </button>
         </div>

@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 import { DocumentInfo, Employee } from '../types';
-import { generateFolio, folioToSlug } from './generateFolio';
+import { folioToSlug } from './generateFolio';
 import Swal from 'sweetalert2';
 import { savePdfVersion } from './savePdfVersion';
 import { generatePdfName } from './pdfNameGenerator';
@@ -69,6 +69,28 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             img.src = imgData;
         });
 
+        // En preview usamos folios ficticios para no crear registros en Supabase
+        // En descarga real hacemos UN solo batch request (1 count + 1 insert masivo)
+        let folios: string[];
+        if (preview) {
+            folios = employees.map((_, i) => `PREV/${String(i + 1).padStart(4, '0')}`);
+        } else {
+            const folioBatchRes = await fetch('/api/constancias/folios-batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    employees: employees.map(e => ({
+                        document_id: docInfo.id ?? null,
+                        employee_name: e.name,
+                        commercial_name: docInfo.commercial_name ?? null,
+                    }))
+                })
+            });
+            if (!folioBatchRes.ok) throw new Error('Error al generar folios: ' + await folioBatchRes.text());
+            const data = await folioBatchRes.json();
+            folios = data.folios;
+        }
+
         for (let i = 0; i < employees.length; i++) {
             const emp = employees[i];
 
@@ -122,7 +144,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
 
             // 6. QR Code de verificación (vector, sin imagen rasterizada)
-            const folio = await generateFolio(docInfo.id, emp.name, docInfo.commercial_name);
+            const folio = folios[i];
             const verifyUrl = `${window.location.origin}/api/verificar/${folioToSlug(folio)}`;
             const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'L' });
             const qrSize = 18;

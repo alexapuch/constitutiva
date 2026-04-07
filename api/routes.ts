@@ -332,7 +332,45 @@ router.delete('/pdf-history-clear', async (req, res) => {
     res.json({ success: true });
 });
 
-// POST crear folio para constancia
+// POST crear folios en lote para múltiples constancias (evita rate-limiting con listas grandes)
+router.post('/constancias/folios-batch', async (req, res) => {
+    const { employees } = req.body; // [{document_id, employee_name, commercial_name}]
+    if (!Array.isArray(employees) || employees.length === 0) {
+        return res.status(400).json({ error: 'employees array required' });
+    }
+    const year = new Date().getFullYear().toString().slice(-2);
+
+    // Una sola consulta de conteo para toda la lista
+    const { count, error: countError } = await supabase
+        .from('constancias')
+        .select('*', { count: 'exact', head: true })
+        .like('folio', `%/${year}`);
+    if (countError) return res.status(500).json({ error: countError.message });
+
+    let next = (count ?? 0) + 1;
+    const folios: string[] = [];
+    const rows: any[] = [];
+
+    for (const emp of employees) {
+        const folio = `${String(next).padStart(4, '0')}/${year}`;
+        folios.push(folio);
+        rows.push({
+            document_id: emp.document_id ?? null,
+            employee_name: emp.employee_name,
+            commercial_name: emp.commercial_name ?? null,
+            folio,
+        });
+        next++;
+    }
+
+    // Un solo insert masivo para todos
+    const { error } = await supabase.from('constancias').insert(rows);
+    if (error) return res.status(500).json({ error: error.message });
+
+    res.json({ folios });
+});
+
+// POST crear folio para constancia (individual — usado para constancias de 1 persona)
 router.post('/constancias/folio', async (req, res) => {
     const { document_id, employee_name, commercial_name } = req.body;
     const year = new Date().getFullYear().toString().slice(-2);
