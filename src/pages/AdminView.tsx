@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Swal from 'sweetalert2';
 import { DocumentInfo, Employee } from '../types';
-import { Trash2, Save, FileText, Users, Plus, Download, Award, Eye, CheckCircle2, RotateCcw, ChevronDown, ChevronRight } from 'lucide-react';
+import { Trash2, Save, FileText, Users, Plus, Download, Award, Eye, CheckCircle2, RotateCcw, ChevronDown, ChevronRight, MessageCircle, Check } from 'lucide-react';
 import { generateSimulacroPDF } from '../utils/generateSimulacroPDF';
 import { generateBatchConstanciasPDF } from '../utils/generateBatchConstanciasPDF';
 import { generateConstanciaPDF } from '../utils/generateConstanciaPDF';
@@ -25,7 +25,7 @@ import CartaResponsivaView from '../components/admin/CartaResponsivaView';
 import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.25';
+const APP_VERSION = 'v1.26';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -57,6 +57,7 @@ export default function AdminView() {
   const [showQuoteDrawer, setShowQuoteDrawer] = useState(false);
   const [showSideMenu, setShowSideMenu] = useState(false);
   const [showDoneSection, setShowDoneSection] = useState(false);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
   const [showCartaResponsiva, setShowCartaResponsiva] = useState(false);
 
@@ -200,6 +201,29 @@ export default function AdminView() {
       .eq('id', docInfo.id);
     setIsSaving(false);
     fetchDocuments();
+  };
+
+  const handleCopyInstructions = async (doc: DocumentInfo) => {
+    const code = doc.access_code || '';
+    const text = `Buenas tardes. Para firmar su acta constitutiva, por favor sigan estos pasos:\n\n1. Ingresen al siguiente enlace: https://constitutiva.vercel.app\n2. En el apartado "Código de acceso", peguen este código: "${code}"\n3. Cuando se abra su acta, den clic en "Firmar y registrarse"\n4. Escriban su nombre, puesto y realicen su firma\n5. Finalmente, den clic en "Guardar firma"\n\nY listo, con eso quedará firmada.`;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'absolute';
+        ta.style.left = '-999999px';
+        document.body.prepend(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      setCopiedId(doc.id ?? null);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo copiar el mensaje', timer: 2000 });
+    }
   };
 
   const handleToggleDone = async (docId: number, currentActive: number) => {
@@ -501,6 +525,18 @@ export default function AdminView() {
                           <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-100 dark:border-gray-600 self-start sm:self-auto">
                             <span className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold tracking-wider">Acceso:</span>
                             <span className="font-mono text-blue-700 dark:text-blue-400 font-bold tracking-widest text-sm">{doc.access_code || 'N/A'}</span>
+                            {doc.access_code && (
+                              <button
+                                onClick={e => { e.stopPropagation(); handleCopyInstructions(doc); }}
+                                title="Copiar instrucciones para WhatsApp"
+                                className="ml-1 p-1 rounded-md transition-colors text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30"
+                              >
+                                {copiedId === doc.id
+                                  ? <Check className="w-3.5 h-3.5 text-green-500" />
+                                  : <MessageCircle className="w-3.5 h-3.5" />
+                                }
+                              </button>
+                            )}
                           </div>
                           <div className="flex items-center gap-2 text-sm">
                             <span className="text-gray-400 font-medium">Fecha:</span>
