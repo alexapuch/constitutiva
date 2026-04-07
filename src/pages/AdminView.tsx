@@ -25,8 +25,22 @@ import CartaResponsivaView from '../components/admin/CartaResponsivaView';
 import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
 import { Menu } from 'lucide-react';
 
+const APP_VERSION = 'v1.25';
+const SESSION_KEY = 'adminAuth';
+const SESSION_VERSION_KEY = 'adminAuthVersion';
+
 export default function AdminView() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const stored = localStorage.getItem(SESSION_KEY);
+    const storedVersion = localStorage.getItem(SESSION_VERSION_KEY);
+    if (stored === 'true' && storedVersion === APP_VERSION) return true;
+    // Version mismatch — clear stale session
+    if (stored === 'true') {
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(SESSION_VERSION_KEY);
+    }
+    return false;
+  });
   const [activeTab, setActiveTab] = useState<'documents' | 'dashboard'>('documents');
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
@@ -358,6 +372,8 @@ export default function AdminView() {
       const data = await res.json();
       if (data.success) {
         setIsAuthenticated(true);
+        localStorage.setItem(SESSION_KEY, 'true');
+        localStorage.setItem(SESSION_VERSION_KEY, APP_VERSION);
       } else {
         Swal.fire({ icon: 'error', title: 'Error', text: data.error || 'Contraseña incorrecta', confirmButtonColor: '#722F37' });
       }
@@ -386,7 +402,25 @@ export default function AdminView() {
         onOpenCartaResponsiva={() => { setShowCartaResponsiva(true); }}
         onOpenPdfHistory={() => { setShowHistoryDrawer(true); }}
         onExportBackup={handleExportBackup}
-        onLogout={() => setIsAuthenticated(false)}
+        onLogout={() => {
+          setIsAuthenticated(false);
+          localStorage.removeItem(SESSION_KEY);
+          localStorage.removeItem(SESSION_VERSION_KEY);
+        }}
+        onNavigateHome={() => {
+          Swal.fire({
+            title: '¿Salir del panel?',
+            text: 'Vas a ir a la pantalla de inicio. Tu sesión se mantendrá activa.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, ir al inicio',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#1e3a8a',
+            cancelButtonColor: '#6b7280',
+          }).then(result => {
+            if (result.isConfirmed) window.location.href = '/';
+          });
+        }}
       />
 
       <div className="max-w-5xl mx-auto space-y-8">

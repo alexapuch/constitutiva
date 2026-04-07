@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Link } from 'react-router-dom';
 import { X, Home, BarChart3, ClipboardList, Calculator, FileSignature, ShieldCheck, History, Database, Sun, Moon, LogOut } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -18,12 +17,13 @@ interface SideMenuProps {
   onOpenPdfHistory: () => void;
   onExportBackup: () => void;
   onLogout: () => void;
+  onNavigateHome: () => void;
 }
 
 export default function SideMenu({
   isOpen, onClose, activeTab, setActiveTab, quotesCount, pdfHistoryCount,
-  onOpenQuoteHistory, onOpenNewQuote, onOpenManualConstancia, 
-  onOpenCartaResponsiva, onOpenPdfHistory, onExportBackup, onLogout
+  onOpenQuoteHistory, onOpenNewQuote, onOpenManualConstancia,
+  onOpenCartaResponsiva, onOpenPdfHistory, onExportBackup, onLogout, onNavigateHome
 }: SideMenuProps) {
   const { theme, toggleTheme } = useTheme();
 
@@ -59,14 +59,13 @@ export default function SideMenu({
             {/* Menu Items */}
             <nav className="flex-1 py-4 overflow-y-auto">
               <p className="px-5 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Navegación</p>
-              <Link
-                to="/"
-                className="flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium"
-                onClick={onClose}
+              <button
+                onClick={() => { onClose(); onNavigateHome(); }}
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium"
               >
                 <Home className="w-5 h-5" />
                 Inicio
-              </Link>
+              </button>
 
               <button
                 onClick={() => { onClose(); setActiveTab(activeTab === 'dashboard' ? 'documents' : 'dashboard'); }}
