@@ -11,6 +11,7 @@ import { ThemeProvider } from './context/ThemeContext';
 const Home = lazy(() => import('./pages/Home'));
 const PublicView = lazy(() => import('./pages/PublicView'));
 const AdminView = lazy(() => import('./pages/AdminView'));
+const VerificarConstancia = lazy(() => import('./pages/VerificarConstancia'));
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -39,6 +40,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/acta" element={<PublicView />} />
             <Route path="/admin" element={<AdminView />} />
+            <Route path="/verificar/:id" element={<VerificarConstancia />} />
           </Routes>
         </Suspense>
       </BrowserRouter>

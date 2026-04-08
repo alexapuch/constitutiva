@@ -124,27 +124,37 @@ export default function ManualConstanciaModal({
     ...excelNames,
   ];
 
-  const handleGenerateManualConstancia = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (allNames.length === 0 || !quickData.commercial_name.trim() || !quickData.date.trim()) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Campos incompletos',
-        text: 'Por favor llena todos los campos, o selecciona un acta existente para autocompletar.',
-        confirmButtonColor: '#722F37'
-      });
-      return;
-    }
-    await onGenerate({ ...quickData, employeeNames: allNames });
-  };
+    const handleGenerateManualConstancia = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (allNames.length === 0 || !quickData.commercial_name.trim() || !quickData.date.trim()) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campos incompletos',
+                text: 'Por favor llena todos los campos, o selecciona un acta existente para autocompletar.',
+                confirmButtonColor: '#722F37'
+            });
+            return;
+        }
+        await onGenerate({ 
+            ...quickData, 
+            commercial_name: quickData.commercial_name.toUpperCase(),
+            address: quickData.address.toUpperCase(),
+            employeeNames: allNames.map(n => n.toUpperCase()) 
+        });
+    };
 
-  const handlePreviewManualConstancia = async () => {
-    if (allNames.length === 0 || !quickData.commercial_name.trim() || !quickData.date.trim()) {
-      Swal.fire({ icon: 'warning', title: 'Campos incompletos', text: 'Por favor llena todos los campos.', confirmButtonColor: '#722F37' });
-      return;
-    }
-    await onPreview({ ...quickData, employeeNames: allNames });
-  };
+    const handlePreviewManualConstancia = async () => {
+        if (allNames.length === 0 || !quickData.commercial_name.trim() || !quickData.date.trim()) {
+            Swal.fire({ icon: 'warning', title: 'Campos incompletos', text: 'Por favor llena todos los campos.', confirmButtonColor: '#722F37' });
+            return;
+        }
+        await onPreview({ 
+            ...quickData, 
+            commercial_name: quickData.commercial_name.toUpperCase(),
+            address: quickData.address.toUpperCase(),
+            employeeNames: allNames.map(n => n.toUpperCase()) 
+        });
+    };
 
   const handleCloseQuickModal = () => {
     setQuickData({
@@ -214,10 +224,10 @@ export default function ManualConstanciaModal({
                     value={name}
                     onChange={(e) => {
                       const updated = [...quickData.employeeNames];
-                      updated[idx] = e.target.value.toUpperCase();
+                      updated[idx] = e.target.value;
                       setQuickData({ ...quickData, employeeNames: updated });
                     }}
-                    className="w-full border border-gray-300 rounded-md p-3 text-base focus:ring-blue-600 focus:border-blue-600"
+                    className="w-full border border-gray-300 rounded-md p-3 text-base uppercase focus:ring-blue-600 focus:border-blue-600"
                   />
                   {quickData.employeeNames.length > 1 && (
                     <button
@@ -452,8 +462,8 @@ export default function ManualConstanciaModal({
                 type="text"
                 required
                 value={quickData.commercial_name}
-                onChange={(e) => setQuickData({ ...quickData, commercial_name: e.target.value.toUpperCase() })}
-                className="w-full border border-gray-300 rounded-md p-3 text-base focus:ring-blue-600 focus:border-blue-600"
+                onChange={(e) => setQuickData({ ...quickData, commercial_name: e.target.value })}
+                className="w-full border border-gray-300 rounded-md p-3 text-base uppercase focus:ring-blue-600 focus:border-blue-600"
               />
             </div>
             <div className="sm:col-span-2">
@@ -461,8 +471,8 @@ export default function ManualConstanciaModal({
               <input
                 type="text"
                 value={quickData.address}
-                onChange={(e) => setQuickData({ ...quickData, address: e.target.value.toUpperCase() })}
-                className="w-full border border-gray-300 rounded-md p-3 text-base focus:ring-blue-600 focus:border-blue-600"
+                onChange={(e) => setQuickData({ ...quickData, address: e.target.value })}
+                className="w-full border border-gray-300 rounded-md p-3 text-base uppercase focus:ring-blue-600 focus:border-blue-600"
               />
             </div>
             <div className="sm:col-span-2">

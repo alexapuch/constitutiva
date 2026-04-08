@@ -48,7 +48,7 @@ export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: 
         currentY += 2;
         addText(docInfo.commercial_name || '', 11, 'bold', 'center');
         currentY += 2;
-        addText(`"${docInfo.company_name || ''}"`, 11, 'bold', 'center');
+        addText(`"${(docInfo.company_name || '').toUpperCase()}"`, 11, 'bold', 'center');
         currentY += 8;
 
         // Address processing
@@ -58,7 +58,7 @@ export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: 
         const cityPrefix = addrParts[1]?.trim() === 'TULUM' ? 'TULUM' : 'PLAYA DEL CARMEN';
         const fullAddress = `${baseAddress}${baseAddress ? ", " : ""}${cityPrefix}, QUINTANA ROO, MÉXICO.`;
         
-        addText(`C. ${docInfo.commercial_name || ''} RESPONSABLE DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL DE LA EMPRESA DENOMINADA "${docInfo.company_name || ''}" y Siendo las ${docInfo.time_start || ''} horas del día ${docInfo.date || ''}, en el inmueble que ocupa la empresa, con domicilio, ${fullAddress} Se reúne la representante legal, así como lo empleados:`, 10, 'normal', 'justify');
+        addText(`C. ${docInfo.commercial_name || ''} RESPONSABLE DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL DE LA EMPRESA DENOMINADA "${(docInfo.company_name || '').toUpperCase()}" y Siendo las ${docInfo.time_start || ''} horas del día ${docInfo.date || ''}, en el inmueble que ocupa la empresa, con domicilio, ${fullAddress} Se reúne la representante legal, así como lo empleados:`, 10, 'normal', 'justify');
         currentY += 4;
         addText(`Con el objeto de constituir formalmente la Unidad Interna de Protección Civil de este inmueble.`, 10, 'normal', 'justify');
         currentY += 4;

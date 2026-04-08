@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { supabase } from '../utils/supabaseClient';
-import { slugToFolio } from '../utils/generateFolio';
 
 interface ConstanciaData {
     folio: string;
@@ -20,15 +18,10 @@ export default function VerificarConstancia() {
         const fetchDoc = async () => {
             if (!id) { setNotFound(true); setLoading(false); return; }
             try {
-                const folio = slugToFolio(id);
-                console.log('[Verificar] buscando folio:', folio);
-                const { data: result, error } = await supabase
-                    .from('constancias')
-                    .select('folio, employee_name, created_at, commercial_name')
-                    .eq('folio', folio)
-                    .maybeSingle();
-                console.log('[Verificar] result:', result, 'error:', error);
-                if (error || !result) {
+                const res = await fetch(`/api/constancias/folio/${id}`);
+                const result = await res.json();
+                console.log('[Verificar] result:', result);
+                if (!res.ok || !result) {
                     setNotFound(true);
                 } else {
                     setData(result as ConstanciaData);

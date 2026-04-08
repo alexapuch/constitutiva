@@ -101,14 +101,14 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
         const { subtotal, iva, total } = calculateTotals();
 
         const quoteData: QuoteData = {
-            clientName: clientName.trim(),
+            clientName: clientName.trim().toUpperCase(),
             date: formattedDate,
             adminName: adminName.trim(),
             adminRegistration: adminRegistration.trim(),
             adminEmail: adminEmail.trim(),
             adminPhone: adminPhone.trim(),
-            companyName: companyName.trim(),
-            items,
+            companyName: companyName.trim().toUpperCase(),
+            items: items.map(item => ({ ...item, description: item.description.toUpperCase() })),
             subtotal,
             iva,
             total
@@ -204,7 +204,7 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
                                 required
                                 placeholder="Ej. Hotel Paraiso"
                                 value={clientName}
-                                onChange={(e) => setClientName(e.target.value.toUpperCase())}
+                                onChange={(e) => setClientName(e.target.value)}
                                 className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 uppercase text-base"
                             />
                         </div>
@@ -293,8 +293,8 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
                                             required
                                             placeholder="Ej. Elaboración de Programa Interno"
                                             value={item.description}
-                                            onChange={(e) => handleItemChange(index, 'description', e.target.value.toUpperCase())}
-                                            className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 text-base"
+                                            onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                                            className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 text-base uppercase"
                                         />
                                     </div>
 

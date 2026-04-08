@@ -14,7 +14,24 @@
       "Bash(rm -f public/*_opt.png)",
       "Bash(node -e \":*)",
       "Bash(npm install --save-dev sharp)",
-      "Bash(npm uninstall sharp)"
+      "Bash(npm uninstall sharp)",
+      "Bash(npm install:*)",
+      "Bash(ipconfig)",
+      "Bash(node -e ':*)",
+      "Bash(grep -l \"verificar\" dist/assets/*.js)",
+      "WebFetch(domain:constitutiva.vercel.app)",
+      "Bash(curl -s \"https://constitutiva.vercel.app\")",
+      "Bash(curl -s \"https://constitutiva.vercel.app/assets/index-z8hxgIVk.js\")",
+      "Bash(curl -s \"https://constitutiva.vercel.app/registerSW.js\")",
+      "Bash(curl -s -X POST \"https://constitutiva.vercel.app/api/constancias/folio\" -H \"Content-Type: application/json\" -d '{\"document_id\":69,\"employee_name\":\"TEST\"}')",
+      "Bash(xargs taskkill:*)",
+      "Bash(findstr \":3000\")",
+      "Bash(taskkill /F /PID 22924)",
+      "Bash(cmd /c \"taskkill /F /PID 22924\")",
+      "Bash(ls -lh \"c:/Users/alexa/OneDrive/Escritorio/constitutiva/public/\"*.png \"c:/Users/alexa/OneDrive/Escritorio/constitutiva/public/\"*.jpg)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(node -e \"require\\('xlsx'\\); console.log\\('installed'\\)\")",
+      "Bash(node -e \"require\\('xlsx'\\); console.log\\('ok'\\)\")"
     ]
   }
 }

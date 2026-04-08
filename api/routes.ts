@@ -15,17 +15,7 @@ if (!SUPABASE_SERVICE_ROLE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY || '');
 
-// POST verify admin password
-router.post('/auth/verify', (req, res) => {
-    const { password } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD || 'Becase26';
-    
-    if (password === adminPassword) {
-        res.json({ success: true });
-    } else {
-        res.status(401).json({ error: 'Contraseña incorrecta' });
-    }
-});
+
 
 // GET all documents
 router.get('/documents', async (req, res) => {
@@ -388,6 +378,21 @@ router.post('/constancias/folio', async (req, res) => {
     });
     if (error) return res.status(500).json({ error: error.message });
     res.json({ folio });
+});
+
+// GET verificar constancia - JSON (used by React)
+router.get('/constancias/folio/:folio', async (req, res) => {
+    const folio = req.params.folio.replace('-', '/');
+    const { data, error } = await supabase
+        .from('constancias')
+        .select('folio, employee_name, created_at, commercial_name')
+        .eq('folio', folio)
+        .maybeSingle();
+
+    if (error) return res.status(500).json({ error: error.message });
+    if (!data) return res.status(404).json({ error: 'Documento no encontrado' });
+
+    res.json(data);
 });
 
 // GET verificar constancia - server-side HTML (bypasses React bundle cache issues)

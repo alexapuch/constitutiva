@@ -30,17 +30,31 @@ const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
 export default function AdminView() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    const stored = localStorage.getItem(SESSION_KEY);
-    const storedVersion = localStorage.getItem(SESSION_VERSION_KEY);
-    if (stored === 'true' && storedVersion === APP_VERSION) return true;
-    // Version mismatch — clear stale session
-    if (stored === 'true') {
-      localStorage.removeItem(SESSION_KEY);
-      localStorage.removeItem(SESSION_VERSION_KEY);
-    }
-    return false;
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    const checkUser = (session: any) => {
+      if (session?.user?.email === 'alexapuch@hotmail.com') {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+      }
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      checkUser(session);
+      setAuthLoading(false);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      checkUser(session);
+      setAuthLoading(false);
+    });
+
+    return () => authListener.subscription.unsubscribe();
+  }, []);
+
   const [activeTab, setActiveTab] = useState<'documents' | 'dashboard'>('documents');
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
@@ -80,32 +94,35 @@ export default function AdminView() {
   };
 
   const fetchPdfHistory = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('pdf_history')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(50);
-    if (!error && data) {
-      const entries = data.map((d: any) => {
-        let name = d.name.split('_').slice(2).join('_').replace('.pdf', '') || d.name;
-        name = name.replace(/_+-_+/g, ' - ').replace(/_+/g, ' ').trim();
-        name = name.replace(/[\u0300-\u036f]/g, "");
-        return { type: d.type, name, date: new Date(d.created_at).toLocaleString('es-MX'), publicUrl: d.public_url };
-      });
-      setPdfHistory(entries);
+    try {
+      const res = await fetch('/api/pdf-history');
+      const data = await res.json();
+      if (res.ok && data) {
+        const entries = data.map((d: any) => {
+          let name = d.name.split('_').slice(2).join('_').replace('.pdf', '') || d.name;
+          name = name.replace(/_+-_+/g, ' - ').replace(/_+/g, ' ').trim();
+          name = name.replace(/[\u0300-\u036f]/g, "");
+          return { type: d.type, name, date: new Date(d.created_at).toLocaleString('es-MX'), publicUrl: d.public_url };
+        });
+        setPdfHistory(entries);
+      }
+    } catch (error) {
+      console.error('Error fetching PDF history:', error);
     }
   }, []);
 
   const fetchDocuments = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('document_info')
-      .select('*')
-      .order('id', { ascending: false });
-    if (!error && data) {
-      setDocuments(data);
-      if (data.length > 0 && !selectedDocId) {
-        setSelectedDocId(data[0].id);
+    try {
+      const res = await fetch('/api/documents');
+      const data = await res.json();
+      if (res.ok && data) {
+        setDocuments(data);
+        if (data.length > 0 && !selectedDocId) {
+          setSelectedDocId(data[0].id);
+        }
       }
+    } catch (error) {
+      console.error('Error fetching documents:', error);
     }
   }, [selectedDocId]);
 
@@ -137,15 +154,6 @@ export default function AdminView() {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [fetchPdfHistory]);
 
-  useEffect(() => {
-    const channel = supabase
-      .channel('realtime_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'document_info' }, () => { fetchDocuments(); })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pdf_history' }, () => { fetchPdfHistory(); })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'pdf_history' }, () => { fetchPdfHistory(); })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [fetchPdfHistory, fetchDocuments]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -162,31 +170,32 @@ export default function AdminView() {
 
   const fetchQuotes = async () => {
     try {
-      const { data, error } = await supabase
-        .from('quotes')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (!error && data) setQuotes(data);
+      const res = await fetch('/api/quotes');
+      const data = await res.json();
+      if (res.ok && data) setQuotes(data);
     } catch (error) { console.error('Error fetching quotes:', error); }
   };
 
   const fetchEmployees = async (docId: number) => {
-    const { data, error } = await supabase
-      .from('employees')
-      .select('*')
-      .eq('document_id', docId);
-    if (!error && data) setEmployees(data);
+    try {
+      const res = await fetch(`/api/documents/${docId}/employees`);
+      const data = await res.json();
+      if (res.ok && data) setEmployees(data);
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+    }
   };
 
   const handleSaveDocInfo = async () => {
     const docInfo = documents.find(d => d.id === selectedDocId);
-    if (!docInfo) return;
+    if (!docInfo || !selectedDocId) return;
     setIsSaving(true);
-    await supabase
-      .from('document_info')
-      .update({
+    await fetch(`/api/documents/${selectedDocId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         commercial_name: docInfo.commercial_name,
-        company_name: docInfo.company_name,
+        company_name: (docInfo.company_name || '').toUpperCase(),
         date: docInfo.date,
         time_start: docInfo.time_start,
         time_end: docInfo.time_end,
@@ -198,14 +207,14 @@ export default function AdminView() {
         sotanos: docInfo.sotanos,
         superiores: docInfo.superiores
       })
-      .eq('id', docInfo.id);
+    });
     setIsSaving(false);
     fetchDocuments();
   };
 
   const handleCopyInstructions = async (doc: DocumentInfo) => {
     const code = doc.access_code || '';
-    const text = `Buenas tardes. Para firmar su acta constitutiva, por favor sigan estos pasos:\n\n1. Ingresen al siguiente enlace: https://constitutiva.vercel.app\n2. En el apartado "Código de acceso", peguen este código: "${code}"\n3. Cuando se abra su acta, den clic en "Firmar y registrarse"\n4. Escriban su nombre, puesto y realicen su firma\n5. Finalmente, den clic en "Guardar firma"\n\nY listo, con eso quedará firmada.`;
+    const text = `Buenas tardes. Para firmar el acta constitutiva de *${doc.commercial_name}*, por favor sigan estos pasos:\n\n1. Ingresen al siguiente enlace: https://constitutiva.vercel.app\n2. En el apartado "Código de acceso", peguen este código: "${code}"\n3. Cuando se abra su acta, den clic en "Firmar y registrarse"\n4. Escriban su nombre, puesto y realicen su firma\n5. Finalmente, den clic en "Guardar firma"\n\nY listo, con eso quedará firmada.`;
     try {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(text);
@@ -228,47 +237,51 @@ export default function AdminView() {
 
   const handleToggleDone = async (docId: number, currentActive: number) => {
     const newActive = currentActive === 1 ? 0 : 1;
-    await supabase.from('document_info').update({ is_active: newActive }).eq('id', docId);
+    await fetch(`/api/documents/${docId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_active: newActive })
+    });
     fetchDocuments();
   };
 
   const handleCreateDocument = async () => {
-    const { customAlphabet } = await import('nanoid');
-    const generateCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 6);
-    const newDoc = {
-      commercial_name: 'Nueva Empresa',
-      company_name: 'Nueva Razón Social',
-      date: 'Fecha',
-      time_start: '12:00',
-      time_end: '13:20',
-      address: '',
-      is_active: 1,
-      access_code: generateCode()
-    };
-    const { data, error } = await supabase
-      .from('document_info')
-      .insert(newDoc)
-      .select()
-      .single();
-    if (!error && data) {
+    const { data: result, error } = await (async () => {
+      try {
+        const res = await fetch('/api/documents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            commercial_name: 'Nueva Empresa',
+            company_name: 'Nueva Razón Social',
+            date: 'Fecha',
+            time_start: '12:00',
+            time_end: '13:20',
+            address: '',
+            is_active: 1
+          })
+        });
+        const data = await res.json();
+        return { data, error: !res.ok ? data.error : null };
+      } catch (err: any) { return { data: null, error: err.message }; }
+    })();
+
+    if (!error && result) {
       await fetchDocuments();
-      setSelectedDocId(data.id);
+      setSelectedDocId(result.id);
     }
   };
 
   const handleRegenerateCode = async () => {
     if (!selectedDocId) return;
-    const { customAlphabet } = await import('nanoid');
-    const generateCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 6);
-    const access_code = generateCode();
-    const { data, error } = await supabase
-      .from('document_info')
-      .update({ access_code })
-      .eq('id', selectedDocId)
-      .select()
-      .single();
-    if (!error && data?.access_code) {
-      setDocuments(docs => docs.map(d => d.id === selectedDocId ? { ...d, access_code: data.access_code } : d));
+    try {
+      const res = await fetch(`/api/documents/${selectedDocId}/regenerate-code`, { method: 'PATCH' });
+      const data = await res.json();
+      if (res.ok && data.access_code) {
+        setDocuments(docs => docs.map(d => d.id === selectedDocId ? { ...d, access_code: data.access_code } : d));
+      }
+    } catch (err) {
+      console.error('Error regenerating code:', err);
     }
   };
 
@@ -285,7 +298,7 @@ export default function AdminView() {
       cancelButtonText: 'Cancelar'
     });
     if (!result.isConfirmed) return;
-    await supabase.from('document_info').delete().eq('id', id);
+    await fetch(`/api/documents/${id}`, { method: 'DELETE' });
     if (selectedDocId === id) setSelectedDocId(null);
     fetchDocuments();
   };
@@ -303,7 +316,7 @@ export default function AdminView() {
     });
 
     if (result.isConfirmed) {
-      await supabase.from('quotes').delete().eq('id', id);
+      await fetch(`/api/quotes/${id}`, { method: 'DELETE' });
       fetchQuotes();
       Swal.fire('Eliminado', 'La cotización ha sido eliminada del historial.', 'success');
     }
@@ -322,7 +335,7 @@ export default function AdminView() {
       cancelButtonText: 'Cancelar'
     });
     if (!result.isConfirmed) return;
-    await supabase.from('employees').delete().eq('id', id);
+    await fetch(`/api/employees/${id}`, { method: 'DELETE' });
     if (selectedDocId) fetchEmployees(selectedDocId);
   };
 
@@ -393,27 +406,10 @@ export default function AdminView() {
     }
   };
 
-  const handleLogin = async (passwordInput: string) => {
-    try {
-      const res = await fetch('/api/auth/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: passwordInput })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setIsAuthenticated(true);
-        localStorage.setItem(SESSION_KEY, 'true');
-        localStorage.setItem(SESSION_VERSION_KEY, APP_VERSION);
-      } else {
-        Swal.fire({ icon: 'error', title: 'Error', text: data.error || 'Contraseña incorrecta', confirmButtonColor: '#722F37' });
-      }
-    } catch (e) {
-      Swal.fire({ icon: 'error', title: 'Error de Red', text: 'No se pudo conectar con el servidor para verificar.', confirmButtonColor: '#722F37' });
-    }
-  };
-
-  if (!isAuthenticated) return <AdminLoginForm onLogin={handleLogin} />;
+  if (authLoading) {
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4"><div className="w-8 h-8 border-4 border-blue-900 border-t-transparent rounded-full animate-spin" /></div>;
+  }
+  if (!isAuthenticated) return <AdminLoginForm />;
 
   return (
     <div
@@ -433,10 +429,9 @@ export default function AdminView() {
         onOpenCartaResponsiva={() => { setShowCartaResponsiva(true); }}
         onOpenPdfHistory={() => { setShowHistoryDrawer(true); }}
         onExportBackup={handleExportBackup}
-        onLogout={() => {
+        onLogout={async () => {
+          await supabase.auth.signOut();
           setIsAuthenticated(false);
-          localStorage.removeItem(SESSION_KEY);
-          localStorage.removeItem(SESSION_VERSION_KEY);
         }}
         onNavigateHome={() => {
           Swal.fire({
@@ -714,7 +709,7 @@ export default function AdminView() {
                     type="text"
                     value={docInfo.company_name}
                     onChange={(e) => updateSelectedDoc('company_name', e.target.value)}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
                   />
                 </div>
 
