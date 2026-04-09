@@ -9,7 +9,7 @@ export const getCompactDate = (dateStr?: string) => {
       'mayo': '05', 'junio': '06', 'julio': '07', 'agosto': '08',
       'septiembre': '09', 'octubre': '10', 'noviembre': '11', 'diciembre': '12'
     };
-    const parts = dateStr.toLowerCase().split(' de ');
+    const parts = dateStr.toLowerCase().replace(' del ', ' de ').split(' de ');
     if (parts.length === 3) {
       let day = parts[0].trim();
       if (day.length === 1) day = '0' + day;
