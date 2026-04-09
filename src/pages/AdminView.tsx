@@ -985,6 +985,7 @@ export default function AdminView() {
                               onBlur={() => handleSaveEmpName(emp.id)}
                               onKeyDown={e => { if (e.key === 'Enter') handleSaveEmpName(emp.id); if (e.key === 'Escape') setEditingEmpId(null); }}
                               className="border border-blue-400 rounded px-2 py-0.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              style={{ fontSize: '16px' }}
                             />
                           ) : (
                             <span className="flex items-center gap-1 group">
