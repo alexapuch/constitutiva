@@ -25,7 +25,7 @@ import CartaResponsivaView from '../components/admin/CartaResponsivaView';
 import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.27';
+const APP_VERSION = 'v1.28';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -398,7 +398,7 @@ export default function AdminView() {
       }
       const backup = {
         exportDate: new Date().toISOString(),
-        version: 'v1.27', // Same arbitrary version flag
+        version: 'v1.28', // Same arbitrary version flag
         documents: allDocs,
         employees: allEmployees,
         quotes: allQuotes,
