@@ -991,7 +991,7 @@ export default function AdminView() {
                               {emp.name}
                               <button
                                 onClick={() => { setEditingEmpId(emp.id); setEditingEmpName(emp.name); }}
-                                className="opacity-0 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100 text-gray-400 hover:text-blue-500 active:text-blue-500 transition-opacity p-0.5 rounded"
+                                className="opacity-0 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100 text-gray-400 hover:text-blue-500 active:text-blue-500 transition-opacity p-0.5 rounded touch-manipulation"
                                 title="Editar nombre"
                               >
                                 <Pencil className="w-3.5 h-3.5" />
