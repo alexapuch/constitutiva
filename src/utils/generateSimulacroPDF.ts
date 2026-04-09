@@ -10,12 +10,16 @@ import { generatePdfName } from './pdfNameGenerator';
 export const generateSimulacroPDF = async (
     docInfo: DocumentInfo,
     employees: Employee[],
-    preview: boolean = false
+    preview: boolean = false,
+    turnosMode: 'M' | 'MV' | 'MVN' = 'MV'
 ): Promise<string | void> => {
     const visitantes = docInfo.visitantes ?? 0;
     const usuarios = docInfo.usuarios ?? 0;
     const sotanos = docInfo.sotanos ?? 0;
     const superiores = docInfo.superiores ?? 1;
+    const turnoMatutino = employees.length;
+    const turnoVespertino = turnosMode === 'MV' || turnosMode === 'MVN' ? employees.length : 0;
+    const turnoNocturno = turnosMode === 'MVN' ? employees.length : 0;
     // Pre-compress all signature images
     const sortedEmployeesAll = sortEmployees(employees);
     const compressedSignatures: Record<number, string> = {};
@@ -58,11 +62,12 @@ export const generateSimulacroPDF = async (
     autoTable(doc, {
         startY: currentY,
         theme: 'plain',
-        styles: { font: 'helvetica', fontSize: 9, cellPadding: 1, textColor: 0, lineColor: 0, lineWidth: 0.1 },
+        margin: { left: margin, right: margin },
+        styles: { font: 'helvetica', fontSize: 9, cellPadding: 1, textColor: 0, lineColor: 0, lineWidth: 0.1, overflow: 'linebreak' },
         body: [
             [{ content: `Nombre, denominación o razón social: ${docInfo.commercial_name}`, colSpan: 7 }],
             [{ content: `Giro o actividad productiva principal del establecimiento: ${docInfo.activity || ''}`, colSpan: 7 }],
-            [{ content: `Dirección del establecimiento o inmueble: ${baseAddress}${baseAddress ? ", " : ""}${cityPrefix}, QUINTANA ROO, MÉXICO.`, colSpan: 7 }],
+            [{ content: `Dirección del establecimiento o inmueble: ${baseAddress}${baseAddress ? ", " : ""}${cityPrefix}, QUINTANA ROO, MÉXICO.`, colSpan: 7, styles: { overflow: 'linebreak' } }],
             [
                 { content: 'El inmueble cuenta con:', colSpan: 2 },
                 { content: 'Estacionamiento   (X) Sí   ( ) No', colSpan: 2 },
@@ -79,7 +84,7 @@ export const generateSimulacroPDF = async (
                 { content: `Total, de población\nparticipante\n \n${employees.length}`, rowSpan: 2, styles: { halign: 'center', valign: 'middle' } }
             ],
             [
-                `Matutino\n \n${employees.length}`, `Vespertino\n \n${employees.length}`, `Nocturno\n \n0`, `Otro\n \n0`,
+                `Matutino\n \n${turnoMatutino}`, `Vespertino\n \n${turnoVespertino}`, `Nocturno\n \n${turnoNocturno}`, `Otro\n \n0`,
                 `Usuarios\n \n${usuarios}`, `Visitantes\n \n${visitantes}`
             ]
         ],

@@ -74,6 +74,7 @@ export default function AdminView() {
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
   const [showCartaResponsiva, setShowCartaResponsiva] = useState(false);
+  const [turnosSimulacro, setTurnosSimulacro] = useState<'M' | 'MV' | 'MVN'>('MV');
 
   // PDF Preview State
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -898,22 +899,36 @@ export default function AdminView() {
                       <Eye className="w-5 h-5" />
                     </button>
                   </div>
-                  <div className="flex-1 sm:flex-none flex items-center gap-1">
-                    <button
-                      onClick={async () => { if (docInfo) { await generateSimulacroPDF(docInfo, employees); addToHistory('Cédula Simulacro', generatePdfName('CÉDULA SIMULACRO', docInfo.commercial_name, docInfo.date)); } }}
-                      className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-l-md hover:bg-blue-700 transition-colors shadow-sm font-bold min-h-[44px]"
-                      title="Descargar Cédula de Evaluación de Simulacro"
-                    >
-                      <Download className="w-5 h-5" />
-                      <span className="whitespace-nowrap">Cédula Simulacro</span>
-                    </button>
-                    <button
-                      onClick={() => { if (docInfo) handlePreview(() => generateSimulacroPDF(docInfo, employees, true), 'Cédula Simulacro', generatePdfName('CÉDULA SIMULACRO', docInfo.commercial_name, docInfo.date)); }}
-                      className="flex items-center justify-center bg-blue-500 text-white px-2.5 py-2 rounded-r-md hover:bg-blue-600 transition-colors min-h-[44px]"
-                      title="Vista Previa"
-                    >
-                      <Eye className="w-5 h-5" />
-                    </button>
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-md px-2 py-1 shadow-sm">
+                      <span className="text-xs font-medium text-gray-500 whitespace-nowrap mr-1">Turnos:</span>
+                      {(['M', 'MV', 'MVN'] as const).map(t => (
+                        <button
+                          key={t}
+                          onClick={() => setTurnosSimulacro(t)}
+                          className={`px-2 py-0.5 rounded text-xs font-bold transition-colors ${turnosSimulacro === t ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                        >
+                          {t === 'M' ? 'Mat.' : t === 'MV' ? 'Mat.+Ves.' : 'Mat.+Ves.+Noc.'}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex-1 sm:flex-none flex items-center gap-1">
+                      <button
+                        onClick={async () => { if (docInfo) { await generateSimulacroPDF(docInfo, employees, false, turnosSimulacro); addToHistory('Cédula Simulacro', generatePdfName('CÉDULA SIMULACRO', docInfo.commercial_name, docInfo.date)); } }}
+                        className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-l-md hover:bg-blue-700 transition-colors shadow-sm font-bold min-h-[44px]"
+                        title="Descargar Cédula de Evaluación de Simulacro"
+                      >
+                        <Download className="w-5 h-5" />
+                        <span className="whitespace-nowrap">Cédula Simulacro</span>
+                      </button>
+                      <button
+                        onClick={() => { if (docInfo) handlePreview(() => generateSimulacroPDF(docInfo, employees, true, turnosSimulacro), 'Cédula Simulacro', generatePdfName('CÉDULA SIMULACRO', docInfo.commercial_name, docInfo.date)); }}
+                        className="flex items-center justify-center bg-blue-500 text-white px-2.5 py-2 rounded-r-md hover:bg-blue-600 transition-colors min-h-[44px]"
+                        title="Vista Previa"
+                      >
+                        <Eye className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                   <div className="flex-1 sm:flex-none flex items-center gap-1">
                     <button
