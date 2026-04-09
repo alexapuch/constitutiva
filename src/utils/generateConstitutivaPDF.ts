@@ -128,19 +128,29 @@ export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: 
             'Elaborar un plan de reconstrucción inicial, para restablecer las condiciones normales de operación del inmueble.'
         ];
 
-        bulletPoints.forEach(bp => {
+        bulletPoints.forEach((bp, idx) => {
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
             const bulletStr = `•  ${bp}`;
             const lines = doc.splitTextToSize(bulletStr, pageWidth - margin * 2 - 5);
-            if (currentY + (lines.length * 5) > 270) { doc.addPage(); currentY = margin; }
+            const bulletHeight = lines.length * 5 + 1;
+            // Look ahead: if this bullet would start a new page but there's no following bullet
+            // that would also fit, break earlier to avoid orphans
+            const isLastBullet = idx === bulletPoints.length - 1;
+            const nextBp = !isLastBullet ? bulletPoints[idx + 1] : null;
+            const nextLines = nextBp ? doc.splitTextToSize(`•  ${nextBp}`, pageWidth - margin * 2 - 5) : [];
+            const nextHeight = nextLines.length * 5 + 1;
+            // Break if: this bullet overflows, OR this bullet fits but next would be alone on a new page
+            const shouldBreak = currentY + bulletHeight > 260 ||
+                (!isLastBullet && currentY + bulletHeight + nextHeight > 265 && currentY + bulletHeight <= 260 && nextHeight > 0 && currentY > margin + 40);
+            if (shouldBreak) { doc.addPage(); currentY = margin; }
             doc.text(bulletStr, margin + 5, currentY, { align: 'justify', maxWidth: pageWidth - margin * 2 - 5, lineHeightFactor: 1.5 });
-            currentY += lines.length * 5 + 1;
+            currentY += bulletHeight;
         });
         currentY += 8;
 
-        // 4. ESQUEMA ORGANIZACIONAL — always on a new page
-        doc.addPage(); currentY = margin;
+        // 4. ESQUEMA ORGANIZACIONAL — nueva página solo si no hay espacio suficiente
+        if (currentY + 60 > 270) { doc.addPage(); currentY = margin; }
         addText('4. ESQUEMA ORGANIZACIONAL', 10, 'bold', 'left');
         currentY += 2;
         addText('Para que la Unidad Interna de Protección Civil logre los objetivos y desempeñe las funciones antes descritas, contará con la estructura organizacional.', 10, 'normal', 'justify');
