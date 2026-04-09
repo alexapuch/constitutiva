@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Swal from 'sweetalert2';
 import { DocumentInfo, Employee } from '../types';
-import { Trash2, Save, FileText, Users, Plus, Download, Award, Eye, CheckCircle2, RotateCcw, ChevronDown, ChevronRight, MessageCircle, Check } from 'lucide-react';
+import { Trash2, Save, FileText, Users, Plus, Download, Award, Eye, CheckCircle2, RotateCcw, ChevronDown, ChevronRight, MessageCircle, Check, Pencil } from 'lucide-react';
 import { generateSimulacroPDF } from '../utils/generateSimulacroPDF';
 import { generateBatchConstanciasPDF } from '../utils/generateBatchConstanciasPDF';
 import { generateConstanciaPDF } from '../utils/generateConstanciaPDF';
@@ -75,6 +75,8 @@ export default function AdminView() {
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
   const [showCartaResponsiva, setShowCartaResponsiva] = useState(false);
   const [turnosSimulacro, setTurnosSimulacro] = useState<'M' | 'MV' | 'MVN'>('MV');
+  const [editingEmpId, setEditingEmpId] = useState<number | null>(null);
+  const [editingEmpName, setEditingEmpName] = useState('');
 
   // PDF Preview State
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -321,6 +323,14 @@ export default function AdminView() {
       fetchQuotes();
       Swal.fire('Eliminado', 'La cotización ha sido eliminada del historial.', 'success');
     }
+  };
+
+  const handleSaveEmpName = (id: number) => {
+    const trimmed = editingEmpName.trim();
+    setEditingEmpId(null);
+    if (!trimmed) return;
+    fetch(`/api/employees/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: trimmed }) })
+      .then(() => { if (selectedDocId) fetchEmployees(selectedDocId); });
   };
 
   const handleDeleteEmployee = async (id: number) => {
@@ -966,7 +976,29 @@ export default function AdminView() {
                     {sortEmployees(employees).map((emp, index) => (
                       <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700">
                         <td className="p-3 text-gray-500">#{index + 1}</td>
-                        <td className="p-3 font-medium uppercase dark:text-gray-200">{emp.name}</td>
+                        <td className="p-3 font-medium uppercase dark:text-gray-200">
+                          {editingEmpId === emp.id ? (
+                            <input
+                              autoFocus
+                              value={editingEmpName}
+                              onChange={e => setEditingEmpName(e.target.value.toUpperCase())}
+                              onBlur={() => handleSaveEmpName(emp.id)}
+                              onKeyDown={e => { if (e.key === 'Enter') handleSaveEmpName(emp.id); if (e.key === 'Escape') setEditingEmpId(null); }}
+                              className="border border-blue-400 rounded px-2 py-0.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                          ) : (
+                            <span className="flex items-center gap-1 group">
+                              {emp.name}
+                              <button
+                                onClick={() => { setEditingEmpId(emp.id); setEditingEmpName(emp.name); }}
+                                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-500 transition-opacity p-0.5 rounded"
+                                title="Editar nombre"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                            </span>
+                          )}
+                        </td>
                         <td className="p-3 uppercase dark:text-gray-300">{emp.role}</td>
                         <td className="p-3 uppercase dark:text-gray-300">{emp.brigade}</td>
                         <td className="p-3 text-center h-16">

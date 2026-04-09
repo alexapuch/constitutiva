@@ -145,6 +145,15 @@ router.post('/documents/:id/employees', async (req, res) => {
     res.json({ id: data.id });
 });
 
+// PATCH update employee name
+router.patch('/employees/:id', async (req, res) => {
+    const { name } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'name required' });
+    const { error } = await supabase.from('employees').update({ name: name.trim().toUpperCase() }).eq('id', req.params.id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true });
+});
+
 // DELETE employee
 router.delete('/employees/:id', async (req, res) => {
     const { error } = await supabase.from('employees').delete().eq('id', req.params.id);
