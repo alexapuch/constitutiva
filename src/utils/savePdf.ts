@@ -13,9 +13,24 @@ export const savePdf = async (blob: Blob, fileName: string, title?: string): Pro
   const tryShare = async () => {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
-        await navigator.share({
-          files: [file],
-          title: title || fileName,
+        // Wrap navigator.share so it resolves if the user minimizes the app and returns.
+        // On iOS, minimizing leaves the share promise hanging forever — visibilitychange
+        // fires when the user comes back, letting us unblock the UI.
+        await new Promise<void>((resolve, reject) => {
+          let settled = false;
+          const finish = (fn: () => void) => {
+            if (settled) return;
+            settled = true;
+            document.removeEventListener('visibilitychange', onVisible);
+            fn();
+          };
+          const onVisible = () => {
+            if (document.visibilityState === 'visible') finish(resolve);
+          };
+          document.addEventListener('visibilitychange', onVisible);
+          navigator.share({ files: [file], title: title || fileName })
+            .then(() => finish(resolve))
+            .catch((e) => finish(() => reject(e)));
         });
         return true;
       } catch (error: any) {
