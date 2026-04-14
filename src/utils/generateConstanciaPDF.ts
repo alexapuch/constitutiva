@@ -11,6 +11,11 @@ import { getCachedJpeg } from './imageCache';
 
 export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee, templateImage: string = '/constancia_vacia.png', preview: boolean = false, pdfPrefix: string = 'CONSTANCIA', fileDate?: string): Promise<string | void> => {
     try {
+        // Start folio fetch immediately — runs in parallel with synchronous PDF setup below
+        const folioPromise = preview
+            ? Promise.resolve('PREV/0001')
+            : generateFolio(docInfo.id, emp.name, docInfo.commercial_name);
+
         const imgJpeg = await getCachedJpeg(templateImage);
 
         const doc = new jsPDF({
@@ -84,7 +89,7 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
 
         // 6. QR Code de verificación — en preview folio ficticio, en descarga real crea el registro
-        const folio = preview ? 'PREV/0001' : await generateFolio(docInfo.id, emp.name, docInfo.commercial_name);
+        const folio = await folioPromise;
         const verifyUrl = `${window.location.origin}/api/verificar/${folioToSlug(folio)}`;
         const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'M' });
         const qrSize = 18;
