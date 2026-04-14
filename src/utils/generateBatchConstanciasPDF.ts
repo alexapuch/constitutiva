@@ -21,7 +21,28 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             return;
         }
 
-        const imgJpegCached = await getCachedJpeg(templateImage);
+        // Run image cache and folio batch fetch in parallel
+        const foliosFetchPromise = preview
+            ? Promise.resolve(employees.map((_, i) => `PREV/${String(i + 1).padStart(4, '0')}`))
+            : fetch('/api/constancias/folios-batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    employees: employees.map(e => ({
+                        document_id: docInfo.id ?? null,
+                        employee_name: e.name,
+                        commercial_name: docInfo.commercial_name ?? null,
+                    }))
+                })
+            }).then(res => {
+                if (!res.ok) return res.text().then(t => Promise.reject(new Error('Error al generar folios: ' + t)));
+                return res.json().then((data: { folios: string[] }) => data.folios);
+            });
+
+        const [imgJpegCached, folios] = await Promise.all([
+            getCachedJpeg(templateImage),
+            foliosFetchPromise,
+        ]);
 
         const doc = new jsPDF({
             orientation: 'landscape',
@@ -42,28 +63,6 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             employees.some(e => hasChinese(e.name));
         const chineseFontLoaded = needsChinese ? await loadChineseFont(doc) : false;
         const font = chineseFontLoaded ? 'NotoSansSC' : 'helvetica';
-
-        // En preview usamos folios ficticios para no crear registros en Supabase
-        // En descarga real hacemos UN solo batch request (1 count + 1 insert masivo)
-        let folios: string[];
-        if (preview) {
-            folios = employees.map((_, i) => `PREV/${String(i + 1).padStart(4, '0')}`);
-        } else {
-            const folioBatchRes = await fetch('/api/constancias/folios-batch', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    employees: employees.map(e => ({
-                        document_id: docInfo.id ?? null,
-                        employee_name: e.name,
-                        commercial_name: docInfo.commercial_name ?? null,
-                    }))
-                })
-            });
-            if (!folioBatchRes.ok) throw new Error('Error al generar folios: ' + await folioBatchRes.text());
-            const data = await folioBatchRes.json();
-            folios = data.folios;
-        }
 
         for (let i = 0; i < employees.length; i++) {
             const emp = employees[i];
