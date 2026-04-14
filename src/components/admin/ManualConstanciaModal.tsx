@@ -55,6 +55,7 @@ export default function ManualConstanciaModal({
   const [excelNames, setExcelNames] = useState<string[]>([]);
   const [showExcelPreview, setShowExcelPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const nameInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -222,12 +223,14 @@ export default function ManualConstanciaModal({
                     required
                     placeholder={`Ej. Juan Pérez López`}
                     value={name}
+                    ref={(el) => { nameInputRefs.current[idx] = el; }}
                     onChange={(e) => {
                       const updated = [...quickData.employeeNames];
                       updated[idx] = e.target.value;
                       setQuickData({ ...quickData, employeeNames: updated });
                     }}
                     className="w-full border border-gray-300 rounded-md p-3 text-base uppercase focus:ring-blue-600 focus:border-blue-600"
+                    style={{ fontSize: '16px' }}
                   />
                   {quickData.employeeNames.length > 1 && (
                     <button
@@ -248,7 +251,11 @@ export default function ManualConstanciaModal({
             <div className="mt-2 flex items-center gap-3 flex-wrap">
               <button
                 type="button"
-                onClick={() => setQuickData({ ...quickData, employeeNames: [...quickData.employeeNames, ''] })}
+                onClick={() => {
+                  const newIdx = quickData.employeeNames.length;
+                  setQuickData({ ...quickData, employeeNames: [...quickData.employeeNames, ''] });
+                  setTimeout(() => nameInputRefs.current[newIdx]?.focus(), 50);
+                }}
                 className="flex items-center gap-1.5 text-sm text-blue-700 font-semibold hover:text-blue-900 transition-colors"
               >
                 <Plus className="w-4 h-4" />

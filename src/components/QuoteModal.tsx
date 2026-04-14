@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Minus, Trash2, FileText, Settings, Calculator } from 'lucide-react';
 import { generateQuotePDF, QuoteData, QuoteItem } from '../utils/generateQuotePDF';
 
@@ -66,8 +66,12 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
         setItems(newItems);
     };
 
+    const descInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
     const addItem = () => {
+        const newIdx = items.length;
         setItems([...items, { description: '', quantity: 1, unitPrice: 0, total: 0 }]);
+        setTimeout(() => descInputRefs.current[newIdx]?.focus(), 50);
     };
 
     const removeItem = (index: number) => {
@@ -293,8 +297,10 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
                                             required
                                             placeholder="Ej. Elaboración de Programa Interno"
                                             value={item.description}
+                                            ref={(el) => { descInputRefs.current[index] = el; }}
                                             onChange={(e) => handleItemChange(index, 'description', e.target.value)}
                                             className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 text-base uppercase"
+                                            style={{ fontSize: '16px' }}
                                         />
                                     </div>
 
