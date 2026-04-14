@@ -8,6 +8,7 @@ import { generateConstanciaPDF } from '../utils/generateConstanciaPDF';
 import { generateConstitutivaPDF } from '../utils/generateConstitutivaPDF';
 import { generateCartaResponsivaPDF } from '../utils/generateCartaResponsivaPDF';
 import { sortEmployees } from '../utils/employees';
+import { preloadTemplates } from '../utils/imageCache';
 import { generatePdfName } from '../utils/pdfNameGenerator';
 import SwipeableRow from '../components/SwipeableRow';
 import AdminLoginForm from '../components/AdminLoginForm';
@@ -25,13 +26,23 @@ import CartaResponsivaView from '../components/admin/CartaResponsivaView';
 import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.30';
+const APP_VERSION = 'v1.31';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
 export default function AdminView() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    preloadTemplates([
+      '/constancia_vacia.png',
+      '/constancia_vacia_tulum.png',
+      '/constancia_evacuacion.png',
+      '/constancia_extintores.png',
+      '/constancia_primeros_auxilios.png',
+    ]);
+  }, []);
 
   useEffect(() => {
     const checkUser = (session: any) => {
@@ -398,7 +409,7 @@ export default function AdminView() {
       }
       const backup = {
         exportDate: new Date().toISOString(),
-        version: 'v1.30', // Same arbitrary version flag
+        version: 'v1.31', // Same arbitrary version flag
         documents: allDocs,
         employees: allEmployees,
         quotes: allQuotes,

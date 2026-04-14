@@ -7,6 +7,7 @@ import { savePdfVersion } from './savePdfVersion';
 import { generatePdfName } from './pdfNameGenerator';
 import { savePdf } from './savePdf';
 import { hasChinese, loadChineseFont } from './loadChineseFont';
+import { getCachedJpeg } from './imageCache';
 
 export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employees: Employee[], templateImage: string = '/constancia_vacia.png', preview: boolean = false, pdfPrefix: string = 'CONSTANCIAS', fileDate?: string): Promise<string | void> => {
     try {
@@ -20,21 +21,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             return;
         }
 
-        // 1. URL to the empty template
-        const imgUrl = templateImage;
-
-        // Convert image to base64
-        const imgData = await fetch(imgUrl)
-            .then(res => {
-                if (!res.ok) throw new Error('No se encontró la imagen public/constancia_vacia.png');
-                return res.blob();
-            })
-            .then(blob => new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            }));
+        const imgJpegCached = await getCachedJpeg(templateImage);
 
         const doc = new jsPDF({
             orientation: 'landscape',
@@ -55,19 +42,6 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             employees.some(e => hasChinese(e.name));
         const chineseFontLoaded = needsChinese ? await loadChineseFont(doc) : false;
         const font = chineseFontLoaded ? 'NotoSansSC' : 'helvetica';
-
-        // Convert template to JPEG in-memory to reduce PDF size
-        const imgJpeg = await new Promise<string>((resolve) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.naturalWidth;
-                canvas.height = img.naturalHeight;
-                canvas.getContext('2d')!.drawImage(img, 0, 0);
-                resolve(canvas.toDataURL('image/jpeg', 0.88));
-            };
-            img.src = imgData;
-        });
 
         // En preview usamos folios ficticios para no crear registros en Supabase
         // En descarga real hacemos UN solo batch request (1 count + 1 insert masivo)
@@ -99,7 +73,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             }
 
             // Image background (JPEG for smaller file size, cached as 'template')
-            doc.addImage(imgJpeg, 'JPEG', 0, 0, docWidth, docHeight, 'template', 'FAST');
+            doc.addImage(imgJpegCached, 'JPEG', 0, 0, docWidth, docHeight, 'template', 'FAST');
 
             // 1. Name of the employee
             doc.setFont(font, 'bold');

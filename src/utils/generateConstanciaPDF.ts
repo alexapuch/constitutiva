@@ -7,24 +7,11 @@ import { savePdfVersion } from './savePdfVersion';
 import { generatePdfName } from './pdfNameGenerator';
 import { savePdf } from './savePdf';
 import { hasChinese, loadChineseFont } from './loadChineseFont';
+import { getCachedJpeg } from './imageCache';
 
 export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee, templateImage: string = '/constancia_vacia.png', preview: boolean = false, pdfPrefix: string = 'CONSTANCIA', fileDate?: string): Promise<string | void> => {
     try {
-        // 1. URL to the empty template
-        const imgUrl = templateImage;
-
-        // Convert image to base64
-        const imgData = await fetch(imgUrl)
-            .then(res => {
-                if (!res.ok) throw new Error('No se encontró la imagen public/constancia_vacia.jpg o .png');
-                return res.blob();
-            })
-            .then(blob => new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            }));
+        const imgJpeg = await getCachedJpeg(templateImage);
 
         const doc = new jsPDF({
             orientation: 'landscape',
@@ -45,18 +32,6 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         const chineseFontLoaded = needsChinese ? await loadChineseFont(doc) : false;
         const font = chineseFontLoaded ? 'NotoSansSC' : 'helvetica';
 
-        // Convert template to JPEG in-memory to reduce PDF size
-        const imgJpeg = await new Promise<string>((resolve) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.naturalWidth;
-                canvas.height = img.naturalHeight;
-                canvas.getContext('2d')!.drawImage(img, 0, 0);
-                resolve(canvas.toDataURL('image/jpeg', 0.88));
-            };
-            img.src = imgData;
-        });
         doc.addImage(imgJpeg, 'JPEG', 0, 0, docWidth, docHeight, 'template', 'FAST');
 
         // Text position settings
