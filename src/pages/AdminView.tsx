@@ -26,7 +26,7 @@ import CartaResponsivaView from '../components/admin/CartaResponsivaView';
 import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.34';
+const APP_VERSION = 'v1.35';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -409,7 +409,7 @@ export default function AdminView() {
       }
       const backup = {
         exportDate: new Date().toISOString(),
-        version: 'v1.34', // Same arbitrary version flag
+        version: 'v1.35', // Same arbitrary version flag
         documents: allDocs,
         employees: allEmployees,
         quotes: allQuotes,
@@ -663,6 +663,11 @@ export default function AdminView() {
                   <input
                     type="text"
                     value={docInfo.commercial_name}
+                    onFocus={(e) => {
+                      if (e.target.value.toUpperCase() === 'NUEVA EMPRESA') {
+                        updateSelectedDoc('commercial_name', '');
+                      }
+                    }}
                     onChange={(e) => handleUppercaseChange(e, 'commercial_name')}
                     className="w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white"
                   />
@@ -730,6 +735,11 @@ export default function AdminView() {
                   <input
                     type="text"
                     value={docInfo.company_name}
+                    onFocus={(e) => {
+                      if (e.target.value.toUpperCase() === 'NUEVA RAZÓN SOCIAL') {
+                        updateSelectedDoc('company_name', '');
+                      }
+                    }}
                     onChange={(e) => updateSelectedDoc('company_name', e.target.value)}
                     className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
                   />
