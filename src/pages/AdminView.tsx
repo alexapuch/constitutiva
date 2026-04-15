@@ -26,7 +26,7 @@ import CartaResponsivaView from '../components/admin/CartaResponsivaView';
 import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.35';
+const APP_VERSION = 'v1.36';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -266,8 +266,8 @@ export default function AdminView() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            commercial_name: 'Nueva Empresa',
-            company_name: 'Nueva Razón Social',
+            commercial_name: 'NUEVA EMPRESA',
+            company_name: 'NUEVA RAZÓN SOCIAL',
             date: 'Fecha',
             time_start: '12:00',
             time_end: '13:20',
@@ -409,7 +409,7 @@ export default function AdminView() {
       }
       const backup = {
         exportDate: new Date().toISOString(),
-        version: 'v1.35', // Same arbitrary version flag
+        version: 'v1.36', // Same arbitrary version flag
         documents: allDocs,
         employees: allEmployees,
         quotes: allQuotes,
@@ -669,7 +669,7 @@ export default function AdminView() {
                       }
                     }}
                     onChange={(e) => handleUppercaseChange(e, 'commercial_name')}
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white"
+                    className={`w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white ${docInfo.commercial_name === 'NUEVA EMPRESA' ? 'text-gray-400/70 font-medium' : ''}`}
                   />
                 </div>
 
@@ -741,7 +741,7 @@ export default function AdminView() {
                       }
                     }}
                     onChange={(e) => updateSelectedDoc('company_name', e.target.value)}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
+                    className={`w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 uppercase ${docInfo.company_name === 'NUEVA RAZÓN SOCIAL' ? 'text-gray-400/70 font-medium' : ''}`}
                   />
                 </div>
 
