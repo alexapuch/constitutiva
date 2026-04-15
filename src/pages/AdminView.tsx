@@ -26,7 +26,7 @@ import CartaResponsivaView from '../components/admin/CartaResponsivaView';
 import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.36';
+const APP_VERSION = 'v1.37';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -409,7 +409,7 @@ export default function AdminView() {
       }
       const backup = {
         exportDate: new Date().toISOString(),
-        version: 'v1.36', // Same arbitrary version flag
+        version: 'v1.37', // Same arbitrary version flag
         documents: allDocs,
         employees: allEmployees,
         quotes: allQuotes,
@@ -668,6 +668,11 @@ export default function AdminView() {
                         updateSelectedDoc('commercial_name', '');
                       }
                     }}
+                    onBlur={(e) => {
+                      if (e.target.value.trim() === '') {
+                        updateSelectedDoc('commercial_name', 'NUEVA EMPRESA');
+                      }
+                    }}
                     onChange={(e) => handleUppercaseChange(e, 'commercial_name')}
                     className={`w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white ${docInfo.commercial_name === 'NUEVA EMPRESA' ? 'text-gray-400/70 font-medium' : ''}`}
                   />
@@ -738,6 +743,11 @@ export default function AdminView() {
                     onFocus={(e) => {
                       if (e.target.value.toUpperCase() === 'NUEVA RAZÓN SOCIAL') {
                         updateSelectedDoc('company_name', '');
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (e.target.value.trim() === '') {
+                        updateSelectedDoc('company_name', 'NUEVA RAZÓN SOCIAL');
                       }
                     }}
                     onChange={(e) => updateSelectedDoc('company_name', e.target.value)}
