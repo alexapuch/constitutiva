@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FileSignature, X, Search, RefreshCw, Download } from 'lucide-react';
+import { FileSignature, X, Search, RefreshCw, Download, Building2, PackageOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { DocumentInfo } from '../../types';
 import { generateConstanciaPDF } from '../../utils/generateConstanciaPDF';
@@ -23,6 +23,7 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [downloadingFolios, setDownloadingFolios] = useState<Set<string>>(new Set());
+  const [downloadingBatch, setDownloadingBatch] = useState<Set<string>>(new Set());
 
   const fetchConstancias = async () => {
     setIsLoading(true);
@@ -62,37 +63,64 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
       return numB - numA;
     });
 
+  // Group by company
+  const companyGroups = Object.entries(
+    filteredConstancias.reduce((acc, c) => {
+      const key = c.commercial_name || '—';
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(c);
+      return acc;
+    }, {} as Record<string, ConstanciaEntry[]>)
+  );
+
+  const buildDocInfoAndEmp = (c: ConstanciaEntry) => {
+    let date = new Date(c.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
+    let address = '';
+    if (c.document_id) {
+      const linked = documents.find(d => d.id === c.document_id);
+      if (linked) {
+        date = linked.date || date;
+        address = linked.address || '';
+      }
+    }
+    const docInfo = {
+      id: c.document_id ?? 0,
+      commercial_name: c.commercial_name || '',
+      company_name: '',
+      date,
+      address,
+      time_start: '',
+      time_end: '',
+      is_active: 1,
+    } as DocumentInfo;
+    const emp = { id: 0, document_id: c.document_id ?? 0, name: c.employee_name || '', role: '', brigade: '', signature: '' };
+    return { docInfo, emp };
+  };
+
   const handleRegenerate = async (c: ConstanciaEntry) => {
     setDownloadingFolios(prev => new Set(prev).add(c.folio));
     try {
-      // Try to get date/address from the linked document; fall back to created_at
-      let date = new Date(c.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
-      let address = '';
-
-      if (c.document_id) {
-        const linked = documents.find(d => d.id === c.document_id);
-        if (linked) {
-          date = linked.date || date;
-          address = linked.address || '';
-        }
-      }
-
-      const docInfo = {
-        id: c.document_id ?? 0,
-        commercial_name: c.commercial_name || '',
-        company_name: '',
-        date,
-        address,
-        time_start: '',
-        time_end: '',
-        is_active: 1,
-      } as DocumentInfo;
-
-      const emp = { id: 0, document_id: c.document_id ?? 0, name: c.employee_name || '', role: '', brigade: '', signature: '' };
-
+      const { docInfo, emp } = buildDocInfoAndEmp(c);
       await generateConstanciaPDF(docInfo, emp, '/constancia_vacia.png', false, 'CONSTANCIA', undefined, c.folio);
     } finally {
       setDownloadingFolios(prev => { const s = new Set(prev); s.delete(c.folio); return s; });
+    }
+  };
+
+  const handleBatchDownload = async (companyName: string, entries: ConstanciaEntry[]) => {
+    setDownloadingBatch(prev => new Set(prev).add(companyName));
+    try {
+      for (const c of entries) {
+        setDownloadingFolios(prev => new Set(prev).add(c.folio));
+        try {
+          const { docInfo, emp } = buildDocInfoAndEmp(c);
+          await generateConstanciaPDF(docInfo, emp, '/constancia_vacia.png', false, 'CONSTANCIA', undefined, c.folio);
+        } finally {
+          setDownloadingFolios(prev => { const s = new Set(prev); s.delete(c.folio); return s; });
+        }
+      }
+    } finally {
+      setDownloadingBatch(prev => { const s = new Set(prev); s.delete(companyName); return s; });
     }
   };
 
@@ -123,14 +151,23 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
 
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex gap-2 items-center">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Buscar por folio, nombre o empresa..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 outline-none transition-all"
+                  className="w-full pl-10 pr-9 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 outline-none transition-all"
                 />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    title="Limpiar búsqueda"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
               <button
                 onClick={fetchConstancias}
@@ -156,42 +193,69 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
                   </p>
                 </div>
               ) : (
-                <div className="flex flex-col gap-3">
-                  {filteredConstancias.map((c, i) => (
-                    <div key={i} className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-mono text-sm font-bold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2.5 py-1 rounded-md">
-                          Folio: {c.folio}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                          {new Date(c.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </span>
-                      </div>
-
-                      <div className="mt-3">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-0.5">Acredita a</p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white">{c.employee_name || 'N/A'}</p>
-                      </div>
-
-                      <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 flex items-end justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-0.5">Empresa</p>
-                          <p className="text-sm text-gray-700 dark:text-gray-300 font-medium truncate">{c.commercial_name || '—'}</p>
+                <div className="flex flex-col gap-5">
+                  {companyGroups.map(([companyName, entries]) => {
+                    const isBatchLoading = downloadingBatch.has(companyName);
+                    return (
+                      <div key={companyName}>
+                        {/* Company header */}
+                        <div className="flex items-center justify-between mb-2 px-1">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                            <span className="text-sm font-bold text-blue-900 dark:text-blue-300 truncate">{companyName}</span>
+                            <span className="text-xs text-gray-400 font-medium shrink-0">({entries.length})</span>
+                          </div>
+                          {entries.length > 1 && (
+                            <button
+                              onClick={() => handleBatchDownload(companyName, entries)}
+                              disabled={isBatchLoading}
+                              className="shrink-0 flex items-center gap-1.5 bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:opacity-50 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors touch-manipulation ml-2"
+                              title="Descargar todas las constancias de esta empresa"
+                            >
+                              {isBatchLoading
+                                ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
+                                : <><PackageOpen className="w-3.5 h-3.5" /> Descargar todas</>
+                              }
+                            </button>
+                          )}
                         </div>
-                        <button
-                          onClick={() => handleRegenerate(c)}
-                          disabled={downloadingFolios.has(c.folio)}
-                          className="shrink-0 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors touch-manipulation"
-                          title="Volver a descargar constancia"
-                        >
-                          {downloadingFolios.has(c.folio)
-                            ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
-                            : <><Download className="w-3.5 h-3.5" /> Descargar</>
-                          }
-                        </button>
+
+                        {/* Individual cards */}
+                        <div className="flex flex-col gap-2">
+                          {entries.map((c, i) => (
+                            <div key={i} className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-mono text-sm font-bold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2.5 py-1 rounded-md">
+                                  Folio: {c.folio}
+                                </span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                  {new Date(c.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                </span>
+                              </div>
+
+                              <div className="mt-3 flex items-end justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-0.5">Acredita a</p>
+                                  <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{c.employee_name || 'N/A'}</p>
+                                </div>
+                                <button
+                                  onClick={() => handleRegenerate(c)}
+                                  disabled={downloadingFolios.has(c.folio) || isBatchLoading}
+                                  className="shrink-0 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors touch-manipulation"
+                                  title="Volver a descargar constancia"
+                                >
+                                  {downloadingFolios.has(c.folio)
+                                    ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
+                                    : <><Download className="w-3.5 h-3.5" /> Descargar</>
+                                  }
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
