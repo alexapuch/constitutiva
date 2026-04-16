@@ -30,7 +30,7 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
   const fetchConstancias = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/constancias');
+      const res = await fetch('/api/constancias', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setConstancias(data);
