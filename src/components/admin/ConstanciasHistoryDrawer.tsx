@@ -47,14 +47,20 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
     }
   }, [isOpen]);
 
-  const filteredConstancias = constancias.filter(c => {
-    const term = searchTerm.toLowerCase();
-    return (
-      c.folio.toLowerCase().includes(term) ||
-      (c.employee_name && c.employee_name.toLowerCase().includes(term)) ||
-      (c.commercial_name && c.commercial_name.toLowerCase().includes(term))
-    );
-  });
+  const filteredConstancias = constancias
+    .filter(c => {
+      const term = searchTerm.toLowerCase();
+      return (
+        c.folio.toLowerCase().includes(term) ||
+        (c.employee_name && c.employee_name.toLowerCase().includes(term)) ||
+        (c.commercial_name && c.commercial_name.toLowerCase().includes(term))
+      );
+    })
+    .sort((a, b) => {
+      const numA = parseInt(a.folio.replace(/\D/g, ''), 10) || 0;
+      const numB = parseInt(b.folio.replace(/\D/g, ''), 10) || 0;
+      return numB - numA;
+    });
 
   const handleRegenerate = async (c: ConstanciaEntry) => {
     setDownloadingFolios(prev => new Set(prev).add(c.folio));
