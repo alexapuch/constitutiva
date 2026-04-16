@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import { DocumentInfo, Employee } from '../types';
 import { folioToSlug } from './generateFolio';
 import Swal from 'sweetalert2';
-import { savePdfVersion } from './savePdfVersion';
+
 import { generatePdfName } from './pdfNameGenerator';
 import { savePdf } from './savePdf';
 import { hasChinese, loadChineseFont } from './loadChineseFont';
@@ -160,9 +160,6 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
         // Generate output and share/download
         const pdfName = generatePdfName(pdfPrefix, docInfo.commercial_name, fileDate || docInfo.date);
         const pdfBlob = doc.output('blob');
-        
-        // Background cloud save
-        savePdfVersion(pdfBlob, `${pdfName}.pdf`, 'Constancias (Lote)', Object.keys(docInfo).length > 0 && docInfo.id ? docInfo.id : undefined).catch(err => console.error('Auto-save failed:', err));
 
         await savePdf(pdfBlob, `${pdfName}.pdf`);
     } catch (error: any) {

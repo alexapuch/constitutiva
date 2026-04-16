@@ -351,40 +351,6 @@ export default function AdminView() {
     }
   };
 
-  const handleExportBackup = async () => {
-    try {
-      const [docsRes, quotesRes] = await Promise.all([
-        fetch('/api/documents'),
-        fetch('/api/quotes')
-      ]);
-      const allDocs = await docsRes.json();
-      const allQuotes = await quotesRes.json();
-      const allEmployees: any[] = [];
-      for (const doc of allDocs) {
-        const empRes = await fetch(`/api/documents/${doc.id}/employees`);
-        const emps = await empRes.json();
-        allEmployees.push(...emps);
-      }
-      const backup = {
-        exportDate: new Date().toISOString(),
-        version: 'v1.41', // Same arbitrary version flag
-        documents: allDocs,
-        employees: allEmployees,
-        quotes: allQuotes,
-      };
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `backup_seprisa_${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      Swal.fire({ icon: 'success', title: 'Backup exportado', text: `${allDocs.length} documentos, ${allEmployees.length} empleados, ${allQuotes.length} cotizaciones.`, confirmButtonColor: '#1f3769' });
-    } catch (err: any) {
-      Swal.fire({ icon: 'error', title: 'Error', text: err.message, confirmButtonColor: '#722F37' });
-    }
-  };
-
   if (authLoading) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4"><div className="w-8 h-8 border-4 border-blue-900 border-t-transparent rounded-full animate-spin" /></div>;
   }
@@ -406,7 +372,6 @@ export default function AdminView() {
         onOpenManualConstancia={() => { setShowQuickModal(true); }}
         onOpenCartaResponsiva={() => { setShowCartaResponsiva(true); }}
         onOpenConstanciasHistory={() => setShowConstanciasDrawer(true)}
-        onExportBackup={handleExportBackup}
         onLogout={async () => {
           await supabase.auth.signOut();
           setIsAuthenticated(false);

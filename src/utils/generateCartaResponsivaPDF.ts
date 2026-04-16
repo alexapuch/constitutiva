@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import Swal from 'sweetalert2';
 import { FIRMA_JORGE_BASE64 } from './firmaJorge';
-import { savePdfVersion } from './savePdfVersion';
+
 import { generatePdfName } from './pdfNameGenerator';
 
 export interface CartaResponsivaData {
@@ -163,8 +163,6 @@ export const generateCartaResponsivaPDF = async (data: CartaResponsivaData, prev
             return URL.createObjectURL(pdfBlob);
         }
 
-        // Background cloud save (pass raw title since document id is optional/unknown here)
-        savePdfVersion(pdfBlob, `${fileName}.pdf`, 'Carta Responsiva', undefined).catch(err => console.error('Auto-save failed:', err));
 
         // Save/Share
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);

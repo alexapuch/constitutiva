@@ -14,7 +14,6 @@ interface SideMenuProps {
   onOpenManualConstancia: () => void;
   onOpenCartaResponsiva: () => void;
   onOpenConstanciasHistory: () => void;
-  onExportBackup: () => void;
   onLogout: () => void;
   onNavigateHome: () => void;
 }
@@ -22,7 +21,7 @@ interface SideMenuProps {
 export default function SideMenu({
   isOpen, onClose, activeTab, setActiveTab, quotesCount,
   onOpenQuoteHistory, onOpenNewQuote, onOpenManualConstancia,
-  onOpenCartaResponsiva, onOpenConstanciasHistory, onExportBackup, onLogout, onNavigateHome
+  onOpenCartaResponsiva, onOpenConstanciasHistory, onLogout, onNavigateHome
 }: SideMenuProps) {
   const { theme, toggleTheme } = useTheme();
 
@@ -118,14 +117,6 @@ export default function SideMenu({
               >
                 <ClipboardList className="w-5 h-5" />
                 Registro de Constancias
-              </button>
-
-              <button
-                onClick={() => { onClose(); onExportBackup(); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium"
-              >
-                <Database className="w-5 h-5" />
-                Exportar Backup
               </button>
             </nav>
 

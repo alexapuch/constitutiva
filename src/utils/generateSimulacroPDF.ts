@@ -4,7 +4,7 @@ import { DocumentInfo, Employee } from '../types';
 import { sortEmployees } from './employees';
 import { compressSignature } from './compressSignature';
 import { FIRMA_JORGE_BASE64 } from './firmaJorge';
-import { savePdfVersion } from './savePdfVersion';
+
 import { generatePdfName } from './pdfNameGenerator';
 
 export const generateSimulacroPDF = async (
@@ -404,9 +404,6 @@ export const generateSimulacroPDF = async (
     if (preview) {
         return URL.createObjectURL(pdfBlob);
     }
-
-    // Background cloud save
-    savePdfVersion(pdfBlob, `${fileName}.pdf`, 'Cédula Simulacro', Object.keys(docInfo).length > 0 && docInfo.id ? docInfo.id : undefined).catch(err => console.error('Auto-save failed:', err));
 
     const file = new File([pdfBlob], `${fileName}.pdf`, { type: 'application/pdf' });
 
