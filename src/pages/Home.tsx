@@ -90,7 +90,7 @@ export default function Home() {
 
           <div className="text-gray-400 text-xs mt-6 pt-6 border-t border-gray-100 flex flex-col items-center gap-1.5 w-full">
             <p className="font-semibold text-[#0B152A]/70">&copy; 2026 SEPRISA. Todos los derechos reservados.</p>
-            <p>v1.49</p>
+            <p>v1.50</p>
           </div>
         </motion.div>
       </div>

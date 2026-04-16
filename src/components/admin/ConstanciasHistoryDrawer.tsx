@@ -280,24 +280,24 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
                               <button
                                 onClick={() => handleBatchDownload(companyName, entries)}
                                 disabled={isBatchLoading || isBatchDeleting}
-                                className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:opacity-50 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors touch-manipulation"
+                                className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:opacity-50 text-white text-xs font-bold p-1.5 sm:px-3 rounded-lg transition-colors touch-manipulation"
                                 title="Descargar todas las constancias de esta empresa"
                               >
                                 {isBatchLoading
-                                  ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
-                                  : <><PackageOpen className="w-3.5 h-3.5" /> Descargar todas</>
+                                  ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span className="hidden sm:inline"> Generando...</span></>
+                                  : <><PackageOpen className="w-3.5 h-3.5" /><span className="hidden sm:inline"> Descargar todas</span></>
                                 }
                               </button>
                             )}
                             <button
                               onClick={() => handleBatchDelete(companyName, entries)}
                               disabled={isBatchDeleting || isBatchLoading}
-                              className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:opacity-50 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors touch-manipulation"
+                              className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:opacity-50 text-white text-xs font-bold p-1.5 sm:px-3 rounded-lg transition-colors touch-manipulation"
                               title="Eliminar todas las constancias de esta empresa"
                             >
                               {isBatchDeleting
-                                ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Eliminando...</>
-                                : <><Trash2 className="w-3.5 h-3.5" /> Eliminar todas</>
+                                ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span className="hidden sm:inline"> Eliminando...</span></>
+                                : <><Trash2 className="w-3.5 h-3.5" /><span className="hidden sm:inline"> Eliminar todas</span></>
                               }
                             </button>
                           </div>
