@@ -439,6 +439,17 @@ router.post('/constancias/folio', async (req, res) => {
     res.json({ folio });
 });
 
+// DELETE constancias by folio list
+router.delete('/constancias', async (req, res) => {
+    const { folios } = req.body;
+    if (!Array.isArray(folios) || folios.length === 0) {
+        return res.status(400).json({ error: 'folios array required' });
+    }
+    const { error } = await supabase.from('constancias').delete().in('folio', folios);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ deleted: folios.length });
+});
+
 // GET all constancias
 router.get('/constancias', async (req, res) => {
     const { data, error } = await supabase

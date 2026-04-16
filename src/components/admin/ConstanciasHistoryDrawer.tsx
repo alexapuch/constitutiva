@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { FileSignature, X, Search, RefreshCw, Download, Building2, PackageOpen } from 'lucide-react';
+import { FileSignature, X, Search, RefreshCw, Download, Building2, PackageOpen, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { DocumentInfo } from '../../types';
 import { generateConstanciaPDF, generateConstanciasBatchFromRegistry } from '../../utils/generateConstanciaPDF';
+import Swal from 'sweetalert2';
 
 interface ConstanciaEntry {
   folio: string;
@@ -26,6 +27,8 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
   const [searchTerm, setSearchTerm] = useState('');
   const [downloadingFolios, setDownloadingFolios] = useState<Set<string>>(new Set());
   const [downloadingBatch, setDownloadingBatch] = useState<Set<string>>(new Set());
+  const [deletingFolios, setDeletingFolios] = useState<Set<string>>(new Set());
+  const [deletingBatch, setDeletingBatch] = useState<Set<string>>(new Set());
 
   const fetchConstancias = async () => {
     setIsLoading(true);
@@ -49,6 +52,68 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
       fetchConstancias();
     }
   }, [isOpen]);
+
+  const deleteFromApi = async (folios: string[]): Promise<boolean> => {
+    const res = await fetch('/api/constancias', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folios }),
+    });
+    return res.ok;
+  };
+
+  const handleDelete = async (c: ConstanciaEntry) => {
+    const result = await Swal.fire({
+      title: '¿Eliminar constancia?',
+      html: `<b>Folio: ${c.folio}</b><br/>${c.employee_name}`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+    });
+    if (!result.isConfirmed) return;
+
+    setDeletingFolios(prev => new Set(prev).add(c.folio));
+    try {
+      const ok = await deleteFromApi([c.folio]);
+      if (ok) {
+        setConstancias(prev => prev.filter(x => x.folio !== c.folio));
+      } else {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo eliminar la constancia.', timer: 2500, showConfirmButton: false });
+      }
+    } finally {
+      setDeletingFolios(prev => { const s = new Set(prev); s.delete(c.folio); return s; });
+    }
+  };
+
+  const handleBatchDelete = async (companyName: string, entries: ConstanciaEntry[]) => {
+    const result = await Swal.fire({
+      title: '¿Eliminar todas?',
+      html: `Se eliminarán <b>${entries.length} constancias</b> de <b>${companyName}</b>.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, eliminar todas',
+      cancelButtonText: 'Cancelar',
+    });
+    if (!result.isConfirmed) return;
+
+    setDeletingBatch(prev => new Set(prev).add(companyName));
+    try {
+      const folios = entries.map(e => e.folio);
+      const ok = await deleteFromApi(folios);
+      if (ok) {
+        setConstancias(prev => prev.filter(x => !folios.includes(x.folio)));
+      } else {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron eliminar las constancias.', timer: 2500, showConfirmButton: false });
+      }
+    } finally {
+      setDeletingBatch(prev => { const s = new Set(prev); s.delete(companyName); return s; });
+    }
+  };
 
   const filteredConstancias = constancias
     .filter(c => {
@@ -114,9 +179,9 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
     setDownloadingBatch(prev => new Set(prev).add(companyName));
     try {
       const batchEntries = entries.map(c => {
-        let date = new Date(c.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
-        let address = '';
-        if (c.document_id) {
+        let date = c.date || new Date(c.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
+        let address = c.address || '';
+        if (!address && c.document_id) {
           const linked = documents.find(d => d.id === c.document_id);
           if (linked) { date = linked.date || date; address = linked.address || ''; }
         }
@@ -200,6 +265,7 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
                 <div className="flex flex-col gap-5">
                   {companyGroups.map(([companyName, entries]) => {
                     const isBatchLoading = downloadingBatch.has(companyName);
+                    const isBatchDeleting = deletingBatch.has(companyName);
                     return (
                       <div key={companyName}>
                         {/* Company header */}
@@ -209,53 +275,82 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
                             <span className="text-sm font-bold text-blue-900 dark:text-blue-300 truncate">{companyName}</span>
                             <span className="text-xs text-gray-400 font-medium shrink-0">({entries.length})</span>
                           </div>
-                          {entries.length > 1 && (
+                          <div className="flex items-center gap-1.5 ml-2 shrink-0">
+                            {entries.length > 1 && (
+                              <button
+                                onClick={() => handleBatchDownload(companyName, entries)}
+                                disabled={isBatchLoading || isBatchDeleting}
+                                className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:opacity-50 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors touch-manipulation"
+                                title="Descargar todas las constancias de esta empresa"
+                              >
+                                {isBatchLoading
+                                  ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
+                                  : <><PackageOpen className="w-3.5 h-3.5" /> Descargar todas</>
+                                }
+                              </button>
+                            )}
                             <button
-                              onClick={() => handleBatchDownload(companyName, entries)}
-                              disabled={isBatchLoading}
-                              className="shrink-0 flex items-center gap-1.5 bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:opacity-50 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors touch-manipulation ml-2"
-                              title="Descargar todas las constancias de esta empresa"
+                              onClick={() => handleBatchDelete(companyName, entries)}
+                              disabled={isBatchDeleting || isBatchLoading}
+                              className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:opacity-50 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors touch-manipulation"
+                              title="Eliminar todas las constancias de esta empresa"
                             >
-                              {isBatchLoading
-                                ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
-                                : <><PackageOpen className="w-3.5 h-3.5" /> Descargar todas</>
+                              {isBatchDeleting
+                                ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Eliminando...</>
+                                : <><Trash2 className="w-3.5 h-3.5" /> Eliminar todas</>
                               }
                             </button>
-                          )}
+                          </div>
                         </div>
 
                         {/* Individual cards */}
                         <div className="flex flex-col gap-2">
-                          {entries.map((c, i) => (
-                            <div key={i} className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="font-mono text-sm font-bold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2.5 py-1 rounded-md">
-                                  Folio: {c.folio}
-                                </span>
-                                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                  {new Date(c.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                </span>
-                              </div>
-
-                              <div className="mt-3 flex items-end justify-between gap-2">
-                                <div className="min-w-0">
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-0.5">Acredita a</p>
-                                  <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{c.employee_name || 'N/A'}</p>
+                          {entries.map((c, i) => {
+                            const isDeleting = deletingFolios.has(c.folio);
+                            return (
+                              <div key={i} className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="font-mono text-sm font-bold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2.5 py-1 rounded-md">
+                                    Folio: {c.folio}
+                                  </span>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                    {new Date(c.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  </span>
                                 </div>
-                                <button
-                                  onClick={() => handleRegenerate(c)}
-                                  disabled={downloadingFolios.has(c.folio) || isBatchLoading}
-                                  className="shrink-0 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors touch-manipulation"
-                                  title="Volver a descargar constancia"
-                                >
-                                  {downloadingFolios.has(c.folio)
-                                    ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
-                                    : <><Download className="w-3.5 h-3.5" /> Descargar</>
-                                  }
-                                </button>
+
+                                <div className="mt-3 flex items-end justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-0.5">Acredita a</p>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{c.employee_name || 'N/A'}</p>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <button
+                                      onClick={() => handleRegenerate(c)}
+                                      disabled={downloadingFolios.has(c.folio) || isBatchLoading || isDeleting}
+                                      className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors touch-manipulation"
+                                      title="Volver a descargar constancia"
+                                    >
+                                      {downloadingFolios.has(c.folio)
+                                        ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
+                                        : <><Download className="w-3.5 h-3.5" /> Descargar</>
+                                      }
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(c)}
+                                      disabled={isDeleting || isBatchDeleting || downloadingFolios.has(c.folio)}
+                                      className="flex items-center justify-center bg-red-100 hover:bg-red-200 active:bg-red-300 disabled:opacity-50 text-red-600 hover:text-red-700 p-2 rounded-lg transition-colors touch-manipulation"
+                                      title="Eliminar constancia"
+                                    >
+                                      {isDeleting
+                                        ? <div className="w-3.5 h-3.5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                                        : <Trash2 className="w-3.5 h-3.5" />
+                                      }
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     );
