@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Home, BarChart3, ClipboardList, Calculator, FileSignature, ShieldCheck, History, Database, Sun, Moon, LogOut } from 'lucide-react';
+import { X, Home, BarChart3, ClipboardList, Calculator, FileSignature, ShieldCheck, Database, Sun, Moon, LogOut } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 interface SideMenuProps {
@@ -9,12 +9,10 @@ interface SideMenuProps {
   activeTab: 'documents' | 'dashboard';
   setActiveTab: (tab: 'documents' | 'dashboard') => void;
   quotesCount: number;
-  pdfHistoryCount: number;
   onOpenQuoteHistory: () => void;
   onOpenNewQuote: () => void;
   onOpenManualConstancia: () => void;
   onOpenCartaResponsiva: () => void;
-  onOpenPdfHistory: () => void;
   onOpenConstanciasHistory: () => void;
   onExportBackup: () => void;
   onLogout: () => void;
@@ -22,9 +20,9 @@ interface SideMenuProps {
 }
 
 export default function SideMenu({
-  isOpen, onClose, activeTab, setActiveTab, quotesCount, pdfHistoryCount,
+  isOpen, onClose, activeTab, setActiveTab, quotesCount,
   onOpenQuoteHistory, onOpenNewQuote, onOpenManualConstancia,
-  onOpenCartaResponsiva, onOpenPdfHistory, onOpenConstanciasHistory, onExportBackup, onLogout, onNavigateHome
+  onOpenCartaResponsiva, onOpenConstanciasHistory, onExportBackup, onLogout, onNavigateHome
 }: SideMenuProps) {
   const { theme, toggleTheme } = useTheme();
 
@@ -112,17 +110,6 @@ export default function SideMenu({
               >
                 <ShieldCheck className="w-5 h-5" />
                 Carta Responsiva
-              </button>
-
-              <button
-                onClick={() => { onClose(); onOpenPdfHistory(); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium"
-              >
-                <History className="w-5 h-5" />
-                Historial de PDFs
-                {pdfHistoryCount > 0 && (
-                  <span className="ml-auto bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{pdfHistoryCount}</span>
-                )}
               </button>
 
               <button

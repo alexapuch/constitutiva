@@ -20,14 +20,13 @@ import { supabase } from '../utils/supabaseClient';
 import SideMenu from '../components/admin/SideMenu';
 import DashboardView from '../components/admin/DashboardView';
 import QuoteHistoryDrawer from '../components/admin/QuoteHistoryDrawer';
-import PdfHistoryDrawer from '../components/admin/PdfHistoryDrawer';
 import ConstanciasHistoryDrawer from '../components/admin/ConstanciasHistoryDrawer';
 import PdfPreviewModal from '../components/admin/PdfPreviewModal';
 import CartaResponsivaView from '../components/admin/CartaResponsivaView';
 import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.39';
+const APP_VERSION = 'v1.40';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -84,7 +83,6 @@ export default function AdminView() {
   const [showSideMenu, setShowSideMenu] = useState(false);
   const [showDoneSection, setShowDoneSection] = useState(false);
   const [copiedId, setCopiedId] = useState<number | null>(null);
-  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
   const [showConstanciasDrawer, setShowConstanciasDrawer] = useState(false);
   const [showCartaResponsiva, setShowCartaResponsiva] = useState(false);
   const [turnosSimulacro, setTurnosSimulacro] = useState<'M' | 'MV' | 'MVN'>('MV');
@@ -143,22 +141,19 @@ export default function AdminView() {
   }, [selectedDocId]);
 
   useEffect(() => {
-    if (showQuickModal || showQuoteDrawer || showSideMenu || showCartaResponsiva || showHistoryDrawer || previewUrl) {
+    if (showQuickModal || showQuoteDrawer || showSideMenu || showCartaResponsiva || previewUrl) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
     return () => { document.body.style.overflow = ''; };
-  }, [showQuickModal, showQuoteDrawer, showSideMenu, showCartaResponsiva, showHistoryDrawer, previewUrl]);
+  }, [showQuickModal, showQuoteDrawer, showSideMenu, showCartaResponsiva, previewUrl]);
 
   useEffect(() => {
     fetchDocuments();
     fetchQuotes();
   }, [fetchDocuments]);
 
-  useEffect(() => {
-    if (showHistoryDrawer) fetchPdfHistory();
-  }, [showHistoryDrawer, fetchPdfHistory]);
 
   useEffect(() => {
     const handleVisibility = () => {
@@ -411,7 +406,7 @@ export default function AdminView() {
       }
       const backup = {
         exportDate: new Date().toISOString(),
-        version: 'v1.39', // Same arbitrary version flag
+        version: 'v1.40', // Same arbitrary version flag
         documents: allDocs,
         employees: allEmployees,
         quotes: allQuotes,
@@ -446,12 +441,10 @@ export default function AdminView() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         quotesCount={quotes.length}
-        pdfHistoryCount={pdfHistory.length}
         onOpenQuoteHistory={() => { setShowQuoteDrawer(true); }}
         onOpenNewQuote={() => { setShowQuoteModal(true); }}
         onOpenManualConstancia={() => { setShowQuickModal(true); }}
         onOpenCartaResponsiva={() => { setShowCartaResponsiva(true); }}
-        onOpenPdfHistory={() => setShowHistoryDrawer(true)}
         onOpenConstanciasHistory={() => setShowConstanciasDrawer(true)}
         onExportBackup={handleExportBackup}
         onLogout={async () => {
@@ -1182,21 +1175,10 @@ export default function AdminView() {
         }}
       />
 
-      <PdfHistoryDrawer
-        isOpen={showHistoryDrawer}
-        onClose={() => setShowHistoryDrawer(false)}
-        pdfHistory={pdfHistory}
-        onRemoveEntry={(i) => {
-          const updated = [...pdfHistory];
-          updated.splice(i, 1);
-          setPdfHistory(updated);
-          localStorage.setItem('pdfHistory', JSON.stringify(updated));
-        }}
-      />
-
       <ConstanciasHistoryDrawer
         isOpen={showConstanciasDrawer}
         onClose={() => setShowConstanciasDrawer(false)}
+        documents={documents}
       />
 
       <PdfPreviewModal

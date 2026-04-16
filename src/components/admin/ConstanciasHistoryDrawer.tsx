@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { FileSignature, X, Search, RefreshCw } from 'lucide-react';
+import { FileSignature, X, Search, RefreshCw, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { DocumentInfo } from '../../types';
+import { generateConstanciaPDF } from '../../utils/generateConstanciaPDF';
 
 interface ConstanciaEntry {
   folio: string;
@@ -13,12 +15,14 @@ interface ConstanciaEntry {
 interface ConstanciasHistoryDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  documents: DocumentInfo[];
 }
 
-export default function ConstanciasHistoryDrawer({ isOpen, onClose }: ConstanciasHistoryDrawerProps) {
+export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }: ConstanciasHistoryDrawerProps) {
   const [constancias, setConstancias] = useState<ConstanciaEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [downloadingFolios, setDownloadingFolios] = useState<Set<string>>(new Set());
 
   const fetchConstancias = async () => {
     setIsLoading(true);
@@ -51,6 +55,40 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose }: Constancia
       (c.commercial_name && c.commercial_name.toLowerCase().includes(term))
     );
   });
+
+  const handleRegenerate = async (c: ConstanciaEntry) => {
+    setDownloadingFolios(prev => new Set(prev).add(c.folio));
+    try {
+      // Try to get date/address from the linked document; fall back to created_at
+      let date = new Date(c.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
+      let address = '';
+
+      if (c.document_id) {
+        const linked = documents.find(d => d.id === c.document_id);
+        if (linked) {
+          date = linked.date || date;
+          address = linked.address || '';
+        }
+      }
+
+      const docInfo = {
+        id: c.document_id ?? 0,
+        commercial_name: c.commercial_name || '',
+        company_name: '',
+        date,
+        address,
+        time_start: '',
+        time_end: '',
+        is_active: 1,
+      } as DocumentInfo;
+
+      const emp = { id: 0, document_id: c.document_id ?? 0, name: c.employee_name || '', role: '', brigade: '', signature: '' };
+
+      await generateConstanciaPDF(docInfo, emp, '/constancia_vacia.png', false, 'CONSTANCIA', undefined, c.folio);
+    } finally {
+      setDownloadingFolios(prev => { const s = new Set(prev); s.delete(c.folio); return s; });
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -123,15 +161,28 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose }: Constancia
                           {new Date(c.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </span>
                       </div>
-                      
+
                       <div className="mt-3">
                         <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-0.5">Acredita a</p>
                         <p className="text-sm font-bold text-gray-900 dark:text-white">{c.employee_name || 'N/A'}</p>
                       </div>
 
-                      <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-0.5">Empresa</p>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 font-medium truncate">{c.commercial_name || '—'}</p>
+                      <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 flex items-end justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-0.5">Empresa</p>
+                          <p className="text-sm text-gray-700 dark:text-gray-300 font-medium truncate">{c.commercial_name || '—'}</p>
+                        </div>
+                        <button
+                          onClick={() => handleRegenerate(c)}
+                          disabled={downloadingFolios.has(c.folio)}
+                          className="shrink-0 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors touch-manipulation"
+                          title="Volver a descargar constancia"
+                        >
+                          {downloadingFolios.has(c.folio)
+                            ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
+                            : <><Download className="w-3.5 h-3.5" /> Descargar</>
+                          }
+                        </button>
                       </div>
                     </div>
                   ))}

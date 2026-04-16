@@ -9,12 +9,12 @@ import { savePdf } from './savePdf';
 import { hasChinese, loadChineseFont } from './loadChineseFont';
 import { getCachedJpeg } from './imageCache';
 
-export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee, templateImage: string = '/constancia_vacia.png', preview: boolean = false, pdfPrefix: string = 'CONSTANCIA', fileDate?: string): Promise<string | void> => {
+export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee, templateImage: string = '/constancia_vacia.png', preview: boolean = false, pdfPrefix: string = 'CONSTANCIA', fileDate?: string, existingFolio?: string): Promise<string | void> => {
     try {
         // Start folio fetch immediately — runs in parallel with synchronous PDF setup below
         const folioPromise = preview
             ? Promise.resolve('PREV/0001')
-            : generateFolio(docInfo.id, emp.name, docInfo.commercial_name);
+            : (existingFolio ? Promise.resolve(existingFolio) : generateFolio(docInfo.id, emp.name, docInfo.commercial_name));
 
         const imgJpeg = await getCachedJpeg(templateImage);
 
@@ -132,9 +132,6 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         const pdfName = generatePdfName(pdfPrefix, docInfo.commercial_name, fileDate || docInfo.date);
         const pdfBlob = doc.output('blob');
         
-        // Background cloud save
-        savePdfVersion(pdfBlob, `${pdfName}.pdf`, 'Constancia', Object.keys(docInfo).length > 0 && docInfo.id ? docInfo.id : undefined).catch(err => console.error('Auto-save failed:', err));
-
         await savePdf(pdfBlob, `${pdfName}.pdf`);
     } catch (error: any) {
         console.error('Error al generar constancia:', error);
