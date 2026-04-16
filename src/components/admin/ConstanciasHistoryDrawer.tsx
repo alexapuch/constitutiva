@@ -94,7 +94,7 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose }: Constancia
                 className="p-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-600 dark:text-gray-300 disabled:opacity-50 flex items-center justify-center"
                 title="Actualizar lista"
               >
-                <RefreshCw className={\`w-5 h-5 \${isLoading ? 'animate-spin' : ''}\`} />
+                <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
               </button>
             </div>
 
