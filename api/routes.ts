@@ -333,7 +333,7 @@ router.delete('/pdf-history-clear', async (req, res) => {
 
 // POST crear folios en lote para múltiples constancias (evita rate-limiting con listas grandes)
 router.post('/constancias/folios-batch', async (req, res) => {
-    const { employees } = req.body; // [{document_id, employee_name, commercial_name}]
+    const { employees } = req.body; // [{document_id, employee_name, commercial_name, address, date}]
     if (!Array.isArray(employees) || employees.length === 0) {
         return res.status(400).json({ error: 'employees array required' });
     }
@@ -380,6 +380,8 @@ router.post('/constancias/folios-batch', async (req, res) => {
                 document_id: emp.document_id ?? null,
                 employee_name: emp.employee_name,
                 commercial_name: emp.commercial_name ?? null,
+                address: emp.address ?? null,
+                date: emp.date ?? null,
                 folio,
             };
             rows.push(newRow);
@@ -399,7 +401,7 @@ router.post('/constancias/folios-batch', async (req, res) => {
 
 // POST crear folio para constancia (individual — usado para constancias de 1 persona)
 router.post('/constancias/folio', async (req, res) => {
-    const { document_id, employee_name, commercial_name } = req.body;
+    const { document_id, employee_name, commercial_name, address, date } = req.body;
     
     let query = supabase.from('constancias').select('folio').eq('employee_name', employee_name);
     if (document_id) {
@@ -424,6 +426,8 @@ router.post('/constancias/folio', async (req, res) => {
         document_id: document_id ?? null,
         employee_name,
         commercial_name: commercial_name ?? null,
+        address: address ?? null,
+        date: date ?? null,
         folio,
     });
     if (error) return res.status(500).json({ error: error.message });
@@ -434,7 +438,7 @@ router.post('/constancias/folio', async (req, res) => {
 router.get('/constancias', async (req, res) => {
     const { data, error } = await supabase
         .from('constancias')
-        .select('folio, employee_name, commercial_name, created_at, document_id')
+        .select('folio, employee_name, commercial_name, address, date, created_at, document_id')
         .order('created_at', { ascending: false })
         .limit(500); // Limit to 500 to avoid huge payloads, could add pagination if needed
 

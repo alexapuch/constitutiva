@@ -1,8 +1,8 @@
-export const generateFolio = async (documentId: number | undefined, employeeName: string, commercialName?: string): Promise<string> => {
+export const generateFolio = async (documentId: number | undefined, employeeName: string, commercialName?: string, address?: string, date?: string): Promise<string> => {
     const res = await fetch('/api/constancias/folio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ document_id: documentId ?? null, employee_name: employeeName, commercial_name: commercialName ?? null }),
+        body: JSON.stringify({ document_id: documentId ?? null, employee_name: employeeName, commercial_name: commercialName ?? null, address: address ?? null, date: date ?? null }),
     });
     if (!res.ok) {
         console.error('[Folio] Error del servidor:', await res.text());

@@ -8,6 +8,8 @@ interface ConstanciaEntry {
   folio: string;
   employee_name: string;
   commercial_name: string;
+  address?: string | null;
+  date?: string | null;
   created_at: string;
   document_id: number | null;
 }
@@ -74,13 +76,14 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
   );
 
   const buildDocInfoAndEmp = (c: ConstanciaEntry) => {
-    let date = new Date(c.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
-    let address = '';
-    if (c.document_id) {
+    let date = c.date || new Date(c.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
+    let address = c.address || '';
+    // Fallback: look up linked document if fields weren't saved at generation time
+    if ((!date || !address) && c.document_id) {
       const linked = documents.find(d => d.id === c.document_id);
       if (linked) {
-        date = linked.date || date;
-        address = linked.address || '';
+        if (!date) date = linked.date || date;
+        if (!address) address = linked.address || '';
       }
     }
     const docInfo = {

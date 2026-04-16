@@ -33,6 +33,8 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
                         document_id: docInfo.id ?? null,
                         employee_name: e.name,
                         commercial_name: docInfo.commercial_name ?? null,
+                        address: docInfo.address ?? null,
+                        date: docInfo.date ?? null,
                     }))
                 })
             }).then(res => {

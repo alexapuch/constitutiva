@@ -141,7 +141,7 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         // Start folio fetch immediately — runs in parallel with synchronous PDF setup below
         const folioPromise = preview
             ? Promise.resolve('PREV/0001')
-            : (existingFolio ? Promise.resolve(existingFolio) : generateFolio(docInfo.id, emp.name, docInfo.commercial_name));
+            : (existingFolio ? Promise.resolve(existingFolio) : generateFolio(docInfo.id, emp.name, docInfo.commercial_name, docInfo.address, docInfo.date));
 
         const imgJpeg = await getCachedJpeg(templateImage);
 
