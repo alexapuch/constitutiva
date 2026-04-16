@@ -389,6 +389,18 @@ router.post('/constancias/folio', async (req, res) => {
     res.json({ folio });
 });
 
+// GET all constancias
+router.get('/constancias', async (req, res) => {
+    const { data, error } = await supabase
+        .from('constancias')
+        .select('folio, employee_name, commercial_name, created_at, document_id')
+        .order('created_at', { ascending: false })
+        .limit(500); // Limit to 500 to avoid huge payloads, could add pagination if needed
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+});
+
 // GET verificar constancia - JSON (used by React)
 router.get('/constancias/folio/:folio', async (req, res) => {
     const folio = req.params.folio.replace('-', '/');

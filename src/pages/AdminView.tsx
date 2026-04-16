@@ -21,12 +21,13 @@ import SideMenu from '../components/admin/SideMenu';
 import DashboardView from '../components/admin/DashboardView';
 import QuoteHistoryDrawer from '../components/admin/QuoteHistoryDrawer';
 import PdfHistoryDrawer from '../components/admin/PdfHistoryDrawer';
+import ConstanciasHistoryDrawer from '../components/admin/ConstanciasHistoryDrawer';
 import PdfPreviewModal from '../components/admin/PdfPreviewModal';
 import CartaResponsivaView from '../components/admin/CartaResponsivaView';
 import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.37';
+const APP_VERSION = 'v1.38';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -84,6 +85,7 @@ export default function AdminView() {
   const [showDoneSection, setShowDoneSection] = useState(false);
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
+  const [showConstanciasDrawer, setShowConstanciasDrawer] = useState(false);
   const [showCartaResponsiva, setShowCartaResponsiva] = useState(false);
   const [turnosSimulacro, setTurnosSimulacro] = useState<'M' | 'MV' | 'MVN'>('MV');
   const [editingEmpId, setEditingEmpId] = useState<number | null>(null);
@@ -409,7 +411,7 @@ export default function AdminView() {
       }
       const backup = {
         exportDate: new Date().toISOString(),
-        version: 'v1.37', // Same arbitrary version flag
+        version: 'v1.38', // Same arbitrary version flag
         documents: allDocs,
         employees: allEmployees,
         quotes: allQuotes,
@@ -449,7 +451,8 @@ export default function AdminView() {
         onOpenNewQuote={() => { setShowQuoteModal(true); }}
         onOpenManualConstancia={() => { setShowQuickModal(true); }}
         onOpenCartaResponsiva={() => { setShowCartaResponsiva(true); }}
-        onOpenPdfHistory={() => { setShowHistoryDrawer(true); }}
+        onOpenPdfHistory={() => setShowHistoryDrawer(true)}
+        onOpenConstanciasHistory={() => setShowConstanciasDrawer(true)}
         onExportBackup={handleExportBackup}
         onLogout={async () => {
           await supabase.auth.signOut();
@@ -1183,11 +1186,17 @@ export default function AdminView() {
         isOpen={showHistoryDrawer}
         onClose={() => setShowHistoryDrawer(false)}
         pdfHistory={pdfHistory}
-        onClearHistory={() => {
-          setPdfHistory([]);
-          localStorage.removeItem('pdfHistory');
-          fetch('/api/pdf-history-clear', { method: 'DELETE' }).catch(() => {});
+        onRemoveEntry={(i) => {
+          const updated = [...pdfHistory];
+          updated.splice(i, 1);
+          setPdfHistory(updated);
+          localStorage.setItem('pdfHistory', JSON.stringify(updated));
         }}
+      />
+
+      <ConstanciasHistoryDrawer
+        isOpen={showConstanciasDrawer}
+        onClose={() => setShowConstanciasDrawer(false)}
       />
 
       <PdfPreviewModal
