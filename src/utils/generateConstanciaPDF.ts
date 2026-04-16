@@ -9,6 +9,110 @@ import { savePdf } from './savePdf';
 import { hasChinese, loadChineseFont } from './loadChineseFont';
 import { getCachedJpeg } from './imageCache';
 
+interface RegistryEntry {
+  folio: string;
+  employee_name: string;
+  commercial_name: string;
+  date: string;
+  address: string;
+}
+
+function drawConstanciaPage(doc: jsPDF, entry: RegistryEntry, imgJpeg: string, font: string) {
+  const docWidth = doc.internal.pageSize.getWidth();
+  const docHeight = doc.internal.pageSize.getHeight();
+
+  doc.addImage(imgJpeg, 'JPEG', 0, 0, docWidth, docHeight, 'template', 'FAST');
+
+  doc.setFont(font, 'bold');
+  doc.setTextColor(27, 54, 93);
+  doc.setFontSize(22);
+  doc.text(entry.employee_name.toUpperCase(), docWidth / 2, 53, { align: 'center' });
+
+  doc.setFontSize(10);
+  doc.setTextColor(80, 80, 80);
+  doc.text(entry.commercial_name.toUpperCase(), 118, 94.5, { align: 'left', maxWidth: 140 });
+
+  const addressText = (entry.address || '').split(/\s*\|\s*/)[0].trim().toUpperCase();
+  const pdcText = 'PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.';
+  const maxAddressWidth = 155;
+  let finalAddress: string | string[];
+  if (!addressText) {
+    finalAddress = pdcText;
+  } else {
+    const addressLines = doc.splitTextToSize(addressText, maxAddressWidth);
+    finalAddress = addressLines.length === 1 ? [addressText, pdcText] : `${addressText} ${pdcText}`;
+  }
+  doc.text(finalAddress, 96, 100.5, { align: 'left', maxWidth: maxAddressWidth, lineHeightFactor: 1.5 });
+
+  doc.setFontSize(11);
+  doc.setTextColor(255, 255, 255);
+  doc.setFont(font, 'bold');
+  doc.text(entry.date.toUpperCase(), 145, 124, { align: 'center' });
+
+  doc.setFontSize(7);
+  doc.setTextColor(100, 100, 100);
+  doc.setFont(font, 'bold');
+  doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
+
+  const verifyUrl = `${window.location.origin}/api/verificar/${folioToSlug(entry.folio)}`;
+  const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'M' });
+  const qrSize = 18;
+  const qrPad = 2;
+  const qrX = 234;
+  const qrY = 107.5;
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 3, 3, 'F');
+  doc.setDrawColor(220, 20, 20);
+  doc.setLineWidth(1.2);
+  doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 3, 3, 'S');
+  const modules = qrMatrix.modules;
+  const modCount = modules.size;
+  const cellSize = qrSize / modCount;
+  const gap = cellSize * 0.15;
+  doc.setFillColor(0, 0, 0);
+  for (let row = 0; row < modCount; row++) {
+    for (let col = 0; col < modCount; col++) {
+      if (modules.data[row * modCount + col]) {
+        doc.rect(qrX + col * cellSize + gap / 2, qrY + row * cellSize + gap / 2, cellSize - gap, cellSize - gap, 'F');
+      }
+    }
+  }
+}
+
+export const generateConstanciasBatchFromRegistry = async (entries: RegistryEntry[], companyName: string): Promise<void> => {
+  try {
+    if (!entries || entries.length === 0) return;
+
+    const imgJpeg = await getCachedJpeg('/constancia_vacia.png');
+
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: [279.4, 157.16],
+      compress: true,
+      encryption: { ownerPassword: 'Meyersound1##', userPermissions: ['print'] }
+    });
+
+    const needsChinese = entries.some(e =>
+      hasChinese(e.employee_name) || hasChinese(e.commercial_name) || hasChinese(e.address)
+    );
+    const chineseFontLoaded = needsChinese ? await loadChineseFont(doc) : false;
+    const font = chineseFontLoaded ? 'NotoSansSC' : 'helvetica';
+
+    for (let i = 0; i < entries.length; i++) {
+      if (i > 0) doc.addPage();
+      drawConstanciaPage(doc, entries[i], imgJpeg, font);
+    }
+
+    const dateStr = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+    const pdfBlob = doc.output('blob');
+    await savePdf(pdfBlob, `CONSTANCIAS-LOTE_${companyName}_${dateStr}.pdf`);
+  } catch (error: any) {
+    console.error('Error al generar lote de constancias:', error);
+    Swal.fire({ icon: 'error', title: 'Error', text: `No se pudo generar el lote. Detalles: ${error.message}`, confirmButtonColor: '#722F37' });
+  }
+};
+
 export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee, templateImage: string = '/constancia_vacia.png', preview: boolean = false, pdfPrefix: string = 'CONSTANCIA', fileDate?: string, existingFolio?: string): Promise<string | void> => {
     try {
         // Start folio fetch immediately — runs in parallel with synchronous PDF setup below

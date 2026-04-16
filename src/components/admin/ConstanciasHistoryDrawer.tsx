@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FileSignature, X, Search, RefreshCw, Download, Building2, PackageOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { DocumentInfo } from '../../types';
-import { generateConstanciaPDF } from '../../utils/generateConstanciaPDF';
+import { generateConstanciaPDF, generateConstanciasBatchFromRegistry } from '../../utils/generateConstanciaPDF';
 
 interface ConstanciaEntry {
   folio: string;
@@ -110,15 +110,16 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
   const handleBatchDownload = async (companyName: string, entries: ConstanciaEntry[]) => {
     setDownloadingBatch(prev => new Set(prev).add(companyName));
     try {
-      for (const c of entries) {
-        setDownloadingFolios(prev => new Set(prev).add(c.folio));
-        try {
-          const { docInfo, emp } = buildDocInfoAndEmp(c);
-          await generateConstanciaPDF(docInfo, emp, '/constancia_vacia.png', false, 'CONSTANCIA', undefined, c.folio);
-        } finally {
-          setDownloadingFolios(prev => { const s = new Set(prev); s.delete(c.folio); return s; });
+      const batchEntries = entries.map(c => {
+        let date = new Date(c.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
+        let address = '';
+        if (c.document_id) {
+          const linked = documents.find(d => d.id === c.document_id);
+          if (linked) { date = linked.date || date; address = linked.address || ''; }
         }
-      }
+        return { folio: c.folio, employee_name: c.employee_name || '', commercial_name: c.commercial_name || '', date, address };
+      });
+      await generateConstanciasBatchFromRegistry(batchEntries, companyName);
     } finally {
       setDownloadingBatch(prev => { const s = new Set(prev); s.delete(companyName); return s; });
     }
