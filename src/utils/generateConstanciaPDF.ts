@@ -16,6 +16,34 @@ interface RegistryEntry {
   address: string;
 }
 
+// Auto-shrink address font so it never overlaps the QR code (top edge ≈ 105.5mm)
+export function resolveAddressLayout(doc: jsPDF, addressText: string, pdcText: string, maxWidth: number): { finalAddress: string | string[]; fontSize: number } {
+  const startY = 100.5;
+  const qrTopY = 105.5; // qrY (107.5) - qrPad (2)
+  const lineHeightFactor = 1.5;
+
+  if (!addressText) return { finalAddress: pdcText, fontSize: 10 };
+
+  for (let fontSize = 10; fontSize >= 6; fontSize--) {
+    doc.setFontSize(fontSize);
+    const splitLines: string[] = doc.splitTextToSize(addressText, maxWidth);
+    const finalAddress: string | string[] = splitLines.length === 1
+      ? [addressText, pdcText]
+      : `${addressText} ${pdcText}`;
+    const rendered: string[] = typeof finalAddress === 'string'
+      ? doc.splitTextToSize(finalAddress, maxWidth)
+      : (finalAddress as string[]).flatMap((l: string) => doc.splitTextToSize(l, maxWidth));
+    const lineHeightMm = fontSize * 0.352778 * lineHeightFactor;
+    const bottomY = startY + (rendered.length - 1) * lineHeightMm;
+    if (bottomY <= qrTopY) return { finalAddress, fontSize };
+  }
+  // Fallback: use font 6 regardless
+  doc.setFontSize(6);
+  const splitLines: string[] = doc.splitTextToSize(addressText, maxWidth);
+  const finalAddress: string | string[] = splitLines.length === 1 ? [addressText, pdcText] : `${addressText} ${pdcText}`;
+  return { finalAddress, fontSize: 6 };
+}
+
 function drawConstanciaPage(doc: jsPDF, entry: RegistryEntry, imgJpeg: string, font: string) {
   const docWidth = doc.internal.pageSize.getWidth();
   const docHeight = doc.internal.pageSize.getHeight();
@@ -34,13 +62,9 @@ function drawConstanciaPage(doc: jsPDF, entry: RegistryEntry, imgJpeg: string, f
   const addressText = (entry.address || '').split(/\s*\|\s*/)[0].trim().toUpperCase();
   const pdcText = 'PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.';
   const maxAddressWidth = 155;
-  let finalAddress: string | string[];
-  if (!addressText) {
-    finalAddress = pdcText;
-  } else {
-    const addressLines = doc.splitTextToSize(addressText, maxAddressWidth);
-    finalAddress = addressLines.length === 1 ? [addressText, pdcText] : `${addressText} ${pdcText}`;
-  }
+  const { finalAddress, fontSize: addressFontSize } = resolveAddressLayout(doc, addressText, pdcText, maxAddressWidth);
+  doc.setFontSize(addressFontSize);
+  doc.setTextColor(80, 80, 80);
   doc.text(finalAddress, 96, 100.5, { align: 'left', maxWidth: maxAddressWidth, lineHeightFactor: 1.5 });
 
   doc.setFontSize(11);
@@ -160,22 +184,10 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         // 3. Address
         const addressText = (docInfo.address || '').split(/\s*\|\s*/)[0].trim().toUpperCase();
         const pdcText = templateImage.includes('_tulum') ? "TULUM, QUINTANA ROO, MÉXICO." : "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.";
-
         const maxAddressWidth = 155;
-
-        let finalAddress: string | string[];
-        if (!addressText) {
-            // No address: show city/state on the first line only
-            finalAddress = pdcText;
-        } else {
-            // Address present: keep original layout
-            const addressLines = doc.splitTextToSize(addressText, maxAddressWidth);
-            finalAddress = addressLines.length === 1
-                ? [addressText, pdcText]
-                : `${addressText} ${pdcText}`;
-        }
-
-        // Micro-adjustment up by 2px (0.5mm)
+        const { finalAddress, fontSize: addressFontSize } = resolveAddressLayout(doc, addressText, pdcText, maxAddressWidth);
+        doc.setFontSize(addressFontSize);
+        doc.setTextColor(80, 80, 80);
         doc.text(finalAddress, 96, 100.5, { align: 'left', maxWidth: maxAddressWidth, lineHeightFactor: 1.5 });
 
         // 4. Date

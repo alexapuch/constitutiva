@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import { resolveAddressLayout } from './generateConstanciaPDF';
 import QRCode from 'qrcode';
 import { DocumentInfo, Employee } from '../types';
 import { folioToSlug } from './generateFolio';
@@ -88,20 +89,10 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             // 3. Address
             const addressText = (docInfo.address || '').split(/\s*\|\s*/)[0].trim().toUpperCase();
             const pdcText = templateImage.includes('_tulum') ? "TULUM, QUINTANA ROO, MÉXICO." : "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.";
-
             const maxAddressWidth = 155;
-
-            let finalAddress: string | string[];
-            if (!addressText) {
-                // No address: show city/state on the first line only
-                finalAddress = pdcText;
-            } else {
-                const addressLines = doc.splitTextToSize(addressText, maxAddressWidth);
-                finalAddress = addressLines.length === 1
-                    ? [addressText, pdcText]
-                    : `${addressText} ${pdcText}`;
-            }
-
+            const { finalAddress, fontSize: addressFontSize } = resolveAddressLayout(doc, addressText, pdcText, maxAddressWidth);
+            doc.setFontSize(addressFontSize);
+            doc.setTextColor(80, 80, 80);
             doc.text(finalAddress, 96, 100.5, { align: 'left', maxWidth: maxAddressWidth, lineHeightFactor: 1.5 });
 
             // 4. Date
