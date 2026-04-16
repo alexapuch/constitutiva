@@ -4,7 +4,7 @@ import { DocumentInfo, Employee } from '../types';
 import { compressSignature } from './compressSignature';
 import { sortEmployees } from './employees';
 import Swal from 'sweetalert2';
-import { savePdfVersion } from './savePdfVersion';
+
 import { generatePdfName } from './pdfNameGenerator';
 import { savePdf } from './savePdf';
 
@@ -198,8 +198,7 @@ export const generateConstitutivaPDF = async (docInfo: DocumentInfo, employees: 
             return URL.createObjectURL(pdfBlob);
         }
 
-        // Background cloud save
-        savePdfVersion(pdfBlob, `${fileName}.pdf`, 'Acta Constitutiva', Object.keys(docInfo).length > 0 && docInfo.id ? docInfo.id : undefined).catch(err => console.error('Auto-save failed:', err));
+
 
         await savePdf(pdfBlob, `${fileName}.pdf`, `Acta Constitutiva - ${docInfo.commercial_name}`);
     } catch (e: any) {

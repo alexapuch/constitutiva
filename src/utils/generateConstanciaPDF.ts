@@ -3,7 +3,6 @@ import QRCode from 'qrcode';
 import { DocumentInfo, Employee } from '../types';
 import { generateFolio, folioToSlug } from './generateFolio';
 import Swal from 'sweetalert2';
-import { savePdfVersion } from './savePdfVersion';
 import { generatePdfName } from './pdfNameGenerator';
 import { savePdf } from './savePdf';
 import { hasChinese, loadChineseFont } from './loadChineseFont';
