@@ -354,14 +354,17 @@ router.post('/constancias/folios-batch', async (req, res) => {
 
     const year = new Date().getFullYear().toString().slice(-2);
 
-    // Una sola consulta de conteo para toda la lista
-    const { count, error: countError } = await supabase
+    // Use max folio number so deleting rows never causes duplicates
+    const { data: maxData, error: countError } = await supabase
         .from('constancias')
-        .select('*', { count: 'exact', head: true })
-        .like('folio', `%/${year}`);
+        .select('folio')
+        .like('folio', `%/${year}`)
+        .order('folio', { ascending: false })
+        .limit(1);
     if (countError) return res.status(500).json({ error: countError.message });
+    const maxNum = maxData && maxData.length > 0 ? (parseInt(maxData[0].folio.split('/')[0], 10) || 0) : 0;
 
-    let next = (count ?? 0) + 1;
+    let next = maxNum + 1;
     const folios: string[] = [];
     const rows: any[] = [];
 
@@ -416,12 +419,14 @@ router.post('/constancias/folio', async (req, res) => {
     }
 
     const year = new Date().getFullYear().toString().slice(-2);
-    const { count } = await supabase
+    const { data: maxData } = await supabase
         .from('constancias')
-        .select('*', { count: 'exact', head: true })
-        .like('folio', `%/${year}`);
-    const nextNum = ((count ?? 0) + 1).toString().padStart(4, '0');
-    const folio = `${nextNum}/${year}`;
+        .select('folio')
+        .like('folio', `%/${year}`)
+        .order('folio', { ascending: false })
+        .limit(1);
+    const maxNum = maxData && maxData.length > 0 ? (parseInt(maxData[0].folio.split('/')[0], 10) || 0) : 0;
+    const folio = `${String(maxNum + 1).padStart(4, '0')}/${year}`;
     const { error } = await supabase.from('constancias').insert({
         document_id: document_id ?? null,
         employee_name,
