@@ -275,12 +275,12 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
                             <span className="text-sm font-bold text-blue-900 dark:text-blue-300 truncate">{companyName}</span>
                             <span className="text-xs text-gray-400 font-medium shrink-0">({entries.length})</span>
                           </div>
-                          <div className="flex items-center gap-1.5 ml-2 shrink-0">
+                          <div className="flex items-center gap-2 ml-2 shrink-0">
                             {entries.length > 1 && (
                               <button
                                 onClick={() => handleBatchDownload(companyName, entries)}
                                 disabled={isBatchLoading || isBatchDeleting}
-                                className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:opacity-50 text-white text-xs font-bold p-1.5 sm:px-3 rounded-lg transition-colors touch-manipulation"
+                                className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:opacity-50 text-white text-xs font-bold px-2.5 py-2 sm:px-3 sm:py-1.5 rounded-lg transition-colors touch-manipulation"
                                 title="Descargar todas las constancias de esta empresa"
                               >
                                 {isBatchLoading
@@ -292,7 +292,7 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
                             <button
                               onClick={() => handleBatchDelete(companyName, entries)}
                               disabled={isBatchDeleting || isBatchLoading}
-                              className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:opacity-50 text-white text-xs font-bold p-1.5 sm:px-3 rounded-lg transition-colors touch-manipulation"
+                              className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:opacity-50 text-white text-xs font-bold px-2.5 py-2 sm:px-3 sm:py-1.5 rounded-lg transition-colors touch-manipulation"
                               title="Eliminar todas las constancias de esta empresa"
                             >
                               {isBatchDeleting
