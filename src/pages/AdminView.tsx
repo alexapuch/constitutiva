@@ -26,7 +26,7 @@ import CartaResponsivaView from '../components/admin/CartaResponsivaView';
 import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.40';
+const APP_VERSION = 'v1.41';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -42,6 +42,7 @@ export default function AdminView() {
       '/constancia_extintores.png',
       '/constancia_primeros_auxilios.png',
     ]);
+    localStorage.removeItem('pdfHistory');
   }, []);
 
   useEffect(() => {
@@ -94,36 +95,6 @@ export default function AdminView() {
   const [previewType, setPreviewType] = useState('');
   const [previewName, setPreviewName] = useState('');
 
-  // PDF History State
-  const [pdfHistory, setPdfHistory] = useState<{ type: string; name: string; date: string; publicUrl?: string }[]>(() => {
-    try { return JSON.parse(localStorage.getItem('pdfHistory') || '[]'); } catch { return []; }
-  });
-
-  const addToHistory = (type: string, name: string, publicUrl?: string) => {
-    if (!type.includes('Constancia') && !type.includes('Acta') && !type.includes('Carta') && !type.includes('Simulacro')) return;
-    const entry = { type, name, date: new Date().toLocaleString('es-MX'), publicUrl };
-    const updated = [entry, ...pdfHistory].slice(0, 100);
-    setPdfHistory(updated);
-    localStorage.setItem('pdfHistory', JSON.stringify(updated));
-  };
-
-  const fetchPdfHistory = useCallback(async () => {
-    try {
-      const res = await fetch('/api/pdf-history');
-      const data = await res.json();
-      if (res.ok && data) {
-        const entries = data.map((d: any) => {
-          let name = d.name.split('_').slice(2).join('_').replace('.pdf', '') || d.name;
-          name = name.replace(/_+-_+/g, ' - ').replace(/_+/g, ' ').trim();
-          name = name.replace(/[\u0300-\u036f]/g, "");
-          return { type: d.type, name, date: new Date(d.created_at).toLocaleString('es-MX'), publicUrl: d.public_url };
-        });
-        setPdfHistory(entries);
-      }
-    } catch (error) {
-      console.error('Error fetching PDF history:', error);
-    }
-  }, []);
 
   const fetchDocuments = useCallback(async () => {
     try {
@@ -155,15 +126,6 @@ export default function AdminView() {
   }, [fetchDocuments]);
 
 
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        fetchPdfHistory();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [fetchPdfHistory]);
 
 
   useEffect(() => {
@@ -378,7 +340,6 @@ export default function AdminView() {
   const handleDownloadPDF = async () => {
     if (!docInfo) return;
     await generateConstitutivaPDF(docInfo, employees);
-    addToHistory('Acta Constitutiva', generatePdfName('ACTA CONSTITUTIVA', docInfo.commercial_name, docInfo.date));
   };
 
   const handlePreview = async (generator: () => Promise<string | void>, type: string, name: string) => {
@@ -406,11 +367,10 @@ export default function AdminView() {
       }
       const backup = {
         exportDate: new Date().toISOString(),
-        version: 'v1.40', // Same arbitrary version flag
+        version: 'v1.41', // Same arbitrary version flag
         documents: allDocs,
         employees: allEmployees,
         quotes: allQuotes,
-        pdfHistory
       };
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -480,7 +440,7 @@ export default function AdminView() {
         </div>
 
         {activeTab === 'dashboard' && (
-          <DashboardView documents={documents} quotes={quotes} pdfHistory={pdfHistory} />
+          <DashboardView documents={documents} quotes={quotes} />
         )}
 
         {activeTab === 'documents' && (<>
@@ -919,7 +879,7 @@ export default function AdminView() {
                 <div className="flex flex-wrap items-center gap-3 mt-4">
                   <div className="flex-1 sm:flex-none flex items-center gap-1">
                     <button
-                      onClick={async () => { if (docInfo) { const isTulum = (docInfo.address || '').split(/\s*\|\s*/)[1] === 'TULUM'; const tmpl = isTulum ? '/constancia_vacia_tulum.png' : '/constancia_vacia.png'; await generateBatchConstanciasPDF(docInfo, employees, tmpl); addToHistory('Constancias (Lote)', generatePdfName('CONSTANCIAS', docInfo.commercial_name, docInfo.date)); } }}
+                      onClick={async () => { if (docInfo) { const isTulum = (docInfo.address || '').split(/\s*\|\s*/)[1] === 'TULUM'; const tmpl = isTulum ? '/constancia_vacia_tulum.png' : '/constancia_vacia.png'; await generateBatchConstanciasPDF(docInfo, employees, tmpl); } }}
                       disabled={employees.length === 0}
                       className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-l-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm font-bold min-h-[44px]"
                       title="Descargar Todas las Constancias"
@@ -951,7 +911,7 @@ export default function AdminView() {
                     </div>
                     <div className="flex-1 sm:flex-none flex items-center gap-1">
                       <button
-                        onClick={async () => { if (docInfo) { await generateSimulacroPDF(docInfo, employees, false, turnosSimulacro); addToHistory('Cédula Simulacro', generatePdfName('CÉDULA SIMULACRO', docInfo.commercial_name, docInfo.date)); } }}
+                        onClick={async () => { if (docInfo) { await generateSimulacroPDF(docInfo, employees, false, turnosSimulacro); } }}
                         className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-l-md hover:bg-blue-700 transition-colors shadow-sm font-bold min-h-[44px]"
                         title="Descargar Cédula de Evaluación de Simulacro"
                       >
@@ -1035,7 +995,7 @@ export default function AdminView() {
                         <td className="p-3 text-center flex justify-center gap-2">
                           <button
                             type="button"
-                            onClick={async (e) => { e.stopPropagation(); if (docInfo) { await generateConstanciaPDF(docInfo, emp); addToHistory('Constancia', generatePdfName('CONSTANCIA', docInfo.commercial_name, docInfo.date)); } }}
+                            onClick={async (e) => { e.stopPropagation(); if (docInfo) { await generateConstanciaPDF(docInfo, emp); } }}
                             className="text-indigo-500 hover:text-indigo-700 p-2 rounded-full hover:bg-indigo-50 transition-colors touch-manipulation cursor-pointer"
                             title="Descargar Constancia"
                           >
@@ -1107,7 +1067,6 @@ export default function AdminView() {
              fvu: fvu,
              dictamenGas: dictamenGas,
            });
-           addToHistory('Carta Responsiva', generatePdfName('CARTA RESPONSIVA', doc.commercial_name || '', fechaFormateada));
         }}
         onPreviewPDF={async (docId, fecha, fvu, dictamenGas) => {
            const doc = documents.find(d => d.id === docId);
@@ -1148,11 +1107,9 @@ export default function AdminView() {
            if (names.length === 1) {
              const fakeEmployee = { id: 0, document_id: 0, name: names[0].toUpperCase(), role: '', brigade: '', signature: '' };
              await generateConstanciaPDF(fakeDocInfo, fakeEmployee as any, templateImage, false, prefix, fileDate);
-             addToHistory('Constancia', generatePdfName(prefix, qd.commercial_name, fileDate));
            } else {
              const fakeEmployees = names.map((name: string, i: number) => ({ id: i, document_id: 0, name: name.toUpperCase(), role: '', brigade: '', signature: '' }));
              await generateBatchConstanciasPDF(fakeDocInfo, fakeEmployees as any, templateImage, false, prefix, fileDate);
-             addToHistory('Constancias (Lote)', generatePdfName(prefix, qd.commercial_name, fileDate));
            }
         }}
         onPreview={async (qd) => {
@@ -1191,7 +1148,6 @@ export default function AdminView() {
           setPreviewType('');
           setPreviewName('');
         }}
-        onAddToHistory={addToHistory}
       />
     </div>
   );

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Download, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import Swal from 'sweetalert2';
-import { savePdfVersion } from '../../utils/savePdfVersion';
+
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -45,11 +45,10 @@ interface PdfPreviewModalProps {
   previewType: string;
   selectedDocId: number | null;
   onClose: () => void;
-  onAddToHistory: (type: string, name: string, publicUrl?: string) => void;
 }
 
 export default function PdfPreviewModal({
-  previewUrl, previewName, previewType, selectedDocId, onClose, onAddToHistory
+  previewUrl, previewName, onClose
 }: PdfPreviewModalProps) {
   const [savingVersion, setSavingVersion] = useState(false);
   const [numPages, setNumPages] = useState<number | null>(null);
@@ -129,13 +128,7 @@ export default function PdfPreviewModal({
                 const res = await fetch(previewUrl);
                 const blob = await res.blob();
                 
-                // Auto-upload in background and add to history (silently!)
-                savePdfVersion(blob, fileName, previewType, selectedDocId || undefined)
-                  .then(result => {
-                     if (result && !result._error) {
-                       onAddToHistory(previewType, previewName, result.publicUrl);
-                     }
-                  }).catch(err => console.error('Auto-save failed:', err));
+                // Auto-upload in background removed
                 
                 // Prompt local download right away
                 if (isMobile && navigator.share) {
