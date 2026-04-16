@@ -337,6 +337,21 @@ router.post('/constancias/folios-batch', async (req, res) => {
     if (!Array.isArray(employees) || employees.length === 0) {
         return res.status(400).json({ error: 'employees array required' });
     }
+
+    // Buscamos constancias existentes para este document_id o commercial_name
+    const documentId = employees[0].document_id;
+    let existingConstancias: any[] = [];
+    if (documentId) {
+        const { data } = await supabase.from('constancias').select('*').eq('document_id', documentId);
+        if (data) existingConstancias = data;
+    } else {
+        const commercialName = employees[0].commercial_name;
+        if (commercialName) {
+            const { data } = await supabase.from('constancias').select('*').eq('commercial_name', commercialName);
+            if (data) existingConstancias = data;
+        }
+    }
+
     const year = new Date().getFullYear().toString().slice(-2);
 
     // Una sola consulta de conteo para toda la lista
@@ -351,20 +366,33 @@ router.post('/constancias/folios-batch', async (req, res) => {
     const rows: any[] = [];
 
     for (const emp of employees) {
-        const folio = `${String(next).padStart(4, '0')}/${year}`;
-        folios.push(folio);
-        rows.push({
-            document_id: emp.document_id ?? null,
-            employee_name: emp.employee_name,
-            commercial_name: emp.commercial_name ?? null,
-            folio,
-        });
-        next++;
+        let existing = existingConstancias.find(c => 
+            c.employee_name === emp.employee_name && 
+            ((c.document_id && c.document_id === emp.document_id) || (c.commercial_name && c.commercial_name === emp.commercial_name))
+        );
+
+        if (existing) {
+            folios.push(existing.folio);
+        } else {
+            const folio = `${String(next).padStart(4, '0')}/${year}`;
+            folios.push(folio);
+            const newRow = {
+                document_id: emp.document_id ?? null,
+                employee_name: emp.employee_name,
+                commercial_name: emp.commercial_name ?? null,
+                folio,
+            };
+            rows.push(newRow);
+            existingConstancias.push(newRow); // Evitar duplicados dentro del mismo lote
+            next++;
+        }
     }
 
-    // Un solo insert masivo para todos
-    const { error } = await supabase.from('constancias').insert(rows);
-    if (error) return res.status(500).json({ error: error.message });
+    // Un solo insert masivo para los nuevos
+    if (rows.length > 0) {
+        const { error } = await supabase.from('constancias').insert(rows);
+        if (error) return res.status(500).json({ error: error.message });
+    }
 
     res.json({ folios });
 });
@@ -372,6 +400,19 @@ router.post('/constancias/folios-batch', async (req, res) => {
 // POST crear folio para constancia (individual — usado para constancias de 1 persona)
 router.post('/constancias/folio', async (req, res) => {
     const { document_id, employee_name, commercial_name } = req.body;
+    
+    let query = supabase.from('constancias').select('folio').eq('employee_name', employee_name);
+    if (document_id) {
+        query = query.eq('document_id', document_id);
+    } else if (commercial_name) {
+        query = query.eq('commercial_name', commercial_name);
+    }
+    const { data: existingData } = await query.maybeSingle();
+
+    if (existingData && existingData.folio) {
+        return res.json({ folio: existingData.folio });
+    }
+
     const year = new Date().getFullYear().toString().slice(-2);
     const { count } = await supabase
         .from('constancias')
