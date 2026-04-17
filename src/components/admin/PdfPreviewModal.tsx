@@ -25,7 +25,7 @@ function LazyPage({ pageNumber, containerWidth }: { pageNumber: number; containe
   }, []);
 
   return (
-    <div ref={ref} className="mb-4 shadow-lg flex justify-center bg-gray-300" style={{ minHeight: containerWidth * 1.414 || 600, width: containerWidth || '100%' }}>
+    <div ref={ref} className="mb-4 shadow-lg flex justify-center bg-gray-300" style={{ minHeight: containerWidth * 1.2941 || 600, width: containerWidth || '100%' }}>
       {isVisible ? (
         <Page
           pageNumber={pageNumber}

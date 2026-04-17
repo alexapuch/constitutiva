@@ -7,6 +7,7 @@ import { generateBatchConstanciasPDF } from '../utils/generateBatchConstanciasPD
 import { generateConstanciaPDF } from '../utils/generateConstanciaPDF';
 import { generateConstitutivaPDF } from '../utils/generateConstitutivaPDF';
 import { generateCartaResponsivaPDF } from '../utils/generateCartaResponsivaPDF';
+import { generateCaratulasPDF } from '../utils/generateCaratulasPDF';
 import { sortEmployees } from '../utils/employees';
 import { preloadTemplates } from '../utils/imageCache';
 import { generatePdfName } from '../utils/pdfNameGenerator';
@@ -839,74 +840,89 @@ export default function AdminView() {
                       className="w-12 border-none bg-transparent p-0 text-center focus:ring-0 text-gray-900 font-semibold"
                     />
                   </div>
+                  <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-md px-2 py-1.5 shadow-sm">
+                    <span className="text-sm font-medium text-gray-700 whitespace-nowrap mr-1">Turnos:</span>
+                    {(['M', 'MV', 'MVN'] as const).map(t => (
+                      <button
+                        key={t}
+                        onClick={() => setTurnosSimulacro(t)}
+                        className={`px-2 py-0.5 rounded text-xs font-bold transition-colors ${turnosSimulacro === t ? 'bg-[#1f497d] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                      >
+                        {t === 'M' ? 'Mat.' : t === 'MV' ? 'Mat.+Ves.' : 'Mat.+Ves.+Noc.'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 mt-4">
-                  <div className="flex-1 sm:flex-none flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-2 mt-4">
+                  <div className="flex-1 sm:flex-none flex items-center">
                     <button
                       onClick={async () => { if (docInfo) { const isTulum = (docInfo.address || '').split(/\s*\|\s*/)[1] === 'TULUM'; const tmpl = isTulum ? '/constancia_vacia_tulum.png' : '/constancia_vacia.png'; await generateBatchConstanciasPDF(docInfo, employees, tmpl); } }}
                       disabled={employees.length === 0}
-                      className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-l-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm font-bold min-h-[44px]"
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 text-sm rounded-l-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm font-bold min-h-[38px]"
                       title="Descargar Todas las Constancias"
                     >
-                      <Award className="w-5 h-5" />
+                      <Award className="w-4 h-4" />
                       <span className="whitespace-nowrap">Constancias (Lote)</span>
                     </button>
                     <button
                       onClick={() => { if (docInfo) { const isTulum = (docInfo.address || '').split(/\s*\|\s*/)[1] === 'TULUM'; const tmpl = isTulum ? '/constancia_vacia_tulum.png' : '/constancia_vacia.png'; handlePreview(() => generateBatchConstanciasPDF(docInfo, employees, tmpl, true), 'Constancias (Lote)', generatePdfName('CONSTANCIAS', docInfo.commercial_name, docInfo.date)); } }}
                       disabled={employees.length === 0}
-                      className="flex items-center justify-center bg-blue-500 text-white px-2.5 py-2 rounded-r-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px]"
+                      className="flex items-center justify-center bg-blue-500 text-white px-2 py-1.5 rounded-r-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[38px]"
                       title="Vista Previa"
                     >
-                      <Eye className="w-5 h-5" />
+                      <Eye className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-md px-2 py-1 shadow-sm">
-                      <span className="text-xs font-medium text-gray-500 whitespace-nowrap mr-1">Turnos:</span>
-                      {(['M', 'MV', 'MVN'] as const).map(t => (
-                        <button
-                          key={t}
-                          onClick={() => setTurnosSimulacro(t)}
-                          className={`px-2 py-0.5 rounded text-xs font-bold transition-colors ${turnosSimulacro === t ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                        >
-                          {t === 'M' ? 'Mat.' : t === 'MV' ? 'Mat.+Ves.' : 'Mat.+Ves.+Noc.'}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex-1 sm:flex-none flex items-center gap-1">
-                      <button
-                        onClick={async () => { if (docInfo) { await generateSimulacroPDF(docInfo, employees, false, turnosSimulacro); } }}
-                        className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-l-md hover:bg-blue-700 transition-colors shadow-sm font-bold min-h-[44px]"
-                        title="Descargar Cédula de Evaluación de Simulacro"
-                      >
-                        <Download className="w-5 h-5" />
-                        <span className="whitespace-nowrap">Cédula Simulacro</span>
-                      </button>
-                      <button
-                        onClick={() => { if (docInfo) handlePreview(() => generateSimulacroPDF(docInfo, employees, true, turnosSimulacro), 'Cédula Simulacro', generatePdfName('CÉDULA SIMULACRO', docInfo.commercial_name, docInfo.date)); }}
-                        className="flex items-center justify-center bg-blue-500 text-white px-2.5 py-2 rounded-r-md hover:bg-blue-600 transition-colors min-h-[44px]"
-                        title="Vista Previa"
-                      >
-                        <Eye className="w-5 h-5" />
-                      </button>
-                    </div>
+                  <div className="flex-1 sm:flex-none flex items-center">
+                    <button
+                      onClick={async () => { if (docInfo) { await generateSimulacroPDF(docInfo, employees, false, turnosSimulacro); } }}
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-[#1f497d] text-white px-3 py-1.5 text-sm rounded-l-md hover:bg-[#15345a] transition-colors shadow-sm font-bold min-h-[38px]"
+                      title="Descargar Cédula de Evaluación de Simulacro"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span className="whitespace-nowrap">Cédula Simulacro</span>
+                    </button>
+                    <button
+                      onClick={() => { if (docInfo) handlePreview(() => generateSimulacroPDF(docInfo, employees, true, turnosSimulacro), 'Cédula Simulacro', generatePdfName('CÉDULA SIMULACRO', docInfo.commercial_name, docInfo.date)); }}
+                      className="flex items-center justify-center bg-[#2b5b9e] text-white px-2 py-1.5 rounded-r-md hover:bg-[#1f497d] transition-colors min-h-[38px]"
+                      title="Vista Previa"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
                   </div>
-                  <div className="flex-1 sm:flex-none flex items-center gap-1">
+                  <div className="flex-1 sm:flex-none flex items-center">
                     <button
                       onClick={handleDownloadPDF}
-                      className="flex-1 flex items-center justify-center gap-2 bg-red-600 text-white px-5 py-2 rounded-l-md hover:bg-red-700 transition-colors shadow-md font-bold min-h-[44px]"
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-[#722F37] text-white px-3 py-1.5 text-sm rounded-l-md hover:bg-[#5c252c] transition-colors shadow-md font-bold min-h-[38px]"
                       title="Descargar Acta Constitutiva"
                     >
-                      <Download className="w-5 h-5" />
+                      <Download className="w-4 h-4" />
                       <span className="whitespace-nowrap">Acta Constitutiva</span>
                     </button>
                     <button
                       onClick={() => { if (docInfo) handlePreview(() => generateConstitutivaPDF(docInfo, employees, true), 'Acta Constitutiva', generatePdfName('ACTA CONSTITUTIVA', docInfo.commercial_name, docInfo.date)); }}
-                      className="flex items-center justify-center bg-red-500 text-white px-2.5 py-2 rounded-r-md hover:bg-red-600 transition-colors min-h-[44px]"
+                      className="flex items-center justify-center bg-[#8B3A44] text-white px-2 py-1.5 rounded-r-md hover:bg-[#722F37] transition-colors min-h-[38px]"
                       title="Vista Previa"
                     >
-                      <Eye className="w-5 h-5" />
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex-1 sm:flex-none flex items-center">
+                    <button
+                      onClick={async () => { if (docInfo) { await generateCaratulasPDF(docInfo); } }}
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-purple-600 text-white px-3 py-1.5 text-sm rounded-l-md hover:bg-purple-700 transition-colors shadow-md font-bold min-h-[38px]"
+                      title="Descargar Carátulas"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span className="whitespace-nowrap">Carátulas</span>
+                    </button>
+                    <button
+                      onClick={() => { if (docInfo) handlePreview(() => generateCaratulasPDF(docInfo, true), 'Carátulas', generatePdfName('CARATULAS', docInfo.commercial_name, docInfo.date)); }}
+                      className="flex items-center justify-center bg-purple-500 text-white px-2 py-1.5 rounded-r-md hover:bg-purple-600 transition-colors min-h-[38px]"
+                      title="Vista Previa"
+                    >
+                      <Eye className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
