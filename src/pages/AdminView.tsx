@@ -8,6 +8,7 @@ import { generateConstanciaPDF } from '../utils/generateConstanciaPDF';
 import { generateConstitutivaPDF } from '../utils/generateConstitutivaPDF';
 import { generateCartaResponsivaPDF } from '../utils/generateCartaResponsivaPDF';
 import { generateCaratulasPDF } from '../utils/generateCaratulasPDF';
+import { generateOrganigrama } from '../utils/generateOrganigrama';
 import { sortEmployees } from '../utils/employees';
 import { preloadTemplates } from '../utils/imageCache';
 import { generatePdfName } from '../utils/pdfNameGenerator';
@@ -27,7 +28,7 @@ import CartaResponsivaView from '../components/admin/CartaResponsivaView';
 import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.54';
+const APP_VERSION = 'v1.55';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -921,6 +922,25 @@ export default function AdminView() {
                     <button
                       onClick={() => { if (docInfo) handlePreview(() => generateCaratulasPDF(docInfo, true), 'Carátulas', generatePdfName('CARATULAS', docInfo.commercial_name, docInfo.date)); }}
                       className="flex items-center justify-center bg-purple-500 text-white px-2 py-1.5 rounded-r-md hover:bg-purple-600 transition-colors min-h-[38px]"
+                      title="Vista Previa"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex-1 sm:flex-none flex items-center">
+                    <button
+                      onClick={async () => { if (docInfo) { await generateOrganigrama(docInfo, employees); } }}
+                      disabled={employees.length === 0}
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-teal-700 text-white px-3 py-1.5 text-sm rounded-l-md hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md font-bold min-h-[38px]"
+                      title="Descargar Organigrama"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span className="whitespace-nowrap">Organigrama</span>
+                    </button>
+                    <button
+                      onClick={() => { if (docInfo) handlePreview(() => generateOrganigrama(docInfo, employees, true), 'Organigrama', generatePdfName('ORGANIGRAMA', docInfo.commercial_name, docInfo.date)); }}
+                      disabled={employees.length === 0}
+                      className="flex items-center justify-center bg-teal-600 text-white px-2 py-1.5 rounded-r-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[38px]"
                       title="Vista Previa"
                     >
                       <Eye className="w-4 h-4" />
