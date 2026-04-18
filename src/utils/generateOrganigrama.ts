@@ -43,7 +43,6 @@ export const generateOrganigrama = async (
 
         // ── helpers ──────────────────────────────────────────────────────────
         const drawNode = (nx: number, ny: number, nw: number, titleText: string, nameText: string) => {
-            // Title box
             doc.setFillColor(...DARK);
             doc.roundedRect(nx, ny, nw, TITLE_H, 2, 2, 'F');
             doc.setTextColor(255, 255, 255);
@@ -54,7 +53,6 @@ export const generateOrganigrama = async (
             const tStart = ny + (TITLE_H - tLines.length * tLH) / 2 + tLH * 0.75;
             doc.text(tLines, nx + nw / 2, tStart, { align: 'center', lineHeightFactor: 1.25 });
 
-            // Name box
             doc.setFillColor(...LIGHT);
             doc.setDrawColor(...BORDER);
             doc.setLineWidth(0.3);
@@ -76,7 +74,6 @@ export const generateOrganigrama = async (
 
         // ── Header ───────────────────────────────────────────────────────────
         let y = margin;
-
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...DARK);
@@ -96,11 +93,10 @@ export const generateOrganigrama = async (
         drawNode(jefeX, y, jefeW, 'JEFE DE BRIGADA DE EMERGENCIA MULTIFUNCIONAL', jefe.name.toUpperCase());
 
         const jefeCX = jefeX + jefeW / 2;
-        let connX = jefeCX;
-        let connY = y + NODE_H;
-        y = connY;
+        let spineY = y + NODE_H; // top of the next available space (bottom of jefe)
+        y = spineY;
 
-        // ── Rows ──────────────────────────────────────────────────────────────
+        // ── Rows — all connect from jefeCX ───────────────────────────────────
         const multiW = (() => {
             const maxCount = Math.min(rows[0]?.length ?? 0, MAX_PER_ROW);
             if (maxCount === 0) return 42;
@@ -112,29 +108,25 @@ export const generateOrganigrama = async (
             const count = row.length;
             const rowW = count * multiW + (count - 1) * NODE_GAP;
             const rowX = (pageW - rowW) / 2;
-            const rowY = y + ROW_VERT_GAP;
-            const junctionY = y + ROW_VERT_GAP / 2;
+            const rowY = spineY + ROW_VERT_GAP;
+            const junctionY = spineY + ROW_VERT_GAP / 2;
 
             const firstCX = rowX + multiW / 2;
             const lastCX = rowX + (count - 1) * (multiW + NODE_GAP) + multiW / 2;
 
-            // Vertical from connector to junction
-            drawLine(connX, connY, connX, junctionY);
-            // Horizontal at junction
-            const hLeft = Math.min(connX, firstCX);
-            const hRight = Math.max(connX, lastCX);
-            drawLine(hLeft, junctionY, hRight, junctionY);
-            // Verticals to each node
+            // Vertical spine from jefe center down to junction (always from jefeCX)
+            drawLine(jefeCX, spineY, jefeCX, junctionY);
+            // Horizontal spanning all nodes in this row
+            drawLine(Math.min(jefeCX, firstCX), junctionY, Math.max(jefeCX, lastCX), junctionY);
+            // Vertical drop to each node
             row.forEach((emp, idx) => {
                 const cx = rowX + idx * (multiW + NODE_GAP) + multiW / 2;
                 drawLine(cx, junctionY, cx, rowY);
                 drawNode(rowX + idx * (multiW + NODE_GAP), rowY, multiW, 'MULTIBRIGADA', emp.name.toUpperCase());
             });
 
-            // Next connector from leftmost node bottom
-            connX = firstCX;
-            connY = rowY + NODE_H;
-            y = connY;
+            spineY = rowY + NODE_H; // next spine starts from bottom of this row
+            y = spineY;
         });
 
         // ── Footer ───────────────────────────────────────────────────────────
