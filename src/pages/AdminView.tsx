@@ -27,7 +27,7 @@ import CartaResponsivaView from '../components/admin/CartaResponsivaView';
 import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.53';
+const APP_VERSION = 'v1.54';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -680,6 +680,7 @@ export default function AdminView() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
                   <input
+                    key={`date-${selectedDocId}`}
                     type="date"
                     onChange={(e) => {
                       const val = e.target.value;
