@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FileSignature, X, Search, RefreshCw, Download, Building2, PackageOpen, Trash2 } from 'lucide-react';
+import { FileSignature, X, Search, RefreshCw, Download, Building2, PackageOpen, Trash2, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { DocumentInfo } from '../../types';
 import { generateConstanciaPDF, generateConstanciasBatchFromRegistry } from '../../utils/generateConstanciaPDF';
@@ -29,6 +29,19 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
   const [downloadingBatch, setDownloadingBatch] = useState<Set<string>>(new Set());
   const [deletingFolios, setDeletingFolios] = useState<Set<string>>(new Set());
   const [deletingBatch, setDeletingBatch] = useState<Set<string>>(new Set());
+  const [collapsedCompanies, setCollapsedCompanies] = useState<Set<string>>(new Set());
+
+  const toggleCompanyCollapse = (companyName: string) => {
+    setCollapsedCompanies(prev => {
+      const next = new Set(prev);
+      if (next.has(companyName)) {
+        next.delete(companyName);
+      } else {
+        next.add(companyName);
+      }
+      return next;
+    });
+  };
 
   const fetchConstancias = async () => {
     setIsLoading(true);
@@ -269,13 +282,22 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
                     return (
                       <div key={companyName}>
                         {/* Company header */}
-                        <div className="flex items-center justify-between mb-2 px-1">
+                        <div
+                          onClick={() => toggleCompanyCollapse(companyName)}
+                          className="flex items-center justify-between mb-2 px-1 cursor-pointer select-none group"
+                        >
                           <div className="flex items-center gap-2 min-w-0">
+                            <motion.div
+                              animate={{ rotate: collapsedCompanies.has(companyName) ? -90 : 0 }}
+                              transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                            >
+                              <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40 rounded-sm" />
+                            </motion.div>
                             <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                            <span className="text-sm font-bold text-blue-900 dark:text-blue-300 truncate">{companyName}</span>
+                            <span className="text-sm font-bold text-blue-900 dark:text-blue-300 truncate group-hover:text-blue-700 dark:group-hover:text-blue-200 transition-colors">{companyName}</span>
                             <span className="text-xs text-gray-400 font-medium shrink-0">({entries.length})</span>
                           </div>
-                          <div className="flex items-center gap-2 ml-2 shrink-0">
+                          <div className="flex items-center gap-2 ml-2 shrink-0" onClick={e => e.stopPropagation()}>
                             {entries.length > 1 && (
                               <button
                                 onClick={() => handleBatchDownload(companyName, entries)}
@@ -304,54 +326,66 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
                         </div>
 
                         {/* Individual cards */}
-                        <div className="flex flex-col gap-2">
-                          {entries.map((c, i) => {
-                            const isDeleting = deletingFolios.has(c.folio);
-                            return (
-                              <div key={i} className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="font-mono text-sm font-bold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2.5 py-1 rounded-md">
-                                    Folio: {c.folio}
-                                  </span>
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                    {new Date(c.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                  </span>
-                                </div>
+                        <AnimatePresence initial={false}>
+                          {!collapsedCompanies.has(companyName) && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3, ease: 'easeInOut' }}
+                              className="overflow-hidden"
+                            >
+                              <div className="flex flex-col gap-2 pb-2">
+                                {entries.map((c, i) => {
+                                  const isDeleting = deletingFolios.has(c.folio);
+                                  return (
+                                    <div key={i} className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <span className="font-mono text-sm font-bold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2.5 py-1 rounded-md">
+                                          Folio: {c.folio}
+                                        </span>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                          {new Date(c.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                        </span>
+                                      </div>
 
-                                <div className="mt-3 flex items-end justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-0.5">Acredita a</p>
-                                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{c.employee_name || 'N/A'}</p>
-                                  </div>
-                                  <div className="flex items-center gap-1.5 shrink-0">
-                                    <button
-                                      onClick={() => handleRegenerate(c)}
-                                      disabled={downloadingFolios.has(c.folio) || isBatchLoading || isDeleting}
-                                      className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors touch-manipulation"
-                                      title="Volver a descargar constancia"
-                                    >
-                                      {downloadingFolios.has(c.folio)
-                                        ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
-                                        : <><Download className="w-3.5 h-3.5" /> Descargar</>
-                                      }
-                                    </button>
-                                    <button
-                                      onClick={() => handleDelete(c)}
-                                      disabled={isDeleting || isBatchDeleting || downloadingFolios.has(c.folio)}
-                                      className="flex items-center justify-center bg-red-100 hover:bg-red-200 active:bg-red-300 disabled:opacity-50 text-red-600 hover:text-red-700 p-2 rounded-lg transition-colors touch-manipulation"
-                                      title="Eliminar constancia"
-                                    >
-                                      {isDeleting
-                                        ? <div className="w-3.5 h-3.5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
-                                        : <Trash2 className="w-3.5 h-3.5" />
-                                      }
-                                    </button>
-                                  </div>
-                                </div>
+                                      <div className="mt-3 flex items-end justify-between gap-2">
+                                        <div className="min-w-0">
+                                          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-0.5">Acredita a</p>
+                                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{c.employee_name || 'N/A'}</p>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                          <button
+                                            onClick={() => handleRegenerate(c)}
+                                            disabled={downloadingFolios.has(c.folio) || isBatchLoading || isDeleting}
+                                            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors touch-manipulation"
+                                            title="Volver a descargar constancia"
+                                          >
+                                            {downloadingFolios.has(c.folio)
+                                              ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
+                                              : <><Download className="w-3.5 h-3.5" /> Descargar</>
+                                            }
+                                          </button>
+                                          <button
+                                            onClick={() => handleDelete(c)}
+                                            disabled={isDeleting || isBatchDeleting || downloadingFolios.has(c.folio)}
+                                            className="flex items-center justify-center bg-red-100 hover:bg-red-200 active:bg-red-300 disabled:opacity-50 text-red-600 hover:text-red-700 p-2 rounded-lg transition-colors touch-manipulation"
+                                            title="Eliminar constancia"
+                                          >
+                                            {isDeleting
+                                              ? <div className="w-3.5 h-3.5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                                              : <Trash2 className="w-3.5 h-3.5" />
+                                            }
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            );
-                          })}
-                        </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     );
                   })}
