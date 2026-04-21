@@ -54,6 +54,7 @@ export default function ManualConstanciaModal({
   const [bulkText, setBulkText] = useState('');
   const [excelNames, setExcelNames] = useState<string[]>([]);
   const [showExcelPreview, setShowExcelPreview] = useState(false);
+  const [dateKey, setDateKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const nameInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -157,17 +158,17 @@ export default function ManualConstanciaModal({
         });
     };
 
-  const handleCloseQuickModal = () => {
-    setQuickData({
-      employeeNames: [''],
-      constanciaType: 'completa',
-      commercial_name: '',
-      address: '',
-      date: '',
-      dateISO: ''
-    });
+  const handleLimpiar = () => {
+    setQuickData({ employeeNames: [''], constanciaType: 'completa', commercial_name: '', address: '', date: '', dateISO: '' });
     setExcelNames([]);
     setShowExcelPreview(false);
+    setShowBulkPaste(false);
+    setBulkText('');
+    setDateKey(k => k + 1);
+  };
+
+  const handleCloseQuickModal = () => {
+    handleLimpiar();
     onClose();
   };
 
@@ -218,20 +219,38 @@ export default function ManualConstanciaModal({
             <div className="space-y-2">
               {quickData.employeeNames.map((name, idx) => (
                 <div key={idx} className="flex gap-2 items-center">
-                  <input
-                    type="text"
-                    required
-                    placeholder={`Ej. Juan Pérez López`}
-                    value={name}
-                    ref={(el) => { nameInputRefs.current[idx] = el; }}
-                    onChange={(e) => {
-                      const updated = [...quickData.employeeNames];
-                      updated[idx] = e.target.value;
-                      setQuickData({ ...quickData, employeeNames: updated });
-                    }}
-                    className="w-full border border-gray-300 rounded-md p-3 text-base uppercase focus:ring-blue-600 focus:border-blue-600"
-                    style={{ fontSize: '16px' }}
-                  />
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      required
+                      placeholder={`Ej. Juan Pérez López`}
+                      value={name}
+                      ref={(el) => { nameInputRefs.current[idx] = el; }}
+                      onChange={(e) => {
+                        const updated = [...quickData.employeeNames];
+                        updated[idx] = e.target.value;
+                        setQuickData({ ...quickData, employeeNames: updated });
+                      }}
+                      className="w-full border border-gray-300 rounded-md p-3 pr-9 text-base uppercase focus:ring-blue-600 focus:border-blue-600"
+                      style={{ fontSize: '16px' }}
+                    />
+                    {name && (
+                      <button
+                        type="button"
+                        tabIndex={-1}
+                        onClick={() => {
+                          const updated = [...quickData.employeeNames];
+                          updated[idx] = '';
+                          setQuickData({ ...quickData, employeeNames: updated });
+                          nameInputRefs.current[idx]?.focus();
+                        }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                        title="Limpiar campo"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                   {quickData.employeeNames.length > 1 && (
                     <button
                       type="button"
@@ -465,26 +484,43 @@ export default function ManualConstanciaModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Comercial de la Empresa *</label>
-              <input
-                type="text"
-                required
-                value={quickData.commercial_name}
-                onChange={(e) => setQuickData({ ...quickData, commercial_name: e.target.value })}
-                className="w-full border border-gray-300 rounded-md p-3 text-base uppercase focus:ring-blue-600 focus:border-blue-600"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={quickData.commercial_name}
+                  onChange={(e) => setQuickData({ ...quickData, commercial_name: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md p-3 pr-9 text-base uppercase focus:ring-blue-600 focus:border-blue-600"
+                />
+                {quickData.commercial_name && (
+                  <button type="button" tabIndex={-1} onClick={() => setQuickData({ ...quickData, commercial_name: '' })}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors" title="Limpiar campo">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Dirección de la Empresa</label>
-              <input
-                type="text"
-                value={quickData.address}
-                onChange={(e) => setQuickData({ ...quickData, address: e.target.value })}
-                className="w-full border border-gray-300 rounded-md p-3 text-base uppercase focus:ring-blue-600 focus:border-blue-600"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={quickData.address}
+                  onChange={(e) => setQuickData({ ...quickData, address: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md p-3 pr-9 text-base uppercase focus:ring-blue-600 focus:border-blue-600"
+                />
+                {quickData.address && (
+                  <button type="button" tabIndex={-1} onClick={() => setQuickData({ ...quickData, address: '' })}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors" title="Limpiar campo">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Expedición *</label>
               <input
+                key={dateKey}
                 type="date"
                 required
                 onChange={(e) => {
@@ -519,6 +555,15 @@ export default function ManualConstanciaModal({
             className="w-full sm:w-auto px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors font-bold min-h-[44px] text-base"
           >
             Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleLimpiar}
+            className="w-full sm:w-auto px-6 py-2 border border-orange-300 bg-orange-50 text-orange-700 rounded-md hover:bg-orange-100 transition-colors font-bold flex items-center justify-center gap-2 min-h-[44px] text-base"
+            title="Limpiar todos los campos"
+          >
+            <Trash2 className="w-4 h-4 shrink-0" />
+            Limpiar
           </button>
           <button
             type="button"
