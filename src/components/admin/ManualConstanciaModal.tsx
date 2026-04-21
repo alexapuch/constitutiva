@@ -548,40 +548,40 @@ export default function ManualConstanciaModal({
 
         </form>
 
-        <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 shrink-0 bg-white dark:bg-gray-800 flex flex-col-reverse sm:flex-row sm:flex-wrap justify-end gap-2">
+        <div className="px-3 py-2.5 border-t border-gray-200 dark:border-gray-700 shrink-0 bg-white dark:bg-gray-800 flex flex-row gap-1.5">
           <button
             type="button"
             onClick={handleCloseQuickModal}
-            className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors font-bold min-h-[40px] text-sm"
+            className="flex-1 px-1 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors font-bold text-xs sm:text-sm min-h-[38px]"
           >
             Cancelar
           </button>
           <button
             type="button"
             onClick={handleLimpiar}
-            className="w-full sm:w-auto px-4 py-2 border border-orange-300 bg-orange-50 text-orange-700 rounded-md hover:bg-orange-100 transition-colors font-bold flex items-center justify-center gap-1.5 min-h-[40px] text-sm"
+            className="flex-1 px-1 py-2 border border-orange-300 bg-orange-50 text-orange-700 rounded-md hover:bg-orange-100 transition-colors font-bold flex items-center justify-center gap-1 text-xs sm:text-sm min-h-[38px]"
             title="Limpiar todos los campos"
           >
-            <Trash2 className="w-4 h-4 shrink-0" />
+            <Trash2 className="w-3.5 h-3.5 shrink-0" />
             Limpiar
           </button>
           <button
             type="button"
             onClick={handlePreviewManualConstancia}
-            className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-bold flex items-center justify-center gap-1.5 min-h-[40px] text-sm"
+            className="flex-1 px-1 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-bold flex items-center justify-center gap-1 text-xs sm:text-sm min-h-[38px]"
           >
-            <Eye className="w-4 h-4 shrink-0" />
-            Vista Previa
+            <Eye className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden xs:inline">Vista </span>Previa
           </button>
           <button
             type="button"
             onClick={handleGenerateManualConstancia}
-            className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-bold flex items-center justify-center gap-1.5 min-h-[40px] text-sm"
+            className="flex-1 px-1 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-bold flex items-center justify-center gap-1 text-xs sm:text-sm min-h-[38px]"
           >
-            <Award className="w-4 h-4 shrink-0" />
+            <Award className="w-3.5 h-3.5 shrink-0" />
             {allNames.length > 1
-              ? `Descargar ${allNames.length} Constancias`
-              : 'Descargar Constancia'}
+              ? `Descargar (${allNames.length})`
+              : 'Descargar'}
           </button>
         </div>
       </div>
