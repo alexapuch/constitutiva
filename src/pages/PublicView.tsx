@@ -109,14 +109,14 @@ export default function PublicView() {
             {/* Header */}
             <div className="text-center mb-8">
               <h1 className="text-xl font-bold uppercase mb-4">ACTA CONSTITUTIVA DEL PROGRAMA INTERNO DE PROTECCION CIVIL</h1>
-              <h2 className="text-lg font-bold uppercase">{docInfo.commercial_name}</h2>
-              <h3 className="text-lg font-bold uppercase">"{docInfo.company_name}"</h3>
+              <h2 className="text-lg font-bold uppercase">{docInfo.company_name}</h2>
+              <h3 className="text-lg font-bold uppercase">"{docInfo.commercial_name}"</h3>
             </div>
 
             {/* Intro Text */}
             <div className="space-y-4 text-justify text-sm leading-relaxed mb-8">
               <p>
-                C. {docInfo.commercial_name} RESPONSABLE DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL DE LA EMPRESA DENOMINADA "{docInfo.company_name}" y Siendo las {docInfo.time_start} horas del día {docInfo.date}, en el inmueble que ocupa la empresa, con domicilio, {(() => { const parts = (docInfo.address || '').split(/\s*\|\s*/); const base = parts[0]?.trim() || ''; const city = parts[1]?.trim() === 'TULUM' ? 'TULUM' : 'PLAYA DEL CARMEN'; return `${base}${base ? ', ' : ''}${city}, QUINTANA ROO, MÉXICO.`; })()} Se reúne la representante legal, así como lo empleados:
+                C. {docInfo.company_name} RESPONSABLE DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL DE LA EMPRESA DENOMINADA "{docInfo.commercial_name}" y Siendo las {docInfo.time_start} horas del día {docInfo.date}, en el inmueble que ocupa la empresa, con domicilio, {(() => { const parts = (docInfo.address || '').split(/\s*\|\s*/); const base = parts[0]?.trim() || ''; const city = parts[1]?.trim() === 'TULUM' ? 'TULUM' : 'PLAYA DEL CARMEN'; return `${base}${base ? ', ' : ''}${city}, QUINTANA ROO, MÉXICO.`; })()} Se reúne la representante legal, así como lo empleados:
               </p>
               <p>
                 Con el objeto de constituir formalmente la Unidad Interna de Protección Civil de este inmueble.
