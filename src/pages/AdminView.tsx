@@ -30,7 +30,7 @@ import ManualOrganigramaModal from '../components/admin/ManualOrganigramaModal';
 import ManualCaratulasModal from '../components/admin/ManualCaratulasModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.63';
+const APP_VERSION = 'v1.64';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -1047,6 +1047,7 @@ export default function AdminView() {
         isOpen={showCartaResponsiva}
         onClose={() => setShowCartaResponsiva(false)}
         documents={documents}
+        onPreviewManualPDF={(url, name) => { setPreviewUrl(url); setPreviewName(name); setPreviewType('Carta Responsiva'); }}
         onGeneratePDF={async (docId, fecha, fvu, dictamenGas) => {
            const doc = documents.find(d => d.id === docId);
            if (!doc) return;
