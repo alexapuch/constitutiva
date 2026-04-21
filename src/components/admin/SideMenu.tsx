@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Home, BarChart3, ClipboardList, Calculator, FileSignature, ShieldCheck, Database, Sun, Moon, LogOut, GitBranch } from 'lucide-react';
+import { X, Home, BarChart3, ClipboardList, Calculator, FileSignature, ShieldCheck, Sun, Moon, LogOut, GitBranch, BookOpen } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 interface SideMenuProps {
@@ -13,6 +13,7 @@ interface SideMenuProps {
   onOpenNewQuote: () => void;
   onOpenManualConstancia: () => void;
   onOpenOrganigrama: () => void;
+  onOpenCaratulas: () => void;
   onOpenCartaResponsiva: () => void;
   onOpenConstanciasHistory: () => void;
   onLogout: () => void;
@@ -22,7 +23,7 @@ interface SideMenuProps {
 export default function SideMenu({
   isOpen, onClose, activeTab, setActiveTab, quotesCount,
   onOpenQuoteHistory, onOpenNewQuote, onOpenManualConstancia, onOpenOrganigrama,
-  onOpenCartaResponsiva, onOpenConstanciasHistory, onLogout, onNavigateHome
+  onOpenCaratulas, onOpenCartaResponsiva, onOpenConstanciasHistory, onLogout, onNavigateHome
 }: SideMenuProps) {
   const { theme, toggleTheme } = useTheme();
 
@@ -110,6 +111,14 @@ export default function SideMenu({
               >
                 <GitBranch className="w-5 h-5" />
                 Generar Organigrama
+              </button>
+
+              <button
+                onClick={() => { onClose(); onOpenCaratulas(); }}
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors font-medium"
+              >
+                <BookOpen className="w-5 h-5" />
+                Generar Carátulas
               </button>
 
               <button

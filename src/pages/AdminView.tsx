@@ -27,9 +27,10 @@ import PdfPreviewModal from '../components/admin/PdfPreviewModal';
 import CartaResponsivaView from '../components/admin/CartaResponsivaView';
 import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
 import ManualOrganigramaModal from '../components/admin/ManualOrganigramaModal';
+import ManualCaratulasModal from '../components/admin/ManualCaratulasModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.61';
+const APP_VERSION = 'v1.62';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -80,6 +81,7 @@ export default function AdminView() {
   // States for Modals/Drawers
   const [showQuickModal, setShowQuickModal] = useState(false);
   const [showOrganigramaModal, setShowOrganigramaModal] = useState(false);
+  const [showCaratulasModal, setShowCaratulasModal] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [quotes, setQuotes] = useState<any[]>([]);
   const [quoteSearchTerm, setQuoteSearchTerm] = useState('');
@@ -116,13 +118,13 @@ export default function AdminView() {
   }, [selectedDocId]);
 
   useEffect(() => {
-    if (showQuickModal || showOrganigramaModal || showQuoteDrawer || showSideMenu || showCartaResponsiva || previewUrl) {
+    if (showQuickModal || showOrganigramaModal || showCaratulasModal || showQuoteDrawer || showSideMenu || showCartaResponsiva || previewUrl) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
     return () => { document.body.style.overflow = ''; };
-  }, [showQuickModal, showOrganigramaModal, showQuoteDrawer, showSideMenu, showCartaResponsiva, previewUrl]);
+  }, [showQuickModal, showOrganigramaModal, showCaratulasModal, showQuoteDrawer, showSideMenu, showCartaResponsiva, previewUrl]);
 
   useEffect(() => {
     fetchDocuments();
@@ -375,6 +377,7 @@ export default function AdminView() {
         onOpenNewQuote={() => { setShowQuoteModal(true); }}
         onOpenManualConstancia={() => { setShowQuickModal(true); }}
         onOpenOrganigrama={() => { setShowOrganigramaModal(true); }}
+        onOpenCaratulas={() => { setShowCaratulasModal(true); }}
         onOpenCartaResponsiva={() => { setShowCartaResponsiva(true); }}
         onOpenConstanciasHistory={() => setShowConstanciasDrawer(true)}
         onLogout={async () => {
@@ -1131,6 +1134,12 @@ export default function AdminView() {
         isOpen={showOrganigramaModal}
         onClose={() => setShowOrganigramaModal(false)}
         onPreview={(url, name) => { setPreviewUrl(url); setPreviewName(name); setPreviewType('Organigrama'); }}
+      />
+
+      <ManualCaratulasModal
+        isOpen={showCaratulasModal}
+        onClose={() => setShowCaratulasModal(false)}
+        onPreview={(url, name) => { setPreviewUrl(url); setPreviewName(name); setPreviewType('Carátulas'); }}
       />
 
       <ConstanciasHistoryDrawer
