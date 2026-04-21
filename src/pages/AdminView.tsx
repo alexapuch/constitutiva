@@ -30,7 +30,7 @@ import ManualOrganigramaModal from '../components/admin/ManualOrganigramaModal';
 import ManualCaratulasModal from '../components/admin/ManualCaratulasModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.62';
+const APP_VERSION = 'v1.63';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 

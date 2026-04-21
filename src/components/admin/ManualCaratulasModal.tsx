@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Trash2, Eye, BookOpen } from 'lucide-react';
+import { X, Trash2, Eye, BookOpen, Download } from 'lucide-react';
 import { generateCaratulasPDF } from '../../utils/generateCaratulasPDF';
 
 interface Props {
@@ -22,17 +22,21 @@ export default function ManualCaratulasModal({ isOpen, onClose, onPreview }: Pro
     onClose();
   };
 
+  const buildDocInfo = () => ({
+    id: 0, commercial_name: commercialName.trim().toUpperCase(),
+    company_name: companyName.trim().toUpperCase(),
+    date: '', time_start: '', time_end: '', address: '', is_active: 1
+  });
+
   const handlePreview = async () => {
     if (!commercialName.trim()) return;
-    const fakeDocInfo = {
-      id: 0, commercial_name: commercialName.trim().toUpperCase(),
-      company_name: companyName.trim().toUpperCase(),
-      date: '', time_start: '', time_end: '', address: '', is_active: 1
-    };
-    const url = await generateCaratulasPDF(fakeDocInfo as any, true);
-    if (url) {
-      onPreview(url as string, `CARÁTULAS - ${commercialName.trim().toUpperCase()}`);
-    }
+    const url = await generateCaratulasPDF(buildDocInfo() as any, true);
+    if (url) onPreview(url as string, `CARÁTULAS - ${commercialName.trim().toUpperCase()}`);
+  };
+
+  const handleDescargar = async () => {
+    if (!commercialName.trim()) return;
+    await generateCaratulasPDF(buildDocInfo() as any, false);
   };
 
   if (!isOpen) return null;
@@ -124,10 +128,19 @@ export default function ManualCaratulasModal({ isOpen, onClose, onPreview }: Pro
             type="button"
             onClick={handlePreview}
             disabled={!commercialName.trim()}
-            className="flex-[2] px-1 py-2 bg-purple-700 text-white rounded-md hover:bg-purple-800 transition-colors font-bold flex items-center justify-center gap-1 text-xs sm:text-sm min-h-[38px] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-1 py-2 bg-purple-700 text-white rounded-md hover:bg-purple-800 transition-colors font-bold flex items-center justify-center gap-1 text-xs sm:text-sm min-h-[38px] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Eye className="w-3.5 h-3.5 shrink-0" />
-            Vista Previa
+            Previa
+          </button>
+          <button
+            type="button"
+            onClick={handleDescargar}
+            disabled={!commercialName.trim()}
+            className="flex-1 px-1 py-2 bg-red-700 text-white rounded-md hover:bg-red-800 transition-colors font-bold flex items-center justify-center gap-1 text-xs sm:text-sm min-h-[38px] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download className="w-3.5 h-3.5 shrink-0" />
+            Descargar
           </button>
         </div>
       </div>
