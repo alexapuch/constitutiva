@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Home, BarChart3, ClipboardList, Calculator, FileSignature, ShieldCheck, Database, Sun, Moon, LogOut } from 'lucide-react';
+import { X, Home, BarChart3, ClipboardList, Calculator, FileSignature, ShieldCheck, Database, Sun, Moon, LogOut, GitBranch } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 interface SideMenuProps {
@@ -12,6 +12,7 @@ interface SideMenuProps {
   onOpenQuoteHistory: () => void;
   onOpenNewQuote: () => void;
   onOpenManualConstancia: () => void;
+  onOpenOrganigrama: () => void;
   onOpenCartaResponsiva: () => void;
   onOpenConstanciasHistory: () => void;
   onLogout: () => void;
@@ -20,7 +21,7 @@ interface SideMenuProps {
 
 export default function SideMenu({
   isOpen, onClose, activeTab, setActiveTab, quotesCount,
-  onOpenQuoteHistory, onOpenNewQuote, onOpenManualConstancia,
+  onOpenQuoteHistory, onOpenNewQuote, onOpenManualConstancia, onOpenOrganigrama,
   onOpenCartaResponsiva, onOpenConstanciasHistory, onLogout, onNavigateHome
 }: SideMenuProps) {
   const { theme, toggleTheme } = useTheme();
@@ -101,6 +102,14 @@ export default function SideMenu({
               >
                 <FileSignature className="w-5 h-5" />
                 Generar Constancia
+              </button>
+
+              <button
+                onClick={() => { onClose(); onOpenOrganigrama(); }}
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-teal-50 hover:text-teal-700 transition-colors font-medium"
+              >
+                <GitBranch className="w-5 h-5" />
+                Generar Organigrama
               </button>
 
               <button
