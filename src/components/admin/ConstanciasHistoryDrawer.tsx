@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FileSignature, X, Search, RefreshCw, Download, Building2, PackageOpen, Trash2, ChevronDown } from 'lucide-react';
+import { FileSignature, X, Search, RefreshCw, Download, Building2, PackageOpen, Trash2, ChevronDown, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { DocumentInfo } from '../../types';
 import { generateConstanciaPDF, generateConstanciasBatchFromRegistry } from '../../utils/generateConstanciaPDF';
@@ -101,7 +101,8 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
     }
   };
 
-  const handleBatchDelete = async (companyName: string, entries: ConstanciaEntry[]) => {
+  const handleBatchDelete = async (companyName: string, entries: ConstanciaEntry[], trackingKey?: string) => {
+    const key = trackingKey || companyName;
     const result = await Swal.fire({
       title: '¿Eliminar todas?',
       html: `Se eliminarán <b>${entries.length} constancias</b> de <b>${companyName}</b>.`,
@@ -114,7 +115,7 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
     });
     if (!result.isConfirmed) return;
 
-    setDeletingBatch(prev => new Set(prev).add(companyName));
+    setDeletingBatch(prev => new Set(prev).add(key));
     try {
       const folios = entries.map(e => e.folio);
       const ok = await deleteFromApi(folios);
@@ -124,7 +125,7 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
         Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron eliminar las constancias.', timer: 2500, showConfirmButton: false });
       }
     } finally {
-      setDeletingBatch(prev => { const s = new Set(prev); s.delete(companyName); return s; });
+      setDeletingBatch(prev => { const s = new Set(prev); s.delete(key); return s; });
     }
   };
 
@@ -134,7 +135,8 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
       return (
         c.folio.toLowerCase().includes(term) ||
         (c.employee_name && c.employee_name.toLowerCase().includes(term)) ||
-        (c.commercial_name && c.commercial_name.toLowerCase().includes(term))
+        (c.commercial_name && c.commercial_name.toLowerCase().includes(term)) ||
+        (c.address && c.address.toLowerCase().includes(term))
       );
     })
     .sort((a, b) => {
@@ -143,15 +145,20 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
       return numB - numA;
     });
 
-  // Group by company
+  // Group by company + address (exact match – even 1 letter difference = separate group)
   const companyGroups = Object.entries(
     filteredConstancias.reduce((acc, c) => {
-      const key = c.commercial_name || '—';
+      const name = (c.commercial_name || '—').trim().toUpperCase();
+      const addr = (c.address || '').trim().toUpperCase();
+      const key = `${name}|||${addr}`;
       if (!acc[key]) acc[key] = [];
       acc[key].push(c);
       return acc;
     }, {} as Record<string, ConstanciaEntry[]>)
-  );
+  ).map(([compositeKey, entries]) => {
+    const [name, addr] = compositeKey.split('|||');
+    return { compositeKey, name, address: addr || '', entries };
+  });
 
   const buildDocInfoAndEmp = (c: ConstanciaEntry) => {
     let date = c.date || new Date(c.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
@@ -188,8 +195,9 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
     }
   };
 
-  const handleBatchDownload = async (companyName: string, entries: ConstanciaEntry[]) => {
-    setDownloadingBatch(prev => new Set(prev).add(companyName));
+  const handleBatchDownload = async (companyName: string, entries: ConstanciaEntry[], trackingKey?: string) => {
+    const key = trackingKey || companyName;
+    setDownloadingBatch(prev => new Set(prev).add(key));
     try {
       const batchEntries = entries.map(c => {
         let date = c.date || new Date(c.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
@@ -202,7 +210,7 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
       });
       await generateConstanciasBatchFromRegistry(batchEntries, companyName);
     } finally {
-      setDownloadingBatch(prev => { const s = new Set(prev); s.delete(companyName); return s; });
+      setDownloadingBatch(prev => { const s = new Set(prev); s.delete(key); return s; });
     }
   };
 
@@ -276,31 +284,42 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
                 </div>
               ) : (
                 <div className="flex flex-col gap-5">
-                  {companyGroups.map(([companyName, entries]) => {
-                    const isBatchLoading = downloadingBatch.has(companyName);
-                    const isBatchDeleting = deletingBatch.has(companyName);
+                  {companyGroups.map(({ compositeKey, name: groupName, address: groupAddress, entries }) => {
+                    const isBatchLoading = downloadingBatch.has(compositeKey);
+                    const isBatchDeleting = deletingBatch.has(compositeKey);
                     return (
-                      <div key={companyName}>
-                        {/* Company header */}
+                      <div key={compositeKey}>
+                        {/* Company + address header */}
                         <div
-                          onClick={() => toggleCompanyCollapse(companyName)}
+                          onClick={() => toggleCompanyCollapse(compositeKey)}
                           className="flex items-center justify-between mb-2 px-1 cursor-pointer select-none group"
                         >
-                          <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex items-start gap-2 min-w-0">
                             <motion.div
-                              animate={{ rotate: collapsedCompanies.has(companyName) ? -90 : 0 }}
+                              animate={{ rotate: collapsedCompanies.has(compositeKey) ? -90 : 0 }}
                               transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                              className="mt-0.5"
                             >
                               <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40 rounded-sm" />
                             </motion.div>
-                            <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                            <span className="text-sm font-bold text-blue-900 dark:text-blue-300 truncate group-hover:text-blue-700 dark:group-hover:text-blue-200 transition-colors">{companyName}</span>
-                            <span className="text-xs text-gray-400 font-medium shrink-0">({entries.length})</span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                <span className="text-sm font-bold text-blue-900 dark:text-blue-300 truncate group-hover:text-blue-700 dark:group-hover:text-blue-200 transition-colors">{groupName}</span>
+                                <span className="text-xs text-gray-400 font-medium shrink-0">({entries.length})</span>
+                              </div>
+                              <div className="flex items-center gap-1 mt-0.5 ml-0.5">
+                                <MapPin className="w-3 h-3 text-gray-400 shrink-0" />
+                                <span className={`text-xs truncate ${groupAddress ? 'text-gray-500 dark:text-gray-400' : 'text-gray-400 dark:text-gray-500 italic'}`}>
+                                  {groupAddress || 'Sin dirección registrada'}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                           <div className="flex items-center gap-2 ml-2 shrink-0" onClick={e => e.stopPropagation()}>
                             {entries.length > 1 && (
                               <button
-                                onClick={() => handleBatchDownload(companyName, entries)}
+                                onClick={() => handleBatchDownload(groupName, entries, compositeKey)}
                                 disabled={isBatchLoading || isBatchDeleting}
                                 className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:opacity-50 text-white text-xs font-bold px-2.5 py-2 sm:px-3 sm:py-1.5 rounded-lg transition-colors touch-manipulation"
                                 title="Descargar todas las constancias de esta empresa"
@@ -312,7 +331,7 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
                               </button>
                             )}
                             <button
-                              onClick={() => handleBatchDelete(companyName, entries)}
+                              onClick={() => handleBatchDelete(groupName, entries, compositeKey)}
                               disabled={isBatchDeleting || isBatchLoading}
                               className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:opacity-50 text-white text-xs font-bold px-2.5 py-2 sm:px-3 sm:py-1.5 rounded-lg transition-colors touch-manipulation"
                               title="Eliminar todas las constancias de esta empresa"
@@ -327,7 +346,7 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
 
                         {/* Individual cards */}
                         <AnimatePresence initial={false}>
-                          {!collapsedCompanies.has(companyName) && (
+                          {!collapsedCompanies.has(compositeKey) && (
                             <motion.div
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: 'auto', opacity: 1 }}
