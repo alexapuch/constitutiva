@@ -974,7 +974,14 @@ export default function AdminView() {
                             />
                           ) : (
                             <span className="flex items-center gap-1 group">
-                              <span className="select-text cursor-text">{emp.name}</span>
+                              <span
+                                className="select-text cursor-text"
+                                onCopy={(e) => {
+                                  e.preventDefault();
+                                  const sel = window.getSelection();
+                                  if (sel) e.clipboardData.setData('text/plain', sel.toString());
+                                }}
+                              >{emp.name}</span>
                               <button
                                 onClick={() => { setEditingEmpId(emp.id); setEditingEmpName(emp.name); }}
                                 className="opacity-0 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100 text-gray-400 hover:text-blue-500 active:text-blue-500 transition-opacity p-0.5 rounded touch-manipulation"
