@@ -30,7 +30,7 @@ import ManualOrganigramaModal from '../components/admin/ManualOrganigramaModal';
 import ManualCaratulasModal from '../components/admin/ManualCaratulasModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.65';
+const APP_VERSION = 'v1.66';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -959,7 +959,7 @@ export default function AdminView() {
                   </thead>
                   <tbody>
                     {sortEmployees(employees).map((emp, index) => (
-                      <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700">
+                      <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 select-none">
                         <td className="p-3 text-gray-500">#{index + 1}</td>
                         <td className="p-3 font-medium uppercase dark:text-gray-200">
                           {editingEmpId === emp.id ? (
@@ -974,7 +974,7 @@ export default function AdminView() {
                             />
                           ) : (
                             <span className="flex items-center gap-1 group">
-                              {emp.name}
+                              <span className="select-text cursor-text">{emp.name}</span>
                               <button
                                 onClick={() => { setEditingEmpId(emp.id); setEditingEmpName(emp.name); }}
                                 className="opacity-0 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100 text-gray-400 hover:text-blue-500 active:text-blue-500 transition-opacity p-0.5 rounded touch-manipulation"
