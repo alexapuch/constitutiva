@@ -516,6 +516,18 @@ export default function ManualConstanciaModal({
                   </button>
                 )}
               </div>
+              {!quickData.address && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const isTulum = CONSTANCIA_TYPES.find(t => t.id === quickData.constanciaType)?.location === 'tulum';
+                    setQuickData({ ...quickData, address: isTulum ? 'TULUM, QUINTANA ROO, MÉXICO' : 'PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO' });
+                  }}
+                  className="mt-1.5 text-xs text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                >
+                  Usar dirección predeterminada
+                </button>
+              )}
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Expedición *</label>

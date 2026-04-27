@@ -24,6 +24,11 @@ export function resolveAddressLayout(doc: jsPDF, addressText: string, pdcText: s
 
   if (!addressText) return { finalAddress: pdcText, fontSize: 10 };
 
+  // If the user explicitly set the address to the city itself, render it once on line 1 only
+  if (addressText.replace(/\.$/, '') === pdcText.replace(/\.$/, '')) {
+    return { finalAddress: pdcText, fontSize: 10 };
+  }
+
   for (let fontSize = 10; fontSize >= 6; fontSize--) {
     doc.setFontSize(fontSize);
     const splitLines: string[] = doc.splitTextToSize(addressText, maxWidth);
