@@ -101,7 +101,6 @@ export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }
     const url = await generateActaBlankPDF(doc, count, true);
     if (url) {
       const name = generatePdfName('ACTA CONSTITUTIVA BLANK', doc.commercial_name || 'DOCUMENTO', doc.date);
-      onClose();
       onPreview(url as string, name);
     }
     setLoading(false);

@@ -88,7 +88,7 @@ export default function PdfPreviewModal({
   if (!previewUrl) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex flex-col z-50">
+    <div className="fixed inset-0 bg-black/70 flex flex-col z-[10000]">
       <div className="flex items-center justify-between px-4 py-3 bg-gray-900 text-white shrink-0" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
         <h3 className="font-bold text-lg truncate">{previewName}</h3>
         <div className="flex items-center gap-2">
