@@ -64,6 +64,21 @@ export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }
   const [mHoraFin, setMHoraFin] = useState('');
   const [numManual, setNumManual] = useState(5);
 
+  const handleClose = () => {
+    setMode('acta');
+    setSelectedDocId('');
+    setNumActa(5);
+    setMNombreComercial('');
+    setMRazonSocial('');
+    setMDireccion('');
+    setMCiudad('PLAYA DEL CARMEN');
+    setMFecha('');
+    setMHoraInicio('');
+    setMHoraFin('');
+    setNumManual(5);
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   const selectedDoc = documents.find(d => d.id === selectedDocId);
@@ -108,7 +123,7 @@ export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 z-[9998]" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/50 z-[9998]" onClick={handleClose} />
 
       <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
@@ -119,7 +134,7 @@ export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }
               <FileText className="w-5 h-5 text-white" />
               <span className="text-white font-bold text-lg">Acta Constitutiva para Firmar</span>
             </div>
-            <button onClick={onClose} className="p-1 hover:bg-blue-800 rounded-full transition-colors">
+            <button onClick={handleClose} className="p-1 hover:bg-blue-800 rounded-full transition-colors">
               <X className="w-5 h-5 text-white" />
             </button>
           </div>
