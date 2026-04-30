@@ -28,9 +28,10 @@ import CartaResponsivaView from '../components/admin/CartaResponsivaView';
 import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
 import ManualOrganigramaModal from '../components/admin/ManualOrganigramaModal';
 import ManualCaratulasModal from '../components/admin/ManualCaratulasModal';
+import ActaBlankModal from '../components/admin/ActaBlankModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.68';
+const APP_VERSION = 'v1.69';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -92,6 +93,7 @@ export default function AdminView() {
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [showConstanciasDrawer, setShowConstanciasDrawer] = useState(false);
   const [showCartaResponsiva, setShowCartaResponsiva] = useState(false);
+  const [showActaBlankModal, setShowActaBlankModal] = useState(false);
   const [turnosSimulacro, setTurnosSimulacro] = useState<'M' | 'MV' | 'MVN'>('MV');
   const [editingEmpId, setEditingEmpId] = useState<number | null>(null);
   const [editingEmpName, setEditingEmpName] = useState('');
@@ -380,6 +382,7 @@ export default function AdminView() {
         onOpenCaratulas={() => { setShowCaratulasModal(true); }}
         onOpenCartaResponsiva={() => { setShowCartaResponsiva(true); }}
         onOpenConstanciasHistory={() => setShowConstanciasDrawer(true)}
+        onOpenActaBlank={() => setShowActaBlankModal(true)}
         onLogout={async () => {
           await supabase.auth.signOut();
           setIsAuthenticated(false);
@@ -1154,6 +1157,13 @@ export default function AdminView() {
         isOpen={showConstanciasDrawer}
         onClose={() => setShowConstanciasDrawer(false)}
         documents={documents}
+      />
+
+      <ActaBlankModal
+        isOpen={showActaBlankModal}
+        onClose={() => setShowActaBlankModal(false)}
+        documents={documents}
+        onPreview={(url, name) => { setPreviewUrl(url); setPreviewName(name); setPreviewType('Acta para Firmar'); }}
       />
 
       <PdfPreviewModal

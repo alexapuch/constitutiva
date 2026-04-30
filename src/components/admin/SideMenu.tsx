@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Home, BarChart3, ClipboardList, Calculator, FileSignature, ShieldCheck, Sun, Moon, LogOut, GitBranch, BookOpen } from 'lucide-react';
+import { X, Home, BarChart3, ClipboardList, Calculator, FileSignature, ShieldCheck, Sun, Moon, LogOut, GitBranch, BookOpen, FilePen } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 interface SideMenuProps {
@@ -16,6 +16,7 @@ interface SideMenuProps {
   onOpenCaratulas: () => void;
   onOpenCartaResponsiva: () => void;
   onOpenConstanciasHistory: () => void;
+  onOpenActaBlank: () => void;
   onLogout: () => void;
   onNavigateHome: () => void;
 }
@@ -23,7 +24,7 @@ interface SideMenuProps {
 export default function SideMenu({
   isOpen, onClose, activeTab, setActiveTab, quotesCount,
   onOpenQuoteHistory, onOpenNewQuote, onOpenManualConstancia, onOpenOrganigrama,
-  onOpenCaratulas, onOpenCartaResponsiva, onOpenConstanciasHistory, onLogout, onNavigateHome
+  onOpenCaratulas, onOpenCartaResponsiva, onOpenConstanciasHistory, onOpenActaBlank, onLogout, onNavigateHome
 }: SideMenuProps) {
   const { theme, toggleTheme } = useTheme();
 
@@ -127,6 +128,14 @@ export default function SideMenu({
               >
                 <ShieldCheck className="w-5 h-5" />
                 Carta Responsiva
+              </button>
+
+              <button
+                onClick={() => { onClose(); onOpenActaBlank(); }}
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-700 transition-colors font-medium"
+              >
+                <FilePen className="w-5 h-5" />
+                Acta para Firmar
               </button>
 
               <button
