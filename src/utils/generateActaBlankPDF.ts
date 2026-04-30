@@ -85,7 +85,7 @@ export const generateActaBlankPDF = async (
             body: table1Body,
             theme: 'grid',
             headStyles: { fillColor: [232, 232, 232], textColor: 0, fontStyle: 'bold', halign: 'center' },
-            styles: { font: 'helvetica', fontSize: 9, cellPadding: { top: 5, bottom: 5, left: 3, right: 3 }, textColor: 0, minCellHeight: 16, valign: 'bottom' },
+            styles: { font: 'helvetica', fontSize: 9, cellPadding: 4, textColor: 0, minCellHeight: 16, valign: 'middle' },
             columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 50 }, 2: { cellWidth: 50 } },
             margin: { left: margin, right: margin }
         });
@@ -159,7 +159,7 @@ export const generateActaBlankPDF = async (
             body: table2Body,
             theme: 'grid',
             headStyles: { fillColor: [232, 232, 232], textColor: 0, fontStyle: 'bold', halign: 'center' },
-            styles: { font: 'helvetica', fontSize: 9, cellPadding: { top: 5, bottom: 5, left: 3, right: 3 }, textColor: 0, valign: 'bottom', minCellHeight: 22 },
+            styles: { font: 'helvetica', fontSize: 9, cellPadding: 4, textColor: 0, valign: 'middle', minCellHeight: 22 },
             columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 50 }, 2: { cellWidth: 50 } },
             margin: { left: margin, right: margin }
         });
