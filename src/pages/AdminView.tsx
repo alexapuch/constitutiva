@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Swal from 'sweetalert2';
 import { DocumentInfo, Employee } from '../types';
-import { Trash2, Save, FileText, Users, Plus, Download, Award, Eye, CheckCircle2, RotateCcw, ChevronDown, ChevronRight, MessageCircle, Check, Pencil } from 'lucide-react';
+import { Trash2, Save, FileText, Users, Plus, Download, Award, Eye, CheckCircle2, RotateCcw, ChevronDown, ChevronRight, MessageCircle, Check, Pencil, Search } from 'lucide-react';
 import { generateSimulacroPDF } from '../utils/generateSimulacroPDF';
 import { generateBatchConstanciasPDF } from '../utils/generateBatchConstanciasPDF';
 import { generateConstanciaPDF } from '../utils/generateConstanciaPDF';
@@ -31,7 +31,7 @@ import ManualCaratulasModal from '../components/admin/ManualCaratulasModal';
 import ActaBlankModal from '../components/admin/ActaBlankModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.76';
+const APP_VERSION = 'v1.77';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -102,6 +102,7 @@ export default function AdminView() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState('');
   const [previewName, setPreviewName] = useState('');
+  const [docSearchTerm, setDocSearchTerm] = useState('');
 
 
   const fetchDocuments = useCallback(async () => {
@@ -436,11 +437,24 @@ export default function AdminView() {
             </button>
           </div>
 
+          <div className="p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <div className="relative">
+              <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar acta por nombre comercial..."
+                value={docSearchTerm}
+                onChange={(e) => setDocSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+          </div>
+
           <div className="p-0 bg-gray-50 dark:bg-gray-900" style={{ maxHeight: '600px', overflowY: 'auto' }}>
             {/* ── Pendientes ── */}
             <div className="flex flex-col gap-2 p-2 sm:p-4">
               <AnimatePresence>
-                {documents.filter(d => d.is_active === 1).map(doc => (
+                {documents.filter(d => d.is_active === 1 && (d.commercial_name || '').toLowerCase().includes(docSearchTerm.toLowerCase())).map(doc => (
                   <motion.div
                     key={doc.id}
                     initial={{ opacity: 0, height: 0, marginBottom: 0 }}
@@ -498,7 +512,7 @@ export default function AdminView() {
                   </motion.div>
                 ))}
               </AnimatePresence>
-              {documents.filter(d => d.is_active === 1).length === 0 && (
+              {documents.filter(d => d.is_active === 1 && (d.commercial_name || '').toLowerCase().includes(docSearchTerm.toLowerCase())).length === 0 && (
                 <div className="px-6 py-12 text-center bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm mt-2">
                   <FileText className="w-12 h-12 text-blue-200 mx-auto mb-3" />
                   <p className="text-gray-500 font-medium">No hay actas pendientes.</p>
@@ -508,7 +522,7 @@ export default function AdminView() {
             </div>
 
             {/* ── Terminadas (colapsable) ── */}
-            {documents.filter(d => d.is_active !== 1).length > 0 && (
+            {documents.filter(d => d.is_active !== 1 && (d.commercial_name || '').toLowerCase().includes(docSearchTerm.toLowerCase())).length > 0 && (
               <div className="px-2 sm:px-4 pb-4">
                 <button
                   onClick={() => setShowDoneSection(v => !v)}
@@ -517,7 +531,7 @@ export default function AdminView() {
                   {showDoneSection ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   Terminadas
                   <span className="ml-auto bg-gray-400 dark:bg-gray-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    {documents.filter(d => d.is_active !== 1).length}
+                    {documents.filter(d => d.is_active !== 1 && (d.commercial_name || '').toLowerCase().includes(docSearchTerm.toLowerCase())).length}
                   </span>
                 </button>
                 <AnimatePresence>
@@ -530,7 +544,7 @@ export default function AdminView() {
                       className="overflow-hidden"
                     >
                       <div className="flex flex-col gap-2 mt-2">
-                        {documents.filter(d => d.is_active !== 1).map(doc => (
+                        {documents.filter(d => d.is_active !== 1 && (d.commercial_name || '').toLowerCase().includes(docSearchTerm.toLowerCase())).map(doc => (
                           <SwipeableRow key={doc.id} onDelete={() => handleDeleteDocument(doc.id)} onClick={() => { setSelectedDocId(doc.id); setTimeout(() => { editSectionRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' }); }, 150); }}>
                             <div className={`flex flex-col p-4 rounded-xl border cursor-pointer transition-all shadow-sm opacity-60 ${selectedDocId === doc.id ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-400 ring-1 ring-blue-400 opacity-100' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
                               <div className="flex justify-between items-start mb-2">
