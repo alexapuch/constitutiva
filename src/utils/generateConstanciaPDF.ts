@@ -83,7 +83,7 @@ function drawConstanciaPage(doc: jsPDF, entry: RegistryEntry, imgJpeg: string, f
   doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
 
   const verifyUrl = `${window.location.origin}/api/verificar/${folioToSlug(entry.folio)}`;
-  const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'M' });
+  const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'H' });
   const qrSize = 18;
   const qrPad = 2;
   const qrX = 234;
@@ -96,12 +96,12 @@ function drawConstanciaPage(doc: jsPDF, entry: RegistryEntry, imgJpeg: string, f
   const modules = qrMatrix.modules;
   const modCount = modules.size;
   const cellSize = qrSize / modCount;
-  const gap = cellSize * 0.15;
   doc.setFillColor(0, 0, 0);
   for (let row = 0; row < modCount; row++) {
     for (let col = 0; col < modCount; col++) {
       if (modules.data[row * modCount + col]) {
-        doc.rect(qrX + col * cellSize + gap / 2, qrY + row * cellSize + gap / 2, cellSize - gap, cellSize - gap, 'F');
+        // Añadir +0.1 al tamaño para evitar que se vean líneas minúsculas de separación en renderizado PDF
+        doc.rect(qrX + col * cellSize, qrY + row * cellSize, cellSize + 0.1, cellSize + 0.1, 'F');
       }
     }
   }
@@ -211,7 +211,7 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         // 6. QR Code de verificación — en preview folio ficticio, en descarga real crea el registro
         const folio = await folioPromise;
         const verifyUrl = `${window.location.origin}/api/verificar/${folioToSlug(folio)}`;
-        const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'M' });
+        const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'H' });
         const qrSize = 18;
         const qrPad = 2;
         const qrX = 234;
@@ -222,20 +222,20 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         doc.setDrawColor(220, 20, 20);
         doc.setLineWidth(1.2);
         doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 3, 3, 'S');
-        // Dibujar módulos del QR con pequeño gap para reducir tinta (15% inset)
+        // Dibujar módulos del QR (sin gap para asegurar lectura en Android)
         const modules = qrMatrix.modules;
         const modCount = modules.size;
         const cellSize = qrSize / modCount;
-        const gap = cellSize * 0.15;
         doc.setFillColor(0, 0, 0);
         for (let row = 0; row < modCount; row++) {
             for (let col = 0; col < modCount; col++) {
                 if (modules.data[row * modCount + col]) {
+                    // Añadir +0.1 al tamaño para evitar que se vean líneas minúsculas de separación en renderizado PDF
                     doc.rect(
-                        qrX + col * cellSize + gap / 2,
-                        qrY + row * cellSize + gap / 2,
-                        cellSize - gap,
-                        cellSize - gap,
+                        qrX + col * cellSize,
+                        qrY + row * cellSize,
+                        cellSize + 0.1,
+                        cellSize + 0.1,
                         'F'
                     );
                 }
