@@ -81,7 +81,7 @@ export const generateActaBlankPDF = async (
         const table1Body: string[][] = Array.from({ length: count }, (_, i) =>
             hasRepresentanteLegal && i === 0
                 ? ['', 'REPRESENTANTE LEGAL', 'REPRESENTANTE LEGAL']
-                : ['', 'MULTIBRIGADA', 'MULTIBRIGADA']
+                : ['', 'EMPLEADO', 'MULTIBRIGADA']
         );
 
         autoTable(doc, {
@@ -155,7 +155,7 @@ export const generateActaBlankPDF = async (
         const table2Body: string[][] = Array.from({ length: count }, (_, i) =>
             hasRepresentanteLegal && i === 0
                 ? ['', 'REPRESENTANTE LEGAL', '']
-                : ['', 'MULTIBRIGADA', '']
+                : ['', 'EMPLEADO', '']
         );
 
         autoTable(doc, {
