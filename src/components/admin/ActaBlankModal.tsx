@@ -14,14 +14,28 @@ interface ActaBlankModalProps {
 const inputCls = 'w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500';
 const labelCls = 'block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1';
 
-function EmpleadosControl({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+function EmpleadosControl({ value, onChange, hasRepresentante, onHasRepresentanteChange }: { value: number; onChange: (n: number) => void; hasRepresentante: boolean; onHasRepresentanteChange: (v: boolean) => void }) {
   return (
-    <div>
-      <label className={labelCls}>Número de recuadros para empleados</label>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-        El primero será Representante Legal, el resto Multibrigada.
-      </p>
-      <div className="flex items-center gap-3">
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <input 
+          type="checkbox" 
+          id="hasRepresentante"
+          checked={hasRepresentante} 
+          onChange={e => onHasRepresentanteChange(e.target.checked)} 
+          className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+        />
+        <label htmlFor="hasRepresentante" className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+          ¿Cuenta con Representante Legal?
+        </label>
+      </div>
+
+      <div>
+        <label className={labelCls}>Número de recuadros para empleados</label>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+          {hasRepresentante ? 'El primero será Representante Legal, el resto Multibrigada.' : 'Todos serán Multibrigada.'}
+        </p>
+        <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={() => onChange(Math.max(1, value - 1))}
@@ -43,12 +57,14 @@ function EmpleadosControl({ value, onChange }: { value: number; onChange: (n: nu
         <span className="text-sm text-gray-500 dark:text-gray-400">recuadros</span>
       </div>
     </div>
+    </div>
   );
 }
 
 export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }: ActaBlankModalProps) {
   const [mode, setMode] = useState<'acta' | 'manual'>('acta');
   const [loading, setLoading] = useState(false);
+  const [hasRepresentante, setHasRepresentante] = useState(true);
 
   // Modo "Desde Acta"
   const [selectedDocId, setSelectedDocId] = useState<number | ''>('');
@@ -76,6 +92,7 @@ export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }
     setMHoraInicio('');
     setMHoraFin('');
     setNumManual(5);
+    setHasRepresentante(true);
     onClose();
   };
 
@@ -105,7 +122,7 @@ export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }
     if (!canGenerate) return;
     const { doc, count } = getDocAndCount();
     setLoading(true);
-    await generateActaBlankPDF(doc, count, false);
+    await generateActaBlankPDF(doc, count, false, hasRepresentante);
     setLoading(false);
   };
 
@@ -113,7 +130,7 @@ export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }
     if (!canGenerate) return;
     const { doc, count } = getDocAndCount();
     setLoading(true);
-    const url = await generateActaBlankPDF(doc, count, true);
+    const url = await generateActaBlankPDF(doc, count, true, hasRepresentante);
     if (url) {
       const name = generatePdfName('ACTA CONSTITUTIVA BLANK', doc.commercial_name || 'DOCUMENTO', doc.date);
       onPreview(url as string, name);
@@ -185,7 +202,7 @@ export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }
                   </div>
                 )}
 
-                <EmpleadosControl value={numActa} onChange={setNumActa} />
+                <EmpleadosControl value={numActa} onChange={setNumActa} hasRepresentante={hasRepresentante} onHasRepresentanteChange={setHasRepresentante} />
               </>
             )}
 
@@ -274,7 +291,7 @@ export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }
                   {mFecha && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{mFecha}</p>}
                 </div>
 
-                <EmpleadosControl value={numManual} onChange={setNumManual} />
+                <EmpleadosControl value={numManual} onChange={setNumManual} hasRepresentante={hasRepresentante} onHasRepresentanteChange={setHasRepresentante} />
               </>
             )}
           </div>

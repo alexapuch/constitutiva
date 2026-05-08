@@ -8,7 +8,8 @@ import { savePdf } from './savePdf';
 export const generateActaBlankPDF = async (
     docInfo: DocumentInfo,
     numEmpleados: number,
-    preview: boolean = false
+    preview: boolean = false,
+    hasRepresentanteLegal: boolean = true
 ): Promise<string | void> => {
     try {
         const doc = new jsPDF({
@@ -47,7 +48,11 @@ export const generateActaBlankPDF = async (
         const cityPrefix = addrParts[1]?.trim() === 'TULUM' ? 'TULUM' : 'PLAYA DEL CARMEN';
         const fullAddress = `${baseAddress}${baseAddress ? ", " : ""}${cityPrefix}, QUINTANA ROO, MÉXICO.`;
 
-        addText(`C. ${(docInfo.company_name || '').toUpperCase()} RESPONSABLE DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL DE LA EMPRESA DENOMINADA "${docInfo.commercial_name || ''}" y Siendo las ${docInfo.time_start || ''} horas del día ${docInfo.date || ''}, en el inmueble que ocupa la empresa, con domicilio, ${fullAddress} Se reúne la representante legal, así como lo empleados:`, 10, 'normal', 'justify');
+        const introText = hasRepresentanteLegal
+            ? `C. ${(docInfo.company_name || '').toUpperCase()} RESPONSABLE DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL DE LA EMPRESA DENOMINADA "${docInfo.commercial_name || ''}" y Siendo las ${docInfo.time_start || ''} horas del día ${docInfo.date || ''}, en el inmueble que ocupa la empresa, con domicilio, ${fullAddress} Se reúne la representante legal, así como lo empleados:`
+            : `C. ${(docInfo.company_name || '').toUpperCase()} RESPONSABLE DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL DE LA EMPRESA DENOMINADA "${docInfo.commercial_name || ''}" y Siendo las ${docInfo.time_start || ''} horas del día ${docInfo.date || ''}, en el inmueble que ocupa la empresa, con domicilio, ${fullAddress} Se reúnen los empleados:`;
+
+        addText(introText, 10, 'normal', 'justify');
         currentY += 4;
         addText(`Con el objeto de constituir formalmente la Unidad Interna de Protección Civil de este inmueble.`, 10, 'normal', 'justify');
         currentY += 4;
@@ -74,7 +79,7 @@ export const generateActaBlankPDF = async (
         // Build blank rows: row 1 = Representante Legal, rest = Multibrigada
         const count = Math.max(1, numEmpleados);
         const table1Body: string[][] = Array.from({ length: count }, (_, i) =>
-            i === 0
+            hasRepresentanteLegal && i === 0
                 ? ['', 'REPRESENTANTE LEGAL', 'REPRESENTANTE LEGAL']
                 : ['', 'MULTIBRIGADA', 'MULTIBRIGADA']
         );
@@ -148,7 +153,7 @@ export const generateActaBlankPDF = async (
 
         // Same blank rows as section 2 but FIRMA column is blank
         const table2Body: string[][] = Array.from({ length: count }, (_, i) =>
-            i === 0
+            hasRepresentanteLegal && i === 0
                 ? ['', 'REPRESENTANTE LEGAL', '']
                 : ['', 'MULTIBRIGADA', '']
         );
