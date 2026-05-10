@@ -75,7 +75,7 @@ export default function ManualCaratulasModal({ isOpen, onClose, onPreview }: Pro
                 value={companyName}
                 onChange={e => setCompanyName(e.target.value)}
                 placeholder="Ej. SERVICIOS DE PROTECCIÓN S.A. DE C.V."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none pr-9 uppercase"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-[16px] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none pr-9 uppercase"
               />
               {companyName && (
                 <button type="button" tabIndex={-1} onClick={() => setCompanyName('')}
@@ -96,7 +96,7 @@ export default function ManualCaratulasModal({ isOpen, onClose, onPreview }: Pro
                 value={commercialName}
                 onChange={e => setCommercialName(e.target.value)}
                 placeholder="Ej. HOTEL RIVIERA MAR"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none pr-9 uppercase"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-[16px] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none pr-9 uppercase"
               />
               {commercialName && (
                 <button type="button" tabIndex={-1} onClick={() => setCommercialName('')}

@@ -11,7 +11,7 @@ interface ActaBlankModalProps {
   onPreview: (url: string, name: string) => void;
 }
 
-const inputCls = 'w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500';
+const inputCls = 'w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-[16px] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500';
 const labelCls = 'block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1';
 
 function EmpleadosControl({ value, onChange, hasRepresentante, onHasRepresentanteChange }: { value: number; onChange: (n: number) => void; hasRepresentante: boolean; onHasRepresentanteChange: (v: boolean) => void }) {
@@ -76,8 +76,6 @@ export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }
   const [mDireccion, setMDireccion] = useState('');
   const [mCiudad, setMCiudad] = useState<'PLAYA DEL CARMEN' | 'TULUM'>('PLAYA DEL CARMEN');
   const [mFecha, setMFecha] = useState('');
-  const [mHoraInicio, setMHoraInicio] = useState('');
-  const [mHoraFin, setMHoraFin] = useState('');
   const [numManual, setNumManual] = useState(5);
 
   const handleClose = () => {
@@ -89,8 +87,6 @@ export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }
     setMDireccion('');
     setMCiudad('PLAYA DEL CARMEN');
     setMFecha('');
-    setMHoraInicio('');
-    setMHoraFin('');
     setNumManual(5);
     setHasRepresentante(true);
     onClose();
@@ -106,8 +102,8 @@ export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }
     company_name: mRazonSocial.toUpperCase(),
     address: mDireccion.trim() ? `${mDireccion.trim().toUpperCase()} | ${mCiudad}` : `| ${mCiudad}`,
     date: mFecha,
-    time_start: mHoraInicio,
-    time_end: mHoraFin,
+    time_start: '09:00',
+    time_end: '12:00',
     is_active: 1,
   });
 
@@ -213,7 +209,7 @@ export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }
                   <input
                     type="text"
                     value={mNombreComercial}
-                    onChange={e => setMNombreComercial(e.target.value)}
+                    onChange={e => setMNombreComercial(e.target.value.toUpperCase())}
                     placeholder="Ej. HOTEL PARAÍSO"
                     className={inputCls}
                   />
@@ -224,7 +220,7 @@ export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }
                   <input
                     type="text"
                     value={mRazonSocial}
-                    onChange={e => setMRazonSocial(e.target.value)}
+                    onChange={e => setMRazonSocial(e.target.value.toUpperCase())}
                     placeholder="Ej. PARAÍSO S.A. DE C.V."
                     className={inputCls}
                   />
@@ -235,7 +231,7 @@ export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }
                   <input
                     type="text"
                     value={mDireccion}
-                    onChange={e => setMDireccion(e.target.value)}
+                    onChange={e => setMDireccion(e.target.value.toUpperCase())}
                     placeholder="Ej. AV. CONSTITUYENTES 123"
                     className={inputCls}
                   />
@@ -253,26 +249,7 @@ export default function ActaBlankModal({ isOpen, onClose, documents, onPreview }
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelCls}>Hora Inicio</label>
-                    <input
-                      type="time"
-                      value={mHoraInicio}
-                      onChange={e => setMHoraInicio(e.target.value)}
-                      className={inputCls}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Hora Fin</label>
-                    <input
-                      type="time"
-                      value={mHoraFin}
-                      onChange={e => setMHoraFin(e.target.value)}
-                      className={inputCls}
-                    />
-                  </div>
-                </div>
+
 
                 <div>
                   <label className={labelCls}>Fecha</label>
