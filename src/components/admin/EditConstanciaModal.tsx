@@ -116,13 +116,32 @@ export default function EditConstanciaModal({ isOpen, onClose, constancia, onSuc
               </div>
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Fecha</label>
-                <input
-                  type="text"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value.toUpperCase())}
-                  placeholder="Ej: 10 DE MAYO DE 2026"
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-[16px] dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value.toUpperCase())}
+                    placeholder="Ej: 10 DE MAYO DE 2026"
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-[16px] dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none"
+                  />
+                  <div className="relative">
+                    <input
+                      type="date"
+                      onChange={e => {
+                        const iso = e.target.value;
+                        if (!iso) return;
+                        const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+                        const [yr, mo, dy] = iso.split('-').map(Number);
+                        setDate(`${dy} DE ${meses[mo - 1]} DEL ${yr}`);
+                        e.target.value = ''; // Reset to allow re-selection
+                      }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div className="h-full px-4 flex items-center justify-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer transition-colors">
+                      📅
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
