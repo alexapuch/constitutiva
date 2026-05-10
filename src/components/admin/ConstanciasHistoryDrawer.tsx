@@ -5,6 +5,7 @@ import { DocumentInfo } from '../../types';
 import { generateConstanciaPDF, generateConstanciasBatchFromRegistry } from '../../utils/generateConstanciaPDF';
 import Swal from 'sweetalert2';
 import EditConstanciaModal from './EditConstanciaModal';
+import BatchEditConstanciasModal from './BatchEditConstanciasModal';
 
 interface ConstanciaEntry {
   folio: string;
@@ -33,6 +34,7 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
   const [collapsedCompanies, setCollapsedCompanies] = useState<Set<string>>(new Set());
   
   const [editingConstancia, setEditingConstancia] = useState<ConstanciaEntry | null>(null);
+  const [editingBatchEntries, setEditingBatchEntries] = useState<ConstanciaEntry[] | null>(null);
 
   const toggleCompanyCollapse = (companyName: string) => {
     setCollapsedCompanies(prev => {
@@ -321,17 +323,28 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
                           </div>
                           <div className="flex items-center gap-2 ml-2 shrink-0" onClick={e => e.stopPropagation()}>
                             {entries.length > 1 && (
-                              <button
-                                onClick={() => handleBatchDownload(groupName, entries, compositeKey)}
-                                disabled={isBatchLoading || isBatchDeleting}
-                                className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:opacity-50 text-white text-xs font-bold px-2.5 py-2 sm:px-3 sm:py-1.5 rounded-lg transition-colors touch-manipulation"
-                                title="Descargar todas las constancias de esta empresa"
-                              >
-                                {isBatchLoading
-                                  ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span className="hidden sm:inline"> Generando...</span></>
-                                  : <><PackageOpen className="w-3.5 h-3.5" /><span className="hidden sm:inline"> Descargar todas</span></>
-                                }
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => setEditingBatchEntries(entries)}
+                                  disabled={isBatchLoading || isBatchDeleting}
+                                  className="flex items-center gap-1.5 bg-blue-100 hover:bg-blue-200 active:bg-blue-300 disabled:opacity-50 text-blue-700 text-xs font-bold px-2.5 py-2 sm:px-3 sm:py-1.5 rounded-lg transition-colors touch-manipulation"
+                                  title="Editar la empresa, dirección y fecha de todas estas constancias"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                  <span className="hidden sm:inline"> Editar todas</span>
+                                </button>
+                                <button
+                                  onClick={() => handleBatchDownload(groupName, entries, compositeKey)}
+                                  disabled={isBatchLoading || isBatchDeleting}
+                                  className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:opacity-50 text-white text-xs font-bold px-2.5 py-2 sm:px-3 sm:py-1.5 rounded-lg transition-colors touch-manipulation"
+                                  title="Descargar todas las constancias de esta empresa"
+                                >
+                                  {isBatchLoading
+                                    ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span className="hidden sm:inline"> Generando...</span></>
+                                    : <><PackageOpen className="w-3.5 h-3.5" /><span className="hidden sm:inline"> Descargar todas</span></>
+                                  }
+                                </button>
+                              </>
                             )}
                             <button
                               onClick={() => handleBatchDelete(groupName, entries, compositeKey)}
@@ -428,6 +441,13 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
             isOpen={!!editingConstancia}
             onClose={() => setEditingConstancia(null)}
             constancia={editingConstancia}
+            onSuccess={fetchConstancias}
+          />
+
+          <BatchEditConstanciasModal
+            isOpen={!!editingBatchEntries}
+            onClose={() => setEditingBatchEntries(null)}
+            entries={editingBatchEntries || []}
             onSuccess={fetchConstancias}
           />
         </>

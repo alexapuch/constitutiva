@@ -494,6 +494,28 @@ router.put('/constancias/folio/:folio', async (req, res) => {
     res.json(data);
 });
 
+// PUT update multiple constancias in batch
+router.put('/constancias/batch', async (req, res) => {
+    const { folios, commercial_name, address, date } = req.body;
+    
+    if (!Array.isArray(folios) || folios.length === 0) {
+        return res.status(400).json({ error: 'folios array required' });
+    }
+    
+    const updateData: any = {};
+    if (commercial_name !== undefined) updateData.commercial_name = commercial_name;
+    if (address !== undefined) updateData.address = address;
+    if (date !== undefined) updateData.date = date;
+
+    const { error } = await supabase
+        .from('constancias')
+        .update(updateData)
+        .in('folio', folios);
+        
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true, updated: folios.length });
+});
+
 router.get('/verificar/:folio', async (req, res) => {
     const folio = req.params.folio.replace('-', '/');
     const { data, error } = await supabase
