@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { FileSignature, X, Search, RefreshCw, Download, Building2, PackageOpen, Trash2, ChevronDown, MapPin } from 'lucide-react';
+import { FileSignature, X, Search, RefreshCw, Download, Building2, PackageOpen, Trash2, ChevronDown, MapPin, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { DocumentInfo } from '../../types';
 import { generateConstanciaPDF, generateConstanciasBatchFromRegistry } from '../../utils/generateConstanciaPDF';
 import Swal from 'sweetalert2';
+import EditConstanciaModal from './EditConstanciaModal';
 
 interface ConstanciaEntry {
   folio: string;
@@ -30,6 +31,8 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
   const [deletingFolios, setDeletingFolios] = useState<Set<string>>(new Set());
   const [deletingBatch, setDeletingBatch] = useState<Set<string>>(new Set());
   const [collapsedCompanies, setCollapsedCompanies] = useState<Set<string>>(new Set());
+  
+  const [editingConstancia, setEditingConstancia] = useState<ConstanciaEntry | null>(null);
 
   const toggleCompanyCollapse = (companyName: string) => {
     setCollapsedCompanies(prev => {
@@ -386,6 +389,14 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
                                             }
                                           </button>
                                           <button
+                                            onClick={() => setEditingConstancia(c)}
+                                            disabled={isDeleting || isBatchDeleting || downloadingFolios.has(c.folio)}
+                                            className="flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:bg-gray-300 disabled:opacity-50 text-gray-600 hover:text-gray-800 p-2 rounded-lg transition-colors touch-manipulation"
+                                            title="Editar constancia"
+                                          >
+                                            <Pencil className="w-3.5 h-3.5" />
+                                          </button>
+                                          <button
                                             onClick={() => handleDelete(c)}
                                             disabled={isDeleting || isBatchDeleting || downloadingFolios.has(c.folio)}
                                             className="flex items-center justify-center bg-red-100 hover:bg-red-200 active:bg-red-300 disabled:opacity-50 text-red-600 hover:text-red-700 p-2 rounded-lg transition-colors touch-manipulation"
@@ -412,6 +423,13 @@ export default function ConstanciasHistoryDrawer({ isOpen, onClose, documents }:
               )}
             </div>
           </motion.div>
+          
+          <EditConstanciaModal
+            isOpen={!!editingConstancia}
+            onClose={() => setEditingConstancia(null)}
+            constancia={editingConstancia}
+            onSuccess={fetchConstancias}
+          />
         </>
       )}
     </AnimatePresence>

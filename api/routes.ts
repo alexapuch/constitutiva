@@ -478,6 +478,22 @@ router.get('/constancias/folio/:folio', async (req, res) => {
 });
 
 // GET verificar constancia - server-side HTML (bypasses React bundle cache issues)
+// PUT update constancia
+router.put('/constancias/folio/:folio', async (req, res) => {
+    const folio = req.params.folio.replace('-', '/');
+    const { employee_name, commercial_name, address, date } = req.body;
+    
+    const { data, error } = await supabase
+        .from('constancias')
+        .update({ employee_name, commercial_name, address, date })
+        .eq('folio', folio)
+        .select()
+        .single();
+        
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+});
+
 router.get('/verificar/:folio', async (req, res) => {
     const folio = req.params.folio.replace('-', '/');
     const { data, error } = await supabase
