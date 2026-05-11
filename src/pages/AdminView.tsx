@@ -31,7 +31,7 @@ import ManualCaratulasModal from '../components/admin/ManualCaratulasModal';
 import ActaBlankModal from '../components/admin/ActaBlankModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.82';
+const APP_VERSION = 'v1.83';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -1077,7 +1077,9 @@ export default function AdminView() {
            if (!doc) return;
            const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
            let fechaFormateada = doc.date || '';
-           if (fecha) {
+           if (fecha === 'UNKNOWN') {
+             fechaFormateada = '___________________________';
+           } else if (fecha) {
              const [yr, mo, dy] = fecha.split('-').map(Number);
              fechaFormateada = `${dy} DE ${meses[mo - 1]} DE ${yr}`;
            }
@@ -1096,7 +1098,9 @@ export default function AdminView() {
            if (!doc) return;
            const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
            let fechaFormateada = doc.date || '';
-           if (fecha) {
+           if (fecha === 'UNKNOWN') {
+             fechaFormateada = '___________________________';
+           } else if (fecha) {
              const [yr, mo, dy] = fecha.split('-').map(Number);
              fechaFormateada = `${dy} DE ${meses[mo - 1]} DE ${yr}`;
            }

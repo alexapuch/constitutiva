@@ -38,12 +38,15 @@ export default function CartaResponsivaView({
   const [cartaFecha, setCartaFecha] = useState(() => {
     try { const s = localStorage.getItem('autosave_carta'); if (s) return JSON.parse(s).fecha ?? ''; } catch {} return '';
   });
+  const [cartaFechaDesc, setCartaFechaDesc] = useState(() => {
+    try { const s = localStorage.getItem('autosave_carta'); if (s) return JSON.parse(s).fechaDesc ?? false; } catch {} return false;
+  });
 
   useEffect(() => {
-    const hasData = cartaDocId || cartaFvu || cartaFecha;
-    if (hasData) localStorage.setItem('autosave_carta', JSON.stringify({ docId: cartaDocId, fvu: cartaFvu, dictamenGas: cartaDictamenGas, fecha: cartaFecha }));
+    const hasData = cartaDocId || cartaFvu || cartaFecha || cartaFechaDesc;
+    if (hasData) localStorage.setItem('autosave_carta', JSON.stringify({ docId: cartaDocId, fvu: cartaFvu, dictamenGas: cartaDictamenGas, fecha: cartaFecha, fechaDesc: cartaFechaDesc }));
     else localStorage.removeItem('autosave_carta');
-  }, [cartaDocId, cartaFvu, cartaDictamenGas, cartaFecha]);
+  }, [cartaDocId, cartaFvu, cartaDictamenGas, cartaFecha, cartaFechaDesc]);
 
   // ── Modo Manual ───────────────────────────────────────────────────────────
   const [mNombreComercial, setMNombreComercial] = useState('');
@@ -51,11 +54,12 @@ export default function CartaResponsivaView({
   const [mDireccion, setMDireccion] = useState('');
   const [mGiro, setMGiro] = useState('');
   const [mFecha, setMFecha] = useState('');
+  const [mFechaDesc, setMFechaDesc] = useState(false);
   const [mFvu, setMFvu] = useState('');
   const [mDictamenGas, setMDictamenGas] = useState(true);
 
   const handleClose = () => {
-    setCartaDocId(null); setCartaFvu(''); setCartaDictamenGas(true); setCartaFecha('');
+    setCartaDocId(null); setCartaFvu(''); setCartaDictamenGas(true); setCartaFecha(''); setCartaFechaDesc(false);
     localStorage.removeItem('autosave_carta');
     onClose();
   };
@@ -66,7 +70,7 @@ export default function CartaResponsivaView({
       razonSocial: mRazonSocial.trim().toUpperCase(),
       direccion: mDireccion.trim().toUpperCase(),
       giroComercial: mGiro.trim().toUpperCase(),
-      fecha: formatFecha(mFecha),
+      fecha: mFechaDesc ? '___________________________' : formatFecha(mFecha),
       fvu: mFvu,
       dictamenGas: mDictamenGas,
     }, false);
@@ -78,7 +82,7 @@ export default function CartaResponsivaView({
       razonSocial: mRazonSocial.trim().toUpperCase(),
       direccion: mDireccion.trim().toUpperCase(),
       giroComercial: mGiro.trim().toUpperCase(),
-      fecha: formatFecha(mFecha),
+      fecha: mFechaDesc ? '___________________________' : formatFecha(mFecha),
       fvu: mFvu,
       dictamenGas: mDictamenGas,
     }, true);
@@ -142,10 +146,18 @@ export default function CartaResponsivaView({
               </div>
 
               <div className="overflow-hidden">
-                <label className="block text-sm font-bold text-gray-700 mb-1">Fecha de la Carta *</label>
-                <input type="date" value={cartaFecha} onChange={(e) => setCartaFecha(e.target.value)}
-                  className="border border-gray-300 rounded-md p-3 text-base focus:ring-blue-600 focus:border-blue-600"
-                  style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', WebkitAppearance: 'none', appearance: 'none' }} />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-bold text-gray-700">Fecha de la Carta *</label>
+                  <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                    <input type="checkbox" checked={cartaFechaDesc} onChange={(e) => setCartaFechaDesc(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                    Aún no sé la fecha
+                  </label>
+                </div>
+                {!cartaFechaDesc && (
+                  <input type="date" value={cartaFecha} onChange={(e) => setCartaFecha(e.target.value)}
+                    className="border border-gray-300 rounded-md p-3 text-base focus:ring-blue-600 focus:border-blue-600"
+                    style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', WebkitAppearance: 'none', appearance: 'none' }} />
+                )}
               </div>
 
               <div>
@@ -180,13 +192,13 @@ export default function CartaResponsivaView({
 
             <div className="p-4 border-t border-gray-200 bg-gray-50 shrink-0 flex gap-0" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
               <button disabled={!cartaDocId}
-                onClick={() => { if (cartaDocId) onGeneratePDF(cartaDocId, cartaFecha, cartaFvu, cartaDictamenGas); }}
+                onClick={() => { if (cartaDocId) onGeneratePDF(cartaDocId, cartaFechaDesc ? 'UNKNOWN' : cartaFecha, cartaFvu, cartaDictamenGas); }}
                 className="flex-1 flex items-center justify-center gap-2 bg-red-900 text-white px-4 py-3 rounded-l-md hover:bg-red-950 transition-colors font-bold text-base disabled:opacity-40 disabled:cursor-not-allowed">
                 <Download className="w-5 h-5" />
                 Generar PDF
               </button>
               <button disabled={!cartaDocId}
-                onClick={() => { if (cartaDocId) onPreviewPDF(cartaDocId, cartaFecha, cartaFvu, cartaDictamenGas); }}
+                onClick={() => { if (cartaDocId) onPreviewPDF(cartaDocId, cartaFechaDesc ? 'UNKNOWN' : cartaFecha, cartaFvu, cartaDictamenGas); }}
                 className="flex items-center justify-center bg-red-800 text-white px-3 py-3 rounded-r-md hover:bg-red-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px]"
                 title="Vista Previa">
                 <Eye className="w-5 h-5" />
@@ -231,10 +243,18 @@ export default function CartaResponsivaView({
               </div>
 
               <div className="overflow-hidden">
-                <label className="block text-sm font-bold text-gray-700 mb-1">Fecha de la Carta</label>
-                <input type="date" value={mFecha} onChange={e => setMFecha(e.target.value)}
-                  className="border border-gray-300 rounded-md p-3 text-base focus:ring-blue-600 focus:border-blue-600"
-                  style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', WebkitAppearance: 'none', appearance: 'none' }} />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-bold text-gray-700">Fecha de la Carta</label>
+                  <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                    <input type="checkbox" checked={mFechaDesc} onChange={(e) => setMFechaDesc(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                    Aún no sé la fecha
+                  </label>
+                </div>
+                {!mFechaDesc && (
+                  <input type="date" value={mFecha} onChange={e => setMFecha(e.target.value)}
+                    className="border border-gray-300 rounded-md p-3 text-base focus:ring-blue-600 focus:border-blue-600"
+                    style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', WebkitAppearance: 'none', appearance: 'none' }} />
+                )}
               </div>
 
               <div>
