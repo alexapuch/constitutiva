@@ -5,10 +5,10 @@ import { generatePdfName } from './pdfNameGenerator';
 import { savePdf } from './savePdf';
 import Swal from 'sweetalert2';
 
-const DARK: [number, number, number] = [52, 152, 219];
-const LIGHT: [number, number, number] = [240, 248, 255];
-const BORDER: [number, number, number] = [133, 193, 233];
-const LINE: [number, number, number] = [52, 152, 219];
+const DARK: [number, number, number] = [31, 73, 125];
+const LIGHT: [number, number, number] = [255, 255, 255];
+const BORDER: [number, number, number] = [31, 73, 125];
+const LINE: [number, number, number] = [31, 73, 125];
 
 const TITLE_H = 13;
 const NAME_H = 12;
