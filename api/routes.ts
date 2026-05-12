@@ -347,7 +347,7 @@ router.post('/constancias/folios-batch', async (req, res) => {
     } else {
         const commercialName = employees[0].commercial_name;
         if (commercialName) {
-            const { data } = await supabase.from('constancias').select('*').eq('commercial_name', commercialName);
+            const { data } = await supabase.from('constancias').select('*').ilike('commercial_name', commercialName);
             if (data) existingConstancias = data;
         }
     }
@@ -369,10 +369,12 @@ router.post('/constancias/folios-batch', async (req, res) => {
     const rows: any[] = [];
 
     for (const emp of employees) {
-        let existing = existingConstancias.find(c => 
-            c.employee_name === emp.employee_name && 
-            ((c.document_id && c.document_id === emp.document_id) || (c.commercial_name && c.commercial_name === emp.commercial_name))
-        );
+        let existing = existingConstancias.find(c => {
+            const sameName = c.employee_name.trim().toUpperCase() === emp.employee_name.trim().toUpperCase();
+            const sameDoc = c.document_id && emp.document_id && String(c.document_id) === String(emp.document_id);
+            const sameComm = c.commercial_name && emp.commercial_name && c.commercial_name.trim().toUpperCase() === emp.commercial_name.trim().toUpperCase();
+            return sameName && (sameDoc || sameComm);
+        });
 
         if (existing) {
             folios.push(existing.folio);
@@ -406,16 +408,16 @@ router.post('/constancias/folios-batch', async (req, res) => {
 router.post('/constancias/folio', async (req, res) => {
     const { document_id, employee_name, commercial_name, address, date } = req.body;
     
-    let query = supabase.from('constancias').select('folio').eq('employee_name', employee_name);
+    let query = supabase.from('constancias').select('folio').ilike('employee_name', employee_name);
     if (document_id) {
         query = query.eq('document_id', document_id);
     } else if (commercial_name) {
-        query = query.eq('commercial_name', commercial_name);
+        query = query.ilike('commercial_name', commercial_name);
     }
-    const { data: existingData } = await query.maybeSingle();
+    const { data: existingData } = await query.limit(1);
 
-    if (existingData && existingData.folio) {
-        return res.json({ folio: existingData.folio });
+    if (existingData && existingData.length > 0 && existingData[0].folio) {
+        return res.json({ folio: existingData[0].folio });
     }
 
     const year = new Date().getFullYear().toString().slice(-2);

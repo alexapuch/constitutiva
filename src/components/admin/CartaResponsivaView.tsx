@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, X, Download, Eye } from 'lucide-react';
+import { ShieldCheck, X, Download, Eye, Search } from 'lucide-react';
 import { DocumentInfo } from '../../types';
 import { generateCartaResponsivaPDF } from '../../utils/generateCartaResponsivaPDF';
 
@@ -26,6 +26,7 @@ export default function CartaResponsivaView({
   const [mode, setMode] = useState<'acta' | 'manual'>('acta');
 
   // ── Modo Acta ────────────────────────────────────────────────────────────
+  const [searchTerm, setSearchTerm] = useState('');
   const [cartaDocId, setCartaDocId] = useState<number | null>(() => {
     try { const s = localStorage.getItem('autosave_carta'); if (s) return JSON.parse(s).docId ?? null; } catch {} return null;
   });
@@ -133,13 +134,27 @@ export default function CartaResponsivaView({
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Acta Constitutiva *</label>
+                <div className="mb-2 relative">
+                  <input
+                    type="text"
+                    placeholder="Buscar empresa..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md p-3 pl-10 text-sm focus:ring-blue-600 focus:border-blue-600"
+                  />
+                  <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3" />
+                </div>
                 <select
                   value={cartaDocId ?? ''}
                   onChange={(e) => setCartaDocId(e.target.value ? Number(e.target.value) : null)}
                   className="w-full border border-gray-300 rounded-md p-3 text-base focus:ring-blue-600 focus:border-blue-600"
                 >
                   <option value="">— Seleccionar documento —</option>
-                  {documents.map((doc) => (
+                  {documents.filter(doc => 
+                    doc.id === cartaDocId ||
+                    (doc.commercial_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    (doc.company_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+                  ).map((doc) => (
                     <option key={doc.id} value={doc.id}>{doc.commercial_name} — {doc.company_name}</option>
                   ))}
                 </select>
