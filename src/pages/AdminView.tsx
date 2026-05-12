@@ -31,7 +31,7 @@ import ManualCaratulasModal from '../components/admin/ManualCaratulasModal';
 import ActaBlankModal from '../components/admin/ActaBlankModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.85';
+const APP_VERSION = 'v1.86';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -228,24 +228,48 @@ export default function AdminView() {
   };
 
   const promptCaratulaColor = async (): Promise<[number, number, number] | null> => {
-    const { value: colorStr } = await Swal.fire({
+    const { isConfirmed, value: colorStr } = await Swal.fire({
       title: 'Color del Marco',
-      text: 'Selecciona el color para el marco de las carátulas:',
-      input: 'select',
-      inputOptions: {
-        '31,73,125': 'Azul (Seprisa)',
-        '114,47,55': 'Vino',
-        '200,0,0': 'Rojo',
-        '0,100,0': 'Verde Oscuro',
-        '218,165,32': 'Amarillo / Dorado'
-      },
-      inputValue: '31,73,125',
+      html: `
+        <p class="text-sm text-gray-600 mb-4">Selecciona el color para el marco de las carátulas:</p>
+        <div class="flex flex-col gap-2 text-left">
+          <label class="flex items-center gap-3 p-2 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+            <input type="radio" name="caratula-color" value="31,73,125" checked class="w-4 h-4 text-purple-600">
+            <div class="w-6 h-6 rounded-md shadow-sm border border-gray-200" style="background-color: rgb(31,73,125)"></div>
+            <span class="font-medium text-gray-800">Azul (Seprisa)</span>
+          </label>
+          <label class="flex items-center gap-3 p-2 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+            <input type="radio" name="caratula-color" value="114,47,55">
+            <div class="w-6 h-6 rounded-md shadow-sm border border-gray-200" style="background-color: rgb(114,47,55)"></div>
+            <span class="font-medium text-gray-800">Vino</span>
+          </label>
+          <label class="flex items-center gap-3 p-2 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+            <input type="radio" name="caratula-color" value="200,0,0">
+            <div class="w-6 h-6 rounded-md shadow-sm border border-gray-200" style="background-color: rgb(200,0,0)"></div>
+            <span class="font-medium text-gray-800">Rojo</span>
+          </label>
+          <label class="flex items-center gap-3 p-2 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+            <input type="radio" name="caratula-color" value="0,100,0">
+            <div class="w-6 h-6 rounded-md shadow-sm border border-gray-200" style="background-color: rgb(0,100,0)"></div>
+            <span class="font-medium text-gray-800">Verde Oscuro</span>
+          </label>
+          <label class="flex items-center gap-3 p-2 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+            <input type="radio" name="caratula-color" value="218,165,32">
+            <div class="w-6 h-6 rounded-md shadow-sm border border-gray-200" style="background-color: rgb(218,165,32)"></div>
+            <span class="font-medium text-gray-800">Amarillo / Dorado</span>
+          </label>
+        </div>
+      `,
       showCancelButton: true,
       confirmButtonText: 'Continuar',
-      cancelButtonText: 'Cancelar'
+      cancelButtonText: 'Cancelar',
+      preConfirm: () => {
+        const selected = document.querySelector('input[name="caratula-color"]:checked') as HTMLInputElement;
+        return selected ? selected.value : '31,73,125';
+      }
     });
     
-    if (!colorStr) return null;
+    if (!isConfirmed || !colorStr) return null;
     const [r, g, b] = colorStr.split(',').map(Number);
     return [r, g, b];
   };

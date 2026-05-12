@@ -114,17 +114,23 @@ export default function ManualCaratulasModal({ isOpen, onClose, onPreview }: Pro
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
               Color del Marco
             </label>
-            <select
-              value={frameColor}
-              onChange={e => setFrameColor(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-[16px] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none bg-white"
-            >
-              <option value="31,73,125">Azul (Seprisa)</option>
-              <option value="114,47,55">Vino</option>
-              <option value="200,0,0">Rojo</option>
-              <option value="0,100,0">Verde Oscuro</option>
-              <option value="218,165,32">Amarillo / Dorado</option>
-            </select>
+            <div className="flex items-center gap-3">
+              <div 
+                className="w-10 h-10 rounded-md border border-gray-300 shadow-sm shrink-0 transition-colors" 
+                style={{ backgroundColor: `rgb(${frameColor})` }}
+              />
+              <select
+                value={frameColor}
+                onChange={e => setFrameColor(e.target.value)}
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-[16px] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none bg-white"
+              >
+                <option value="31,73,125">Azul (Seprisa)</option>
+                <option value="114,47,55">Vino</option>
+                <option value="200,0,0">Rojo</option>
+                <option value="0,100,0">Verde Oscuro</option>
+                <option value="218,165,32">Amarillo / Dorado</option>
+              </select>
+            </div>
           </div>
         </div>
 
