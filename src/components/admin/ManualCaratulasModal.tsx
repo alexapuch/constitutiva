@@ -11,6 +11,7 @@ interface Props {
 export default function ManualCaratulasModal({ isOpen, onClose, onPreview }: Props) {
   const [companyName, setCompanyName] = useState('');
   const [commercialName, setCommercialName] = useState('');
+  const [frameColor, setFrameColor] = useState<string>('31,73,125');
 
   const handleLimpiar = () => {
     setCompanyName('');
@@ -30,13 +31,15 @@ export default function ManualCaratulasModal({ isOpen, onClose, onPreview }: Pro
 
   const handlePreview = async () => {
     if (!commercialName.trim()) return;
-    const url = await generateCaratulasPDF(buildDocInfo() as any, true);
+    const [r, g, b] = frameColor.split(',').map(Number);
+    const url = await generateCaratulasPDF(buildDocInfo() as any, true, [r, g, b]);
     if (url) onPreview(url as string, `CARÁTULAS - ${commercialName.trim().toUpperCase()}`);
   };
 
   const handleDescargar = async () => {
     if (!commercialName.trim()) return;
-    await generateCaratulasPDF(buildDocInfo() as any, false);
+    const [r, g, b] = frameColor.split(',').map(Number);
+    await generateCaratulasPDF(buildDocInfo() as any, false, [r, g, b]);
   };
 
   if (!isOpen) return null;
@@ -105,6 +108,23 @@ export default function ManualCaratulasModal({ isOpen, onClose, onPreview }: Pro
                 </button>
               )}
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
+              Color del Marco
+            </label>
+            <select
+              value={frameColor}
+              onChange={e => setFrameColor(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-[16px] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none bg-white"
+            >
+              <option value="31,73,125">Azul (Seprisa)</option>
+              <option value="114,47,55">Vino</option>
+              <option value="200,0,0">Rojo</option>
+              <option value="0,100,0">Verde Oscuro</option>
+              <option value="218,165,32">Amarillo / Dorado</option>
+            </select>
           </div>
         </div>
 

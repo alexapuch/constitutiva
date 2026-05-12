@@ -31,7 +31,7 @@ import ManualCaratulasModal from '../components/admin/ManualCaratulasModal';
 import ActaBlankModal from '../components/admin/ActaBlankModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.84';
+const APP_VERSION = 'v1.85';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -225,6 +225,29 @@ export default function AdminView() {
       body: JSON.stringify({ is_active: newActive })
     });
     fetchDocuments();
+  };
+
+  const promptCaratulaColor = async (): Promise<[number, number, number] | null> => {
+    const { value: colorStr } = await Swal.fire({
+      title: 'Color del Marco',
+      text: 'Selecciona el color para el marco de las carátulas:',
+      input: 'select',
+      inputOptions: {
+        '31,73,125': 'Azul (Seprisa)',
+        '114,47,55': 'Vino',
+        '200,0,0': 'Rojo',
+        '0,100,0': 'Verde Oscuro',
+        '218,165,32': 'Amarillo / Dorado'
+      },
+      inputValue: '31,73,125',
+      showCancelButton: true,
+      confirmButtonText: 'Continuar',
+      cancelButtonText: 'Cancelar'
+    });
+    
+    if (!colorStr) return null;
+    const [r, g, b] = colorStr.split(',').map(Number);
+    return [r, g, b];
   };
 
   const handleCreateDocument = async () => {
@@ -935,7 +958,12 @@ export default function AdminView() {
                   </div>
                   <div className="flex-1 sm:flex-none flex items-center">
                     <button
-                      onClick={async () => { if (docInfo) { await generateCaratulasPDF(docInfo); } }}
+                      onClick={async () => { 
+                        if (docInfo) { 
+                          const color = await promptCaratulaColor();
+                          if (color) await generateCaratulasPDF(docInfo, false, color); 
+                        } 
+                      }}
                       className="flex-1 flex items-center justify-center gap-1.5 bg-purple-600 text-white px-3 py-1.5 text-sm rounded-l-md hover:bg-purple-700 transition-colors shadow-md font-bold min-h-[38px]"
                       title="Descargar Carátulas"
                     >
@@ -943,7 +971,12 @@ export default function AdminView() {
                       <span className="whitespace-nowrap">Carátulas</span>
                     </button>
                     <button
-                      onClick={() => { if (docInfo) handlePreview(() => generateCaratulasPDF(docInfo, true), 'Carátulas', generatePdfName('CARATULAS', docInfo.commercial_name, docInfo.date)); }}
+                      onClick={async () => { 
+                        if (docInfo) { 
+                          const color = await promptCaratulaColor();
+                          if (color) handlePreview(() => generateCaratulasPDF(docInfo, true, color), 'Carátulas', generatePdfName('CARATULAS', docInfo.commercial_name, docInfo.date)); 
+                        } 
+                      }}
                       className="flex items-center justify-center bg-purple-500 text-white px-2 py-1.5 rounded-r-md hover:bg-purple-600 transition-colors min-h-[38px]"
                       title="Vista Previa"
                     >

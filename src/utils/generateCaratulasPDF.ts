@@ -35,7 +35,7 @@ const loadWatermarkPng = async (): Promise<string | null> => {
     }
 };
 
-export const generateCaratulasPDF = async (docInfo: DocumentInfo, preview: boolean = false): Promise<string | void> => {
+export const generateCaratulasPDF = async (docInfo: DocumentInfo, preview: boolean = false, frameColor: [number, number, number] = [31, 73, 125]): Promise<string | void> => {
 
     try {
         const doc = new jsPDF({
@@ -67,8 +67,8 @@ export const generateCaratulasPDF = async (docInfo: DocumentInfo, preview: boole
         const watermarkImg = await loadWatermarkPng();
 
         const addCaratulaPage = (anexo: string, subtitle: string, includeBottomBox: boolean = false) => {
-            // Draw Blue Frame
-            doc.setDrawColor(31, 73, 125); // Seprisa blue
+            // Draw Frame
+            doc.setDrawColor(frameColor[0], frameColor[1], frameColor[2]);
             doc.setLineWidth(1.5);
             // 10mm margin on all sides
             doc.rect(10, 10, pageWidth - 20, pageHeight - 20); 
