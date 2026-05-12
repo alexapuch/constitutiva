@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { Download, X, ZoomIn, ZoomOut, Printer } from 'lucide-react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import Swal from 'sweetalert2';
 
@@ -116,6 +116,34 @@ export default function PdfPreviewModal({
             title="Aumentar zoom"
           >
             <ZoomIn className="w-5 h-5" />
+          </button>
+          
+          <button
+            onClick={() => {
+              const iframe = document.createElement('iframe');
+              iframe.style.display = 'none';
+              iframe.src = previewUrl;
+              document.body.appendChild(iframe);
+              
+              iframe.onload = () => {
+                try {
+                  iframe.contentWindow?.focus();
+                  iframe.contentWindow?.print();
+                } catch (e) {
+                  console.error('Error al imprimir:', e);
+                  window.open(previewUrl, '_blank');
+                }
+                setTimeout(() => {
+                  if (document.body.contains(iframe)) {
+                    document.body.removeChild(iframe);
+                  }
+                }, 10000);
+              };
+            }}
+            className="flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors rounded-lg w-11 h-11 text-white/80 hover:text-white"
+            title="Imprimir documento"
+          >
+            <Printer className="w-5 h-5" />
           </button>
           <button
             disabled={savingVersion}
