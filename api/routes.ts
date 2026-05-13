@@ -16,9 +16,39 @@ if (!SUPABASE_SERVICE_ROLE_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY || '');
 
 
+// Background cleanup function for deleted docs > 15 days
+const cleanupDeletedDocs = async () => {
+    try {
+        const fifteenDaysAgo = new Date();
+        fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
+        
+        const { data: expiredDocs } = await supabase
+            .from('document_info')
+            .select('id')
+            .eq('is_active', -1)
+            .lt('deleted_at', fifteenDaysAgo.toISOString());
+            
+        if (expiredDocs && expiredDocs.length > 0) {
+            for (const doc of expiredDocs) {
+                const id = doc.id;
+                const { data: files } = await supabase.storage.from('pdf-versions').list(String(id));
+                if (files && files.length > 0) {
+                    const paths = files.map((f: any) => `${id}/${f.name}`);
+                    await supabase.storage.from('pdf-versions').remove(paths);
+                }
+                await supabase.from('pdf_history').delete().like('file_path', `${id}/%`);
+                await supabase.from('constancias').delete().eq('document_id', id);
+                await supabase.from('document_info').delete().eq('id', id);
+            }
+        }
+    } catch (e) {
+        console.error("Cleanup error:", e);
+    }
+};
 
 // GET all documents
 router.get('/documents', async (req, res) => {
+    cleanupDeletedDocs(); // Run asynchronously without awaiting
     const { activeOnly } = req.query;
     let query = supabase.from('document_info').select('*').order('id', { ascending: false });
     if (activeOnly === 'true') {
@@ -63,9 +93,17 @@ router.get('/documents/code/:code', async (req, res) => {
 // PUT update document
 router.put('/documents/:id', async (req, res) => {
     const { commercial_name, company_name, date, time_start, time_end, address, is_active, activity, usuarios, visitantes, sotanos, superiores } = req.body;
+    
+    let updateData: any = { commercial_name, company_name, date, time_start, time_end, address, is_active, activity, usuarios, visitantes, sotanos, superiores };
+    
+    // Clear deleted_at if we are restoring it from recycle bin
+    if (is_active === 1 || is_active === 0) {
+        updateData.deleted_at = null;
+    }
+
     const { error } = await supabase
         .from('document_info')
-        .update({ commercial_name, company_name, date, time_start, time_end, address, is_active, activity, usuarios, visitantes, sotanos, superiores })
+        .update(updateData)
         .eq('id', req.params.id);
     if (error) return res.status(500).json({ error: error.message });
     res.json({ success: true });
@@ -84,28 +122,40 @@ router.patch('/documents/:id/regenerate-code', async (req, res) => {
     res.json({ access_code: data.access_code });
 });
 
-// DELETE document
+// DELETE document (soft or hard)
 router.delete('/documents/:id', async (req, res) => {
     const id = req.params.id;
+    const { permanent } = req.query;
 
-    // 1. Delete all files in Storage folder for this document
-    const { data: files } = await supabase.storage.from('pdf-versions').list(id);
-    if (files && files.length > 0) {
-        const paths = files.map((f: any) => `${id}/${f.name}`);
-        await supabase.storage.from('pdf-versions').remove(paths);
+    if (permanent === 'true') {
+        // 1. Delete all files in Storage folder for this document
+        const { data: files } = await supabase.storage.from('pdf-versions').list(id);
+        if (files && files.length > 0) {
+            const paths = files.map((f: any) => `${id}/${f.name}`);
+            await supabase.storage.from('pdf-versions').remove(paths);
+        }
+
+        // 2. Delete pdf_history records for this document
+        await supabase.from('pdf_history').delete().like('file_path', `${id}/%`);
+
+        // 3. Delete constancias linked to this document
+        await supabase.from('constancias').delete().eq('document_id', id);
+
+        // 4. Delete the document itself (employees cascade via FK)
+        const { error } = await supabase.from('document_info').delete().eq('id', id);
+        if (error) return res.status(500).json({ error: error.message });
+
+        res.json({ success: true, permanent: true });
+    } else {
+        // Soft delete
+        const { error } = await supabase
+            .from('document_info')
+            .update({ is_active: -1, deleted_at: new Date().toISOString() })
+            .eq('id', id);
+        if (error) return res.status(500).json({ error: error.message });
+
+        res.json({ success: true, permanent: false });
     }
-
-    // 2. Delete pdf_history records for this document
-    await supabase.from('pdf_history').delete().like('file_path', `${id}/%`);
-
-    // 3. Delete constancias linked to this document
-    await supabase.from('constancias').delete().eq('document_id', id);
-
-    // 4. Delete the document itself (employees cascade via FK)
-    const { error } = await supabase.from('document_info').delete().eq('id', id);
-    if (error) return res.status(500).json({ error: error.message });
-
-    res.json({ success: true });
 });
 
 // GET employees of a document

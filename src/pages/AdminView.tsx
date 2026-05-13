@@ -31,7 +31,7 @@ import ManualCaratulasModal from '../components/admin/ManualCaratulasModal';
 import ActaBlankModal from '../components/admin/ActaBlankModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.88';
+const APP_VERSION = 'v1.89';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -90,6 +90,7 @@ export default function AdminView() {
   const [showQuoteDrawer, setShowQuoteDrawer] = useState(false);
   const [showSideMenu, setShowSideMenu] = useState(false);
   const [showDoneSection, setShowDoneSection] = useState(false);
+  const [showRecycleBin, setShowRecycleBin] = useState(false);
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [showConstanciasDrawer, setShowConstanciasDrawer] = useState(false);
   const [showCartaResponsiva, setShowCartaResponsiva] = useState(false);
@@ -227,6 +228,15 @@ export default function AdminView() {
     fetchDocuments();
   };
 
+  const handleRestoreDocument = async (docId: number) => {
+    await fetch(`/api/documents/${docId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_active: 0 }) // Restaurar a Terminadas
+    });
+    fetchDocuments();
+  };
+
   const promptCaratulaColor = async (): Promise<[number, number, number] | null> => {
     const { isConfirmed, value: colorStr } = await Swal.fire({
       title: 'Color del Marco',
@@ -316,19 +326,27 @@ export default function AdminView() {
 
   const handleDeleteDocument = async (id: number) => {
     const doc = documents.find(d => d.id === id);
+    const isDeleted = doc?.is_active === -1;
+    
     const result = await Swal.fire({
-      title: '¿Eliminar acta?',
-      text: `Se eliminará "${doc?.commercial_name || 'este documento'}" y todos sus empleados. Esta acción no se puede deshacer.`,
+      title: isDeleted ? '¿Eliminar permanentemente?' : '¿Mover a papelera?',
+      text: isDeleted 
+        ? `Se eliminará "${doc?.commercial_name || 'este documento'}" y todos sus datos. Esta acción NO se puede deshacer.`
+        : `"${doc?.commercial_name || 'Este documento'}" se moverá a la papelera por 15 días antes de eliminarse.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
       cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Sí, eliminar',
+      confirmButtonText: isDeleted ? 'Sí, eliminar permanentemente' : 'Sí, enviar a papelera',
       cancelButtonText: 'Cancelar'
     });
+    
     if (!result.isConfirmed) return;
-    await fetch(`/api/documents/${id}`, { method: 'DELETE' });
-    if (selectedDocId === id) setSelectedDocId(null);
+    
+    const endpoint = `/api/documents/${id}${isDeleted ? '?permanent=true' : ''}`;
+    await fetch(endpoint, { method: 'DELETE' });
+    
+    if (selectedDocId === id && isDeleted) setSelectedDocId(null);
     fetchDocuments();
   };
 
@@ -569,7 +587,7 @@ export default function AdminView() {
             </div>
 
             {/* ── Terminadas (colapsable) ── */}
-            {documents.filter(d => d.is_active !== 1 && (d.commercial_name || '').toLowerCase().includes(docSearchTerm.toLowerCase())).length > 0 && (
+            {documents.filter(d => d.is_active === 0 && (d.commercial_name || '').toLowerCase().includes(docSearchTerm.toLowerCase())).length > 0 && (
               <div className="px-2 sm:px-4 pb-4">
                 <button
                   onClick={() => setShowDoneSection(v => !v)}
@@ -578,7 +596,7 @@ export default function AdminView() {
                   {showDoneSection ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   Terminadas
                   <span className="ml-auto bg-gray-400 dark:bg-gray-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    {documents.filter(d => d.is_active !== 1 && (d.commercial_name || '').toLowerCase().includes(docSearchTerm.toLowerCase())).length}
+                    {documents.filter(d => d.is_active === 0 && (d.commercial_name || '').toLowerCase().includes(docSearchTerm.toLowerCase())).length}
                   </span>
                 </button>
                 <AnimatePresence>
@@ -591,7 +609,7 @@ export default function AdminView() {
                       className="overflow-hidden"
                     >
                       <div className="flex flex-col gap-2 mt-2">
-                        {documents.filter(d => d.is_active !== 1 && (d.commercial_name || '').toLowerCase().includes(docSearchTerm.toLowerCase())).map(doc => (
+                        {documents.filter(d => d.is_active === 0 && (d.commercial_name || '').toLowerCase().includes(docSearchTerm.toLowerCase())).map(doc => (
                           <SwipeableRow key={doc.id} onDelete={() => handleDeleteDocument(doc.id)} onClick={() => { setSelectedDocId(doc.id); setTimeout(() => { editSectionRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' }); }, 150); }}>
                             <div className={`flex flex-col p-4 rounded-xl border cursor-pointer transition-all shadow-sm opacity-60 ${selectedDocId === doc.id ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-400 ring-1 ring-blue-400 opacity-100' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
                               <div className="flex justify-between items-start mb-2">
@@ -622,6 +640,70 @@ export default function AdminView() {
                             </div>
                           </SwipeableRow>
                         ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {/* ── Papelera (colapsable) ── */}
+            {documents.filter(d => d.is_active === -1 && (d.commercial_name || '').toLowerCase().includes(docSearchTerm.toLowerCase())).length > 0 && (
+              <div className="px-2 sm:px-4 pb-4">
+                <button
+                  onClick={() => setShowRecycleBin(v => !v)}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 rounded-xl transition-colors text-sm font-bold text-red-600 dark:text-red-400"
+                >
+                  {showRecycleBin ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  Papelera (Eliminadas)
+                  <span className="ml-auto bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-300 text-xs font-bold px-2 py-0.5 rounded-full">
+                    {documents.filter(d => d.is_active === -1 && (d.commercial_name || '').toLowerCase().includes(docSearchTerm.toLowerCase())).length}
+                  </span>
+                </button>
+                <AnimatePresence>
+                  {showRecycleBin && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex flex-col gap-2 mt-2">
+                        {documents.filter(d => d.is_active === -1 && (d.commercial_name || '').toLowerCase().includes(docSearchTerm.toLowerCase())).map(doc => {
+                          const deletedDate = new Date(doc.deleted_at || Date.now());
+                          const expiryDate = new Date(deletedDate.getTime() + 15 * 24 * 60 * 60 * 1000);
+                          const daysLeft = Math.ceil((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                          
+                          return (
+                          <div key={doc.id} className="flex flex-col p-4 rounded-xl border border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/20 shadow-sm opacity-75">
+                            <div className="flex justify-between items-start mb-2">
+                              <span className="font-bold text-red-700 dark:text-red-400 text-base leading-tight pr-2 line-through decoration-red-400">{doc.commercial_name}</span>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleRestoreDocument(doc.id); }}
+                                  className="flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 px-2.5 py-1.5 rounded-lg transition-colors"
+                                  title="Restaurar acta"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                  <span className="hidden sm:inline">Restaurar</span>
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteDocument(doc.id); }}
+                                  className="flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-100 hover:bg-red-200 border border-red-300 px-2.5 py-1.5 rounded-lg transition-colors"
+                                  title="Eliminar Permanente"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-red-500/80">
+                              <span className="font-mono">{doc.access_code || 'N/A'}</span>
+                              <span>·</span>
+                              <span>Se elimina en {Math.max(0, daysLeft)} {daysLeft === 1 ? 'día' : 'días'}</span>
+                            </div>
+                          </div>
+                        )})}
                       </div>
                     </motion.div>
                   )}

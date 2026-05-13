@@ -13,6 +13,7 @@ export interface DocumentInfo {
   visitantes?: number;
   sotanos?: number;
   superiores?: number;
+  deleted_at?: string;
 }
 
 export interface Employee {
