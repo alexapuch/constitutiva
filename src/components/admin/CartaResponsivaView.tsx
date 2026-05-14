@@ -27,6 +27,7 @@ export default function CartaResponsivaView({
 
   // ── Modo Acta ────────────────────────────────────────────────────────────
   const [searchTerm, setSearchTerm] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [cartaDocId, setCartaDocId] = useState<number | null>(() => {
     try { const s = localStorage.getItem('autosave_carta'); if (s) return JSON.parse(s).docId ?? null; } catch {} return null;
   });
@@ -42,6 +43,16 @@ export default function CartaResponsivaView({
   const [cartaFechaDesc, setCartaFechaDesc] = useState(() => {
     try { const s = localStorage.getItem('autosave_carta'); if (s) return JSON.parse(s).fechaDesc ?? false; } catch {} return false;
   });
+
+  // Inicializar el searchTerm si hay un documento previamente seleccionado
+  useEffect(() => {
+    if (cartaDocId && !searchTerm) {
+      const doc = documents.find(d => d.id === cartaDocId);
+      if (doc) {
+        setSearchTerm(doc.commercial_name || doc.company_name || '');
+      }
+    }
+  }, [cartaDocId, documents]);
 
   useEffect(() => {
     const hasData = cartaDocId || cartaFvu || cartaFecha || cartaFechaDesc;
@@ -134,30 +145,70 @@ export default function CartaResponsivaView({
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Acta Constitutiva *</label>
-                <div className="mb-2 relative">
-                  <input
-                    type="text"
-                    placeholder="Buscar empresa..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md p-3 pl-10 text-sm focus:ring-blue-600 focus:border-blue-600"
-                  />
-                  <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3" />
+                <div className="relative mb-2">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Buscar por nombre o empresa..."
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setDropdownOpen(true);
+                        if (cartaDocId) setCartaDocId(null);
+                      }}
+                      onFocus={() => setDropdownOpen(true)}
+                      onBlur={() => setTimeout(() => setDropdownOpen(false), 200)}
+                      className="w-full border border-gray-300 rounded-md p-3 pl-10 pr-10 text-sm focus:ring-blue-600 focus:border-blue-600"
+                    />
+                    <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3" />
+                    {searchTerm && (
+                      <button 
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // Evita que el input pierda el foco
+                          setSearchTerm('');
+                          setCartaDocId(null);
+                          setDropdownOpen(true);
+                        }}
+                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {dropdownOpen && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {documents.filter(doc => 
+                        (doc.commercial_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (doc.company_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+                      ).length === 0 ? (
+                        <div className="p-3 text-sm text-gray-500">No se encontraron resultados.</div>
+                      ) : (
+                        <ul className="py-1">
+                          {documents.filter(doc => 
+                            (doc.commercial_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            (doc.company_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+                          ).map((doc) => (
+                            <li 
+                              key={doc.id} 
+                              onMouseDown={(e) => {
+                                e.preventDefault(); // Evita que se dispare el onBlur antes del click
+                                setCartaDocId(doc.id);
+                                setSearchTerm(doc.commercial_name || doc.company_name || '');
+                                setDropdownOpen(false);
+                              }}
+                              className={`px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-100 last:border-0 ${cartaDocId === doc.id ? 'bg-blue-100 font-semibold' : ''}`}
+                            >
+                              <div className="text-gray-900 font-medium">{doc.commercial_name || 'Sin Nombre Comercial'}</div>
+                              <div className="text-gray-500 text-xs mt-0.5">{doc.company_name || 'Sin Razón Social'}</div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <select
-                  value={cartaDocId ?? ''}
-                  onChange={(e) => setCartaDocId(e.target.value ? Number(e.target.value) : null)}
-                  className="w-full border border-gray-300 rounded-md p-3 text-base focus:ring-blue-600 focus:border-blue-600"
-                >
-                  <option value="">— Seleccionar documento —</option>
-                  {documents.filter(doc => 
-                    doc.id === cartaDocId ||
-                    (doc.commercial_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    (doc.company_name || '').toLowerCase().includes(searchTerm.toLowerCase())
-                  ).map((doc) => (
-                    <option key={doc.id} value={doc.id}>{doc.commercial_name} — {doc.company_name}</option>
-                  ))}
-                </select>
               </div>
 
               <div className="overflow-hidden">
