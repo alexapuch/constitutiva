@@ -83,8 +83,8 @@ function drawConstanciaPage(doc: jsPDF, entry: RegistryEntry, imgJpeg: string, f
   doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
 
   const verifyUrl = `${window.location.origin}/api/verificar/${folioToSlug(entry.folio)}`;
-  const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'H' });
-  const qrSize = 18;
+  const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'M' });
+  const qrSize = 23;
   const qrPad = 2;
   const qrX = 234;
   const qrY = 107.5;
@@ -211,8 +211,8 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         // 6. QR Code de verificación — en preview folio ficticio, en descarga real crea el registro
         const folio = await folioPromise;
         const verifyUrl = `${window.location.origin}/api/verificar/${folioToSlug(folio)}`;
-        const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'H' });
-        const qrSize = 18;
+        const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'M' });
+        const qrSize = 23;
         const qrPad = 2;
         const qrX = 234;
         const qrY = 107.5;
