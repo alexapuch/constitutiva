@@ -7,10 +7,10 @@ const generateCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 6);
 const router = Router();
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://hdpqihtbueodtermrqbm.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 
 if (!SUPABASE_SERVICE_ROLE_KEY) {
-    console.warn("URGENTE: SUPABASE_SERVICE_ROLE_KEY no está configurada. Las operaciones a la BD fallarán.");
+    console.warn("URGENTE: Ni SUPABASE_SERVICE_ROLE_KEY ni SUPABASE_KEY están configuradas. Las operaciones a la BD fallarán.");
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY || '');

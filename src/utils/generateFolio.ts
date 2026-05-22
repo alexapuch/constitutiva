@@ -5,9 +5,9 @@ export const generateFolio = async (documentId: number | undefined, employeeName
         body: JSON.stringify({ document_id: documentId ?? null, employee_name: employeeName, commercial_name: commercialName ?? null, address: address ?? null, date: date ?? null }),
     });
     if (!res.ok) {
-        console.error('[Folio] Error del servidor:', await res.text());
-        // Fallback folio if server fails
-        return `0000/26`;
+        const errorText = await res.text();
+        console.error('[Folio] Error del servidor:', errorText);
+        throw new Error(`Error en el servidor al generar folio: ${errorText}`);
     }
     const { folio } = await res.json();
     console.log('[Folio] Generado:', folio);
