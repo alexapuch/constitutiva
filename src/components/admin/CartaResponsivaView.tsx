@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, X, Download, Eye, Search } from 'lucide-react';
+import { ShieldCheck, X, Download, Eye, Search, ChevronDown } from 'lucide-react';
 import { DocumentInfo } from '../../types';
 import { generateCartaResponsivaPDF } from '../../utils/generateCartaResponsivaPDF';
 
@@ -70,11 +70,58 @@ export default function CartaResponsivaView({
   const [mFvu, setMFvu] = useState('');
   const [mDictamenGas, setMDictamenGas] = useState(true);
 
-  const handleClose = () => {
-    setCartaDocId(null); setCartaFvu(''); setCartaDictamenGas(true); setCartaFecha(''); setCartaFechaDesc(false);
+  const resetForm = () => {
+    // Reset Acta mode
+    setSearchTerm('');
+    setDropdownOpen(false);
+    setCartaDocId(null);
+    setCartaFvu('');
+    setCartaDictamenGas(true);
+    setCartaFecha('');
+    setCartaFechaDesc(false);
     localStorage.removeItem('autosave_carta');
+
+    // Reset Manual mode
+    setMNombreComercial('');
+    setMRazonSocial('');
+    setMDireccion('');
+    setMGiro('');
+    setMFecha('');
+    setMFechaDesc(false);
+    setMFvu('');
+    setMDictamenGas(true);
+
+    // Reset mode
+    setMode('acta');
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      resetForm();
+    }
+  }, [isOpen]);
+
+  const handleClose = () => {
+    resetForm();
     onClose();
   };
+
+  const getFilteredDocs = () => {
+    const selectedDoc = documents.find(d => d.id === cartaDocId);
+    const selectedName = selectedDoc ? (selectedDoc.commercial_name || selectedDoc.company_name || '') : '';
+    
+    // Si no hay término de búsqueda o coincide exactamente con el acta seleccionada, mostramos todos
+    if (!searchTerm || searchTerm === selectedName) {
+      return documents;
+    }
+    
+    return documents.filter(doc => 
+      (doc.commercial_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (doc.company_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
+  const filteredDocs = getFilteredDocs();
 
   const handleManualGenerate = async () => {
     await generateCartaResponsivaPDF({
@@ -149,7 +196,7 @@ export default function CartaResponsivaView({
                   <div className="relative">
                     <input
                       type="text"
-                      placeholder="Buscar por nombre o empresa..."
+                      placeholder="Buscar o seleccionar acta..."
                       value={searchTerm}
                       onChange={(e) => {
                         setSearchTerm(e.target.value);
@@ -158,38 +205,47 @@ export default function CartaResponsivaView({
                       }}
                       onFocus={() => setDropdownOpen(true)}
                       onBlur={() => setTimeout(() => setDropdownOpen(false), 200)}
-                      className="w-full border border-gray-300 rounded-md p-3 pl-10 pr-10 text-sm focus:ring-blue-600 focus:border-blue-600"
+                      className="w-full border border-gray-300 rounded-md p-3 pl-10 pr-12 text-sm focus:ring-blue-600 focus:border-blue-600 cursor-pointer"
                     />
-                    <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3" />
-                    {searchTerm && (
-                      <button 
+                    <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3.5 pointer-events-none" />
+                    
+                    <div className="absolute right-3 top-3 flex items-center gap-1.5">
+                      {searchTerm && (
+                        <button 
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault(); // Evita que el input pierda el foco
+                            setSearchTerm('');
+                            setCartaDocId(null);
+                            setDropdownOpen(true);
+                          }}
+                          className="text-gray-400 hover:text-gray-600 p-0.5"
+                          title="Limpiar búsqueda"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      )}
+                      <button
                         type="button"
                         onMouseDown={(e) => {
                           e.preventDefault(); // Evita que el input pierda el foco
-                          setSearchTerm('');
-                          setCartaDocId(null);
-                          setDropdownOpen(true);
+                          setDropdownOpen(!dropdownOpen);
                         }}
-                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                        className="text-gray-400 hover:text-gray-600 p-0.5"
+                        title="Ver todas las actas"
                       >
-                        <X className="w-5 h-5" />
+                        <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
                       </button>
-                    )}
+                    </div>
                   </div>
 
                   {dropdownOpen && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                      {documents.filter(doc => 
-                        (doc.commercial_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        (doc.company_name || '').toLowerCase().includes(searchTerm.toLowerCase())
-                      ).length === 0 ? (
-                        <div className="p-3 text-sm text-gray-500">No se encontraron resultados.</div>
+                      {filteredDocs.length === 0 ? (
+                        <div className="p-3 text-sm text-gray-500 text-center">No se encontraron resultados.</div>
                       ) : (
                         <ul className="py-1">
-                          {documents.filter(doc => 
-                            (doc.commercial_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            (doc.company_name || '').toLowerCase().includes(searchTerm.toLowerCase())
-                          ).map((doc) => (
+                          {filteredDocs.map((doc) => (
                             <li 
                               key={doc.id} 
                               onMouseDown={(e) => {
@@ -198,7 +254,7 @@ export default function CartaResponsivaView({
                                 setSearchTerm(doc.commercial_name || doc.company_name || '');
                                 setDropdownOpen(false);
                               }}
-                              className={`px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-100 last:border-0 ${cartaDocId === doc.id ? 'bg-blue-100 font-semibold' : ''}`}
+                              className={`px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-100 last:border-0 ${cartaDocId === doc.id ? 'bg-blue-100 font-semibold text-blue-900' : ''}`}
                             >
                               <div className="text-gray-900 font-medium">{doc.commercial_name || 'Sin Nombre Comercial'}</div>
                               <div className="text-gray-500 text-xs mt-0.5">{doc.company_name || 'Sin Razón Social'}</div>
