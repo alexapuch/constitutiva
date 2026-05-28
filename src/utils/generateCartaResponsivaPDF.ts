@@ -52,7 +52,7 @@ export const generateCartaResponsivaPDF = async (data: CartaResponsivaData, prev
         y += 18;
         doc.setFont('helvetica', 'bold');
         if (cityPrefix === 'TULUM') {
-            doc.text('JUAN MANUEL CASTILLA JIAMNEZ', margin, y);
+            doc.text('JUAN MANUEL CASTILLA JAIMEZ', margin, y);
             y += 4.5;
             doc.setFont('helvetica', 'normal');
             doc.text('DIRECTOR GENERAL DE PROTECCIÓN CIVIL Y BOMBEROS', margin, y);
