@@ -12,6 +12,7 @@ export interface CartaResponsivaData {
     fecha: string;
     fvu: string;
     dictamenGas: boolean;
+    locacion?: string;
 }
 
 export const generateCartaResponsivaPDF = async (data: CartaResponsivaData, preview: boolean = false): Promise<string | void> => {
@@ -40,7 +41,7 @@ export const generateCartaResponsivaPDF = async (data: CartaResponsivaData, prev
         const rawAddress = data.direccion || '';
         const addrParts = rawAddress.split('|');
         const baseAddress = addrParts[0] ? addrParts[0].trim() : '';
-        const cityPrefix = addrParts[1]?.trim() === 'TULUM' ? 'TULUM' : 'PLAYA DEL CARMEN';
+        const cityPrefix = data.locacion ? data.locacion.trim().toUpperCase() : (addrParts[1]?.trim() === 'TULUM' ? 'TULUM' : 'PLAYA DEL CARMEN');
 
         // Date header
         let y = 30;
@@ -50,12 +51,21 @@ export const generateCartaResponsivaPDF = async (data: CartaResponsivaData, prev
         // Addressee
         y += 18;
         doc.setFont('helvetica', 'bold');
-        doc.text('LICENCIADO DARWIN MANUEL COVARRUBIAS GÓNGORA', margin, y);
-        y += 4.5;
-        doc.setFont('helvetica', 'normal');
-        doc.text(`SECRETARIO DE PROTECCIÓN CIVIL, PREVENCIÓN DE RIESGOS Y BOMBEROS`, margin, y);
-        y += 4.5;
-        doc.text(`DEL MUNICIPIO DE ${cityPrefix}.`, margin, y);
+        if (cityPrefix === 'TULUM') {
+            doc.text('JUAN MANUEL CASTILLA JIAMNEZ', margin, y);
+            y += 4.5;
+            doc.setFont('helvetica', 'normal');
+            doc.text('DIRECTOR GENERAL DE PROTECCIÓN CIVIL Y BOMBEROS', margin, y);
+            y += 4.5;
+            doc.text('DEL H. AYUNTAMIENTO DE TULUM.', margin, y);
+        } else {
+            doc.text('LICENCIADO DARWIN MANUEL COVARRUBIAS GÓNGORA', margin, y);
+            y += 4.5;
+            doc.setFont('helvetica', 'normal');
+            doc.text('SECRETARIO DE PROTECCIÓN CIVIL, PREVENCIÓN DE RIESGOS Y BOMBEROS', margin, y);
+            y += 4.5;
+            doc.text(`DEL MUNICIPIO DE ${cityPrefix}.`, margin, y);
+        }
         y += 4.5;
         doc.setFont('helvetica', 'bold');
         doc.text('P R E S E N T E', margin, y);
@@ -153,7 +163,8 @@ export const generateCartaResponsivaPDF = async (data: CartaResponsivaData, prev
         y += 4 * sigScale;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(Math.max(6.5, 8 * sigScale));
-        doc.text('REGISTRO: MPDC/SPCPRyB/AUT-DT/RPS/028/2026', margin, y);
+        const registro = cityPrefix === 'TULUM' ? 'REGISTRO: DGPCYB/DPC/PS/044/26' : 'REGISTRO: MPDC/SPCPRyB/AUT-DT/RPS/028/2026';
+        doc.text(registro, margin, y);
 
         const fileName = generatePdfName('CARTA RESPONSIVA', data.nombreComercial, data.fecha);
         const pdfBlob = doc.output('blob');

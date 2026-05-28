@@ -1211,7 +1211,7 @@ export default function AdminView() {
         onClose={() => setShowCartaResponsiva(false)}
         documents={documents}
         onPreviewManualPDF={(url, name) => { setPreviewUrl(url); setPreviewName(name); setPreviewType('Carta Responsiva'); }}
-        onGeneratePDF={async (docId, fecha, fvu, dictamenGas) => {
+        onGeneratePDF={async (docId, fecha, fvu, dictamenGas, locacion) => {
            const doc = documents.find(d => d.id === docId);
            if (!doc) return;
            const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
@@ -1230,9 +1230,10 @@ export default function AdminView() {
              fecha: fechaFormateada,
              fvu: fvu,
              dictamenGas: dictamenGas,
+             locacion: locacion,
            });
         }}
-        onPreviewPDF={async (docId, fecha, fvu, dictamenGas) => {
+        onPreviewPDF={async (docId, fecha, fvu, dictamenGas, locacion) => {
            const doc = documents.find(d => d.id === docId);
            if (!doc) return;
            const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
@@ -1251,6 +1252,7 @@ export default function AdminView() {
              fecha: fechaFormateada,
              fvu: fvu,
              dictamenGas: dictamenGas,
+             locacion: locacion,
            }, true), 'Carta Responsiva', `CARTA RESPONSIVA - ${(doc.commercial_name || '').toUpperCase()} - ${fechaFormateada}`.replace(/[\\/\\\\?%*:|"<>]/g, '-'));
         }}
       />

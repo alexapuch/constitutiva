@@ -7,8 +7,8 @@ interface CartaResponsivaViewProps {
   isOpen: boolean;
   onClose: () => void;
   documents: DocumentInfo[];
-  onGeneratePDF: (docId: number, fecha: string, fvu: string, dictamenGas: boolean) => Promise<void>;
-  onPreviewPDF: (docId: number, fecha: string, fvu: string, dictamenGas: boolean) => Promise<void>;
+  onGeneratePDF: (docId: number, fecha: string, fvu: string, dictamenGas: boolean, locacion: string) => Promise<void>;
+  onPreviewPDF: (docId: number, fecha: string, fvu: string, dictamenGas: boolean, locacion: string) => Promise<void>;
   onPreviewManualPDF: (url: string, name: string) => void;
 }
 
@@ -43,6 +43,9 @@ export default function CartaResponsivaView({
   const [cartaFechaDesc, setCartaFechaDesc] = useState(() => {
     try { const s = localStorage.getItem('autosave_carta'); if (s) return JSON.parse(s).fechaDesc ?? false; } catch {} return false;
   });
+  const [cartaLocacion, setCartaLocacion] = useState<'PLAYA DEL CARMEN' | 'TULUM'>(() => {
+    try { const s = localStorage.getItem('autosave_carta'); if (s) return JSON.parse(s).locacion ?? 'PLAYA DEL CARMEN'; } catch {} return 'PLAYA DEL CARMEN';
+  });
 
   // Inicializar el searchTerm si hay un documento previamente seleccionado
   useEffect(() => {
@@ -54,11 +57,27 @@ export default function CartaResponsivaView({
     }
   }, [cartaDocId, documents]);
 
+  // Auto-detectar locación al seleccionar o cambiar el acta
   useEffect(() => {
-    const hasData = cartaDocId || cartaFvu || cartaFecha || cartaFechaDesc;
-    if (hasData) localStorage.setItem('autosave_carta', JSON.stringify({ docId: cartaDocId, fvu: cartaFvu, dictamenGas: cartaDictamenGas, fecha: cartaFecha, fechaDesc: cartaFechaDesc }));
+    if (cartaDocId) {
+      const doc = documents.find(d => d.id === cartaDocId);
+      if (doc) {
+        const rawAddress = doc.address || '';
+        const city = rawAddress.split('|')[1]?.trim().toUpperCase();
+        if (city === 'TULUM') {
+          setCartaLocacion('TULUM');
+        } else {
+          setCartaLocacion('PLAYA DEL CARMEN');
+        }
+      }
+    }
+  }, [cartaDocId, documents]);
+
+  useEffect(() => {
+    const hasData = cartaDocId || cartaFvu || cartaFecha || cartaFechaDesc || cartaLocacion !== 'PLAYA DEL CARMEN';
+    if (hasData) localStorage.setItem('autosave_carta', JSON.stringify({ docId: cartaDocId, fvu: cartaFvu, dictamenGas: cartaDictamenGas, fecha: cartaFecha, fechaDesc: cartaFechaDesc, locacion: cartaLocacion }));
     else localStorage.removeItem('autosave_carta');
-  }, [cartaDocId, cartaFvu, cartaDictamenGas, cartaFecha, cartaFechaDesc]);
+  }, [cartaDocId, cartaFvu, cartaDictamenGas, cartaFecha, cartaFechaDesc, cartaLocacion]);
 
   // ── Modo Manual ───────────────────────────────────────────────────────────
   const [mNombreComercial, setMNombreComercial] = useState('');
@@ -69,6 +88,7 @@ export default function CartaResponsivaView({
   const [mFechaDesc, setMFechaDesc] = useState(false);
   const [mFvu, setMFvu] = useState('');
   const [mDictamenGas, setMDictamenGas] = useState(true);
+  const [mLocacion, setMLocacion] = useState<'PLAYA DEL CARMEN' | 'TULUM'>('PLAYA DEL CARMEN');
 
   const resetForm = () => {
     // Reset Acta mode
@@ -79,6 +99,7 @@ export default function CartaResponsivaView({
     setCartaDictamenGas(true);
     setCartaFecha('');
     setCartaFechaDesc(false);
+    setCartaLocacion('PLAYA DEL CARMEN');
     localStorage.removeItem('autosave_carta');
 
     // Reset Manual mode
@@ -90,6 +111,7 @@ export default function CartaResponsivaView({
     setMFechaDesc(false);
     setMFvu('');
     setMDictamenGas(true);
+    setMLocacion('PLAYA DEL CARMEN');
 
     // Reset mode
     setMode('acta');
@@ -132,6 +154,7 @@ export default function CartaResponsivaView({
       fecha: mFechaDesc ? '___________________________' : formatFecha(mFecha),
       fvu: mFvu,
       dictamenGas: mDictamenGas,
+      locacion: mLocacion,
     }, false);
   };
 
@@ -144,6 +167,7 @@ export default function CartaResponsivaView({
       fecha: mFechaDesc ? '___________________________' : formatFecha(mFecha),
       fvu: mFvu,
       dictamenGas: mDictamenGas,
+      locacion: mLocacion,
     }, true);
     if (url) onPreviewManualPDF(url as string, `CARTA RESPONSIVA - ${mNombreComercial.trim().toUpperCase()}`);
   };
@@ -267,6 +291,26 @@ export default function CartaResponsivaView({
                 </div>
               </div>
 
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Locación *</label>
+                <div className="flex bg-gray-100 p-1 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setCartaLocacion('PLAYA DEL CARMEN')}
+                    className={`flex-1 py-2 text-sm font-bold rounded-md transition-all duration-200 ${cartaLocacion === 'PLAYA DEL CARMEN' ? 'bg-white text-blue-900 shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    Playa del Carmen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCartaLocacion('TULUM')}
+                    className={`flex-1 py-2 text-sm font-bold rounded-md transition-all duration-200 ${cartaLocacion === 'TULUM' ? 'bg-white text-blue-900 shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    Tulum
+                  </button>
+                </div>
+              </div>
+
               <div className="overflow-hidden">
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-sm font-bold text-gray-700">Fecha de la Carta *</label>
@@ -314,13 +358,13 @@ export default function CartaResponsivaView({
 
             <div className="p-4 border-t border-gray-200 bg-gray-50 shrink-0 flex gap-0" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
               <button disabled={!cartaDocId}
-                onClick={() => { if (cartaDocId) onGeneratePDF(cartaDocId, cartaFechaDesc ? 'UNKNOWN' : cartaFecha, cartaFvu, cartaDictamenGas); }}
+                onClick={() => { if (cartaDocId) onGeneratePDF(cartaDocId, cartaFechaDesc ? 'UNKNOWN' : cartaFecha, cartaFvu, cartaDictamenGas, cartaLocacion); }}
                 className="flex-1 flex items-center justify-center gap-2 bg-red-900 text-white px-4 py-3 rounded-l-md hover:bg-red-950 transition-colors font-bold text-base disabled:opacity-40 disabled:cursor-not-allowed">
                 <Download className="w-5 h-5" />
                 Generar PDF
               </button>
               <button disabled={!cartaDocId}
-                onClick={() => { if (cartaDocId) onPreviewPDF(cartaDocId, cartaFechaDesc ? 'UNKNOWN' : cartaFecha, cartaFvu, cartaDictamenGas); }}
+                onClick={() => { if (cartaDocId) onPreviewPDF(cartaDocId, cartaFechaDesc ? 'UNKNOWN' : cartaFecha, cartaFvu, cartaDictamenGas, cartaLocacion); }}
                 className="flex items-center justify-center bg-red-800 text-white px-3 py-3 rounded-r-md hover:bg-red-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px]"
                 title="Vista Previa">
                 <Eye className="w-5 h-5" />
@@ -334,6 +378,26 @@ export default function CartaResponsivaView({
           <>
             <div className="px-4 py-5 space-y-4 overflow-y-auto overflow-x-hidden flex-1" style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
               <p className="text-sm text-gray-600">Ingresa los datos manualmente para generar la carta responsiva sin necesidad de un acta registrada.</p>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Locación *</label>
+                <div className="flex bg-gray-100 p-1 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setMLocacion('PLAYA DEL CARMEN')}
+                    className={`flex-1 py-2 text-sm font-bold rounded-md transition-all duration-200 ${mLocacion === 'PLAYA DEL CARMEN' ? 'bg-white text-blue-900 shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    Playa del Carmen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMLocacion('TULUM')}
+                    className={`flex-1 py-2 text-sm font-bold rounded-md transition-all duration-200 ${mLocacion === 'TULUM' ? 'bg-white text-blue-900 shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    Tulum
+                  </button>
+                </div>
+              </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Nombre Comercial *</label>
