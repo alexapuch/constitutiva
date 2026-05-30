@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Home, BarChart3, ClipboardList, Calculator, FileSignature, ShieldCheck, Sun, Moon, LogOut, GitBranch, BookOpen, FilePen } from 'lucide-react';
+import { X, Home, BarChart3, ClipboardList, Calculator, FileSignature, ShieldCheck, Sun, Moon, LogOut, GitBranch, BookOpen, FilePen, Award } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 interface SideMenuProps {
@@ -12,6 +12,7 @@ interface SideMenuProps {
   onOpenQuoteHistory: () => void;
   onOpenNewQuote: () => void;
   onOpenManualConstancia: () => void;
+  onOpenManualDC3: () => void;
   onOpenOrganigrama: () => void;
   onOpenCaratulas: () => void;
   onOpenCartaResponsiva: () => void;
@@ -23,7 +24,7 @@ interface SideMenuProps {
 
 export default function SideMenu({
   isOpen, onClose, activeTab, setActiveTab, quotesCount,
-  onOpenQuoteHistory, onOpenNewQuote, onOpenManualConstancia, onOpenOrganigrama,
+  onOpenQuoteHistory, onOpenNewQuote, onOpenManualConstancia, onOpenManualDC3, onOpenOrganigrama,
   onOpenCaratulas, onOpenCartaResponsiva, onOpenConstanciasHistory, onOpenActaBlank, onLogout, onNavigateHome
 }: SideMenuProps) {
   const { theme, toggleTheme } = useTheme();
@@ -104,6 +105,14 @@ export default function SideMenu({
               >
                 <FileSignature className="w-5 h-5" />
                 Generar Constancia
+              </button>
+
+              <button
+                onClick={() => { onClose(); onOpenManualDC3(); }}
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors font-medium dark:text-gray-300 dark:hover:bg-red-950/20"
+              >
+                <Award className="w-5 h-5" />
+                Generar DC3 (STPS)
               </button>
 
               <button

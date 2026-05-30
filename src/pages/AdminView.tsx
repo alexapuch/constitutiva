@@ -26,6 +26,8 @@ import ConstanciasHistoryDrawer from '../components/admin/ConstanciasHistoryDraw
 import PdfPreviewModal from '../components/admin/PdfPreviewModal';
 import CartaResponsivaView from '../components/admin/CartaResponsivaView';
 import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
+import ManualDC3Modal from '../components/admin/ManualDC3Modal';
+import { generateDC3PDF } from '../utils/generateDC3PDF';
 import ManualOrganigramaModal from '../components/admin/ManualOrganigramaModal';
 import ManualCaratulasModal from '../components/admin/ManualCaratulasModal';
 import ActaBlankModal from '../components/admin/ActaBlankModal';
@@ -81,6 +83,7 @@ export default function AdminView() {
 
   // States for Modals/Drawers
   const [showQuickModal, setShowQuickModal] = useState(false);
+  const [showDC3Modal, setShowDC3Modal] = useState(false);
   const [showOrganigramaModal, setShowOrganigramaModal] = useState(false);
   const [showCaratulasModal, setShowCaratulasModal] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
@@ -122,13 +125,13 @@ export default function AdminView() {
   }, [selectedDocId]);
 
   useEffect(() => {
-    if (showQuickModal || showOrganigramaModal || showCaratulasModal || showQuoteDrawer || showSideMenu || showCartaResponsiva || previewUrl) {
+    if (showQuickModal || showDC3Modal || showOrganigramaModal || showCaratulasModal || showQuoteDrawer || showSideMenu || showCartaResponsiva || previewUrl) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
     return () => { document.body.style.overflow = ''; };
-  }, [showQuickModal, showOrganigramaModal, showCaratulasModal, showQuoteDrawer, showSideMenu, showCartaResponsiva, previewUrl]);
+  }, [showQuickModal, showDC3Modal, showOrganigramaModal, showCaratulasModal, showQuoteDrawer, showSideMenu, showCartaResponsiva, previewUrl]);
 
   useEffect(() => {
     fetchDocuments();
@@ -444,6 +447,7 @@ export default function AdminView() {
         onOpenQuoteHistory={() => { setShowQuoteDrawer(true); }}
         onOpenNewQuote={() => { setShowQuoteModal(true); }}
         onOpenManualConstancia={() => { setShowQuickModal(true); }}
+        onOpenManualDC3={() => { setShowDC3Modal(true); }}
         onOpenOrganigrama={() => { setShowOrganigramaModal(true); }}
         onOpenCaratulas={() => { setShowCaratulasModal(true); }}
         onOpenCartaResponsiva={() => { setShowCartaResponsiva(true); }}
@@ -1297,6 +1301,20 @@ export default function AdminView() {
              const fakeEmps = names.map((name: string, i: number) => ({ id: i, document_id: 0, name: name.toUpperCase(), role: '', brigade: '', signature: '' }));
              await handlePreview(() => generateBatchConstanciasPDF(fakeDocInfo, fakeEmps as any, templateImage, true, prefix, fileDate), 'Constancias (Lote)', generatePdfName(prefix, qd.commercial_name, fileDate));
            }
+        }}
+      />
+
+      <ManualDC3Modal
+        isOpen={showDC3Modal}
+        onClose={() => setShowDC3Modal(false)}
+        documents={documents}
+        onGenerate={async (dc3Data) => {
+          await generateDC3PDF(dc3Data, false);
+        }}
+        onPreview={async (dc3Data) => {
+          const firstEmp = dc3Data.employees?.[0]?.nombreCompleto || 'CONSOLIDADO';
+          const name = `DC-3 - ${dc3Data.customFileName || firstEmp}`.toUpperCase();
+          await handlePreview(() => generateDC3PDF(dc3Data, true), 'DC-3 STPS', name);
         }}
       />
 
