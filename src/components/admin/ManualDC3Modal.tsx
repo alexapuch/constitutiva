@@ -158,17 +158,37 @@ export default function ManualDC3Modal({
         const extracted: EmployeeRow[] = [];
 
         rows.forEach((row, idx) => {
-          const rawName = String(row[0] ?? '').trim().toUpperCase();
-          if (!rawName || rawName.length < 2) return;
-          // Omitir encabezado si coincide con las palabras clave
-          if (idx === 0 && HEADER_KEYWORDS.some(k => rawName.toLowerCase().includes(k))) return;
+          // Omitir siempre la primera fila de encabezados
+          if (idx === 0) return;
 
-          const rawCurp = String(row[1] ?? '').trim().replace(/\s/g, '').toUpperCase();
+          let name = '';
+          let curp = '';
+
+          // Detectar formato: si la columna C (index 2) tiene contenido, asumimos 4 columnas (Paterno, Materno, Nombre, CURP)
+          const hasColC = String(row[2] ?? '').trim() !== '';
+
+          if (hasColC) {
+            name = [row[0], row[1], row[2]]
+              .map(val => String(val ?? '').trim())
+              .filter(Boolean)
+              .join(' ')
+              .toUpperCase();
+            curp = String(row[3] ?? '').trim().replace(/\s/g, '').toUpperCase();
+          } else {
+            // Formato de 2 columnas: Nombre Completo y CURP
+            name = String(row[0] ?? '').trim().toUpperCase();
+            curp = String(row[1] ?? '').trim().replace(/\s/g, '').toUpperCase();
+          }
+
+          if (!name || name.length < 2) return;
+
+          // Limitar la CURP a 18 caracteres limpios oficiales
+          const cleanCurp = curp.substring(0, 18);
 
           extracted.push({
             id: String(Math.random() + idx),
-            nombreCompleto: rawName,
-            curp: rawCurp
+            nombreCompleto: name,
+            curp: cleanCurp
           });
         });
 
