@@ -284,7 +284,7 @@ export const generateDC3PDF = async (data: DC3Data, preview: boolean = false): P
         // 4. Firmas
         // Imagen de firma del capacitador (centrada, respetando proporción original)
         if (firmaCapacitador) {
-          const maxW = 35; // ancho máximo en mm
+          const maxW = 28; // ancho máximo en mm (un poco más chico)
           const ratio = firmaCapacitador.h / firmaCapacitador.w;
           const sigW = maxW;
           const sigH = maxW * ratio;  // alto calculado para no deformar
@@ -292,7 +292,7 @@ export const generateDC3PDF = async (data: DC3Data, preview: boolean = false): P
             firmaCapacitador.dataUrl,
             'PNG',
             coords.instructor.nameX - sigW / 2,   // centrado horizontalmente
-            coords.instructor.nameY - sigH - 2 + 15,  // posición vertical
+            coords.instructor.nameY - sigH - 2 + 23,  // posición vertical (+8mm más abajo)
             sigW,
             sigH
           );
