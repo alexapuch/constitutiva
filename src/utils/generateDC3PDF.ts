@@ -282,7 +282,7 @@ export const generateDC3PDF = async (data: DC3Data, preview: boolean = false): P
             imgFirmaCapacitador,
             'PNG',
             coords.instructor.nameX - sigW / 2,  // centrado horizontalmente
-            coords.instructor.nameY - sigH - 2,  // justo encima del nombre
+            coords.instructor.nameY - sigH - 2 + 15,  // justo encima del nombre (+15mm abajo)
             sigW,
             sigH
           );
