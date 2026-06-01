@@ -177,9 +177,26 @@ function drawNormalText(doc: jsPDF, text: string, x: number, y: number) {
  */
 export const generateDC3PDF = async (data: DC3Data, preview: boolean = false): Promise<string | void> => {
   try {
-    const [imgHoja1, imgHoja2] = await Promise.all([
+    // Cargar plantillas y firma del capacitador en paralelo
+    const loadPng = async (url: string): Promise<string | null> => {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        return await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          res.blob().then(b => reader.readAsDataURL(b));
+        });
+      } catch {
+        return null;
+      }
+    };
+
+    const [imgHoja1, imgHoja2, imgFirmaCapacitador] = await Promise.all([
       getCachedJpeg('/formatodc3_hoja1.jpg'),
-      getCachedJpeg('/formatodc3_hoja2.jpg')
+      getCachedJpeg('/formatodc3_hoja2.jpg'),
+      loadPng('/firma_capacitador.png')   // ← coloca tu imagen aquí con ese nombre
     ]);
 
     const doc = new jsPDF({
@@ -256,8 +273,22 @@ export const generateDC3PDF = async (data: DC3Data, preview: boolean = false): P
           drawGridText(doc, diaF || '',  coords.finDia.x,  coords.finDia.y,  coords.finDia.step);
         }
 
-        // 4. Firmas (Nombre arriba de la línea)
-        // Instructor
+        // 4. Firmas
+        // Imagen de firma del capacitador (centrada encima del nombre)
+        if (imgFirmaCapacitador) {
+          const sigW = 40;  // ancho en mm  ← ajusta si necesitas más o menos
+          const sigH = 18;  // alto en mm   ← ajusta según la proporción de tu imagen
+          doc.addImage(
+            imgFirmaCapacitador,
+            'PNG',
+            coords.instructor.nameX - sigW / 2,  // centrado horizontalmente
+            coords.instructor.nameY - sigH - 2,  // justo encima del nombre
+            sigW,
+            sigH
+          );
+        }
+
+        // Nombre del instructor
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(8.5);
         doc.text(data.instructor.toUpperCase(), coords.instructor.nameX, coords.instructor.nameY, { align: 'center', maxWidth: 60 });
