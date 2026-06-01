@@ -62,6 +62,9 @@ export default function ManualDC3Modal({
   // Control para usar la misma fecha en inicio y fin
   const [sameDate, setSameDate] = useState(false);
 
+  // Incluir firma del capacitador en el PDF
+  const [incluirFirma, setIncluirFirma] = useState(true);
+
   // Efecto para sincronizar fechaInicio con fechaFin si sameDate está activo
   useEffect(() => {
     if (sameDate && globalDates.fechaInicio) {
@@ -431,7 +434,8 @@ export default function ManualDC3Modal({
       representanteTrabajadores: formData.representanteTrabajadores.trim().toUpperCase(),
       courses: selectedCourses,
       employees: activeEmps,
-      customFileName: customFileName.trim()
+      customFileName: customFileName.trim(),
+      incluirFirma
     };
 
     await onGenerate(payload);
@@ -455,7 +459,8 @@ export default function ManualDC3Modal({
       representanteTrabajadores: formData.representanteTrabajadores.trim().toUpperCase(),
       courses: selectedCourses,
       employees: activeEmps,
-      customFileName: customFileName.trim()
+      customFileName: customFileName.trim(),
+      incluirFirma
     };
 
     await onPreview(payload);
@@ -867,6 +872,20 @@ export default function ManualDC3Modal({
                   className="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm uppercase dark:bg-gray-700"
                 />
               </div>
+
+              {/* Casilla: incluir firma del capacitador */}
+              <label className="flex items-center gap-2.5 cursor-pointer select-none p-3 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={incluirFirma}
+                  onChange={(e) => setIncluirFirma(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                <div>
+                  <span className="text-xs font-bold text-gray-700 dark:text-gray-200">Incluir firma del capacitador en el PDF</span>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Desactiva esta opción si deseas un DC-3 sin imagen de firma.</p>
+                </div>
+              </label>
             </div>
             <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
               💡 El nombre del Instructor, la Actividad y el Agente Capacitador se guardarán de forma persistente en tu navegador al descargar o ver la vista previa.

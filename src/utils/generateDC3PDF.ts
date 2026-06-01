@@ -38,6 +38,9 @@ export interface DC3Data {
 
   // Nombre de archivo personalizado
   customFileName?: string;
+
+  // Incluir firma del capacitador
+  incluirFirma?: boolean;
 }
 
 // Coordenadas calibradas con precisión matemática a partir del análisis de desplazamientos
@@ -282,8 +285,8 @@ export const generateDC3PDF = async (data: DC3Data, preview: boolean = false): P
         }
 
         // 4. Firmas
-        // Imagen de firma del capacitador (centrada, respetando proporción original)
-        if (firmaCapacitador) {
+        // Imagen de firma del capacitador (solo si el usuario la activó)
+        if (firmaCapacitador && data.incluirFirma !== false) {
           const maxW = 28; // ancho máximo en mm (un poco más chico)
           const ratio = firmaCapacitador.h / firmaCapacitador.w;
           const sigW = maxW;
