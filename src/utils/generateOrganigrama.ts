@@ -41,6 +41,25 @@ export const generateOrganigrama = async (
             rows.push(multis.slice(i, i + MAX_PER_ROW));
         }
 
+        const rowsPerPageFirstPage = 5;
+        const rowsPerPageSubsequentPages = 5;
+
+        const pagesOfRows: Employee[][][] = [];
+        let currentPageRows: Employee[][] = [];
+
+        for (let i = 0; i < rows.length; i++) {
+            const isFirstPage = pagesOfRows.length === 0;
+            const limit = isFirstPage ? rowsPerPageFirstPage : rowsPerPageSubsequentPages;
+            currentPageRows.push(rows[i]);
+            if (currentPageRows.length === limit || i === rows.length - 1) {
+                pagesOfRows.push(currentPageRows);
+                currentPageRows = [];
+            }
+        }
+        if (pagesOfRows.length === 0) {
+            pagesOfRows.push([]);
+        }
+
         // ── helpers ──────────────────────────────────────────────────────────
         const drawNode = (nx: number, ny: number, nw: number, titleText: string, nameText: string) => {
             doc.setFillColor(...DARK);
@@ -72,68 +91,81 @@ export const generateOrganigrama = async (
             doc.line(x1, y1, x2, y2);
         };
 
-        // ── Header ───────────────────────────────────────────────────────────
-        let y = margin;
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...DARK);
-        doc.text('ORGANIGRAMA', pageW / 2, y, { align: 'center' });
-        y += 5;
-        doc.setFontSize(7.5);
-        doc.setFont('helvetica', 'normal');
-        doc.text('UNIDAD INTERNA DE PROTECCIÓN CIVIL', pageW / 2, y, { align: 'center' });
-        y += 4.5;
-        doc.setFont('helvetica', 'bold');
-        doc.text((docInfo.commercial_name || '').toUpperCase(), pageW / 2, y, { align: 'center' });
-        y += 7;
+        // ── Paginated Rendering Loop ─────────────────────────────────────────
+        pagesOfRows.forEach((pageRows, pageIdx) => {
+            if (pageIdx > 0) {
+                doc.addPage();
+            }
 
-        // ── Jefe ─────────────────────────────────────────────────────────────
-        const jefeW = 62;
-        const jefeX = (pageW - jefeW) / 2;
-        drawNode(jefeX, y, jefeW, 'JEFE DE BRIGADA DE EMERGENCIA MULTIFUNCIONAL', jefe.name.toUpperCase());
+            // ── Header ───────────────────────────────────────────────────────
+            let y = margin;
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...DARK);
+            doc.text('ORGANIGRAMA', pageW / 2, y, { align: 'center' });
+            y += 5;
+            doc.setFontSize(7.5);
+            doc.setFont('helvetica', 'normal');
+            doc.text('UNIDAD INTERNA DE PROTECCIÓN CIVIL', pageW / 2, y, { align: 'center' });
+            y += 4.5;
+            doc.setFont('helvetica', 'bold');
+            doc.text((docInfo.commercial_name || '').toUpperCase(), pageW / 2, y, { align: 'center' });
+            y += 7;
 
-        const jefeCX = jefeX + jefeW / 2;
-        let spineY = y + NODE_H; // top of the next available space (bottom of jefe)
-        y = spineY;
+            let spineY: number;
+            let jefeCX: number = pageW / 2;
 
-        // ── Rows — all connect from jefeCX ───────────────────────────────────
-        const multiW = (() => {
-            const maxCount = Math.min(rows[0]?.length ?? 0, MAX_PER_ROW);
-            if (maxCount === 0) return 42;
-            const available = pageW - 2 * margin;
-            return Math.min(42, (available - (maxCount - 1) * NODE_GAP) / maxCount);
-        })();
+            if (pageIdx === 0) {
+                // ── Jefe (Only on the first page) ────────────────────────────
+                const jefeW = 62;
+                const jefeX = (pageW - jefeW) / 2;
+                drawNode(jefeX, y, jefeW, 'JEFE DE BRIGADA DE EMERGENCIA MULTIFUNCIONAL', jefe.name.toUpperCase());
 
-        rows.forEach((row) => {
-            const count = row.length;
-            const rowW = count * multiW + (count - 1) * NODE_GAP;
-            const rowX = (pageW - rowW) / 2;
-            const rowY = spineY + ROW_VERT_GAP;
-            const junctionY = spineY + ROW_VERT_GAP / 2;
+                jefeCX = jefeX + jefeW / 2;
+                spineY = y + NODE_H; // bottom of jefe
+            } else {
+                // No Jefe on subsequent pages. Start spine slightly below header
+                spineY = y + 4;
+            }
 
-            const firstCX = rowX + multiW / 2;
-            const lastCX = rowX + (count - 1) * (multiW + NODE_GAP) + multiW / 2;
+            // ── Rows ─────────────────────────────────────────────────────────
+            const multiW = (() => {
+                const maxCount = Math.min(pageRows[0]?.length ?? 0, MAX_PER_ROW);
+                if (maxCount === 0) return 42;
+                const available = pageW - 2 * margin;
+                return Math.min(42, (available - (maxCount - 1) * NODE_GAP) / maxCount);
+            })();
 
-            // Vertical spine from jefe center down to junction (always from jefeCX)
-            drawLine(jefeCX, spineY, jefeCX, junctionY);
-            // Horizontal spanning all nodes in this row
-            drawLine(Math.min(jefeCX, firstCX), junctionY, Math.max(jefeCX, lastCX), junctionY);
-            // Vertical drop to each node
-            row.forEach((emp, idx) => {
-                const cx = rowX + idx * (multiW + NODE_GAP) + multiW / 2;
-                drawLine(cx, junctionY, cx, rowY);
-                drawNode(rowX + idx * (multiW + NODE_GAP), rowY, multiW, 'MULTIBRIGADA', emp.name.toUpperCase());
+            pageRows.forEach((row) => {
+                const count = row.length;
+                const rowW = count * multiW + (count - 1) * NODE_GAP;
+                const rowX = (pageW - rowW) / 2;
+                const rowY = spineY + ROW_VERT_GAP;
+                const junctionY = spineY + ROW_VERT_GAP / 2;
+
+                const firstCX = rowX + multiW / 2;
+                const lastCX = rowX + (count - 1) * (multiW + NODE_GAP) + multiW / 2;
+
+                // Vertical spine down to junction
+                drawLine(jefeCX, spineY, jefeCX, junctionY);
+                // Horizontal spanning all nodes in this row
+                drawLine(Math.min(jefeCX, firstCX), junctionY, Math.max(jefeCX, lastCX), junctionY);
+                // Vertical drop to each node
+                row.forEach((emp, idx) => {
+                    const cx = rowX + idx * (multiW + NODE_GAP) + multiW / 2;
+                    drawLine(cx, junctionY, cx, rowY);
+                    drawNode(rowX + idx * (multiW + NODE_GAP), rowY, multiW, 'MULTIBRIGADA', emp.name.toUpperCase());
+                });
+
+                spineY = rowY + NODE_H;
             });
 
-            spineY = rowY + NODE_H; // next spine starts from bottom of this row
-            y = spineY;
+            // ── Footer ───────────────────────────────────────────────────────
+            doc.setFontSize(7);
+            doc.setTextColor(160, 160, 170);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`HOJA ${pageIdx + 1} DE ${pagesOfRows.length}`, pageW - margin, pageH - 8, { align: 'right' });
         });
-
-        // ── Footer ───────────────────────────────────────────────────────────
-        doc.setFontSize(7);
-        doc.setTextColor(160, 160, 170);
-        doc.setFont('helvetica', 'normal');
-        doc.text('HOJA 1 DE 1', pageW - margin, pageH - 8, { align: 'right' });
 
         // ── Output ───────────────────────────────────────────────────────────
         const blob = doc.output('blob');
