@@ -178,25 +178,33 @@ function drawNormalText(doc: jsPDF, text: string, x: number, y: number) {
 export const generateDC3PDF = async (data: DC3Data, preview: boolean = false): Promise<string | void> => {
   try {
     // Cargar plantillas y firma del capacitador en paralelo
-    const loadPng = async (url: string): Promise<string | null> => {
+    // Carga PNG y devuelve { dataUrl, width, height } para preservar aspecto
+    const loadPng = async (url: string): Promise<{ dataUrl: string; w: number; h: number } | null> => {
       try {
         const res = await fetch(url);
         if (!res.ok) return null;
-        return await new Promise<string>((resolve, reject) => {
+        const blob = await res.blob();
+        const dataUrl = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result as string);
           reader.onerror = reject;
-          res.blob().then(b => reader.readAsDataURL(b));
+          reader.readAsDataURL(blob);
         });
+        const { w, h } = await new Promise<{ w: number; h: number }>((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+          img.src = dataUrl;
+        });
+        return { dataUrl, w, h };
       } catch {
         return null;
       }
     };
 
-    const [imgHoja1, imgHoja2, imgFirmaCapacitador] = await Promise.all([
+    const [imgHoja1, imgHoja2, firmaCapacitador] = await Promise.all([
       getCachedJpeg('/formatodc3_hoja1.jpg'),
       getCachedJpeg('/formatodc3_hoja2.jpg'),
-      loadPng('/firma_capacitador.png')   // ← coloca tu imagen aquí con ese nombre
+      loadPng('/firma_capacitador.png')
     ]);
 
     const doc = new jsPDF({
@@ -274,15 +282,17 @@ export const generateDC3PDF = async (data: DC3Data, preview: boolean = false): P
         }
 
         // 4. Firmas
-        // Imagen de firma del capacitador (centrada encima del nombre)
-        if (imgFirmaCapacitador) {
-          const sigW = 40;  // ancho en mm  ← ajusta si necesitas más o menos
-          const sigH = 18;  // alto en mm   ← ajusta según la proporción de tu imagen
+        // Imagen de firma del capacitador (centrada, respetando proporción original)
+        if (firmaCapacitador) {
+          const maxW = 35; // ancho máximo en mm
+          const ratio = firmaCapacitador.h / firmaCapacitador.w;
+          const sigW = maxW;
+          const sigH = maxW * ratio;  // alto calculado para no deformar
           doc.addImage(
-            imgFirmaCapacitador,
+            firmaCapacitador.dataUrl,
             'PNG',
-            coords.instructor.nameX - sigW / 2,  // centrado horizontalmente
-            coords.instructor.nameY - sigH - 2 + 15,  // justo encima del nombre (+15mm abajo)
+            coords.instructor.nameX - sigW / 2,   // centrado horizontalmente
+            coords.instructor.nameY - sigH - 2 + 15,  // posición vertical
             sigW,
             sigH
           );
