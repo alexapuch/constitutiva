@@ -16,10 +16,10 @@ interface RegistryEntry {
   address: string;
 }
 
-// Auto-shrink address font so it never overlaps the QR code (top edge ≈ 105.5mm)
+// Auto-shrink address font so it never overlaps the bottom layout bounds (max Y ≈ 116mm)
 export function resolveAddressLayout(doc: jsPDF, addressText: string, pdcText: string, maxWidth: number): { finalAddress: string | string[]; fontSize: number } {
   const startY = 100.5;
-  const qrTopY = 105.5; // qrY (107.5) - qrPad (2)
+  const qrTopY = 116; // Changed from 105.5 since QR code is moved up and they don't overlap horizontally
   const lineHeightFactor = 1.5;
 
   if (!addressText) return { finalAddress: pdcText, fontSize: 10 };
@@ -66,7 +66,7 @@ function drawConstanciaPage(doc: jsPDF, entry: RegistryEntry, imgJpeg: string, f
 
   const addressText = (entry.address || '').split(/\s*\|\s*/)[0].trim().toUpperCase();
   const pdcText = 'PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.';
-  const maxAddressWidth = 155;
+  const maxAddressWidth = 132;
   const { finalAddress, fontSize: addressFontSize } = resolveAddressLayout(doc, addressText, pdcText, maxAddressWidth);
   doc.setFontSize(addressFontSize);
   doc.setTextColor(80, 80, 80);
@@ -84,15 +84,15 @@ function drawConstanciaPage(doc: jsPDF, entry: RegistryEntry, imgJpeg: string, f
 
   const verifyUrl = `${window.location.origin}/api/verificar/${folioToSlug(entry.folio)}`;
   const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'M' });
-  const qrSize = 23;
-  const qrPad = 2;
-  const qrX = 234;
-  const qrY = 107.5;
+  const qrSize = 19;
+  const qrPad = 1.5;
+  const qrX = 236;
+  const qrY = 101;
   doc.setFillColor(255, 255, 255);
-  doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 3, 3, 'F');
+  doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'F');
   doc.setDrawColor(220, 20, 20);
   doc.setLineWidth(1.2);
-  doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 3, 3, 'S');
+  doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'S');
   const modules = qrMatrix.modules;
   const modCount = modules.size;
   const cellSize = qrSize / modCount;
@@ -189,7 +189,7 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         // 3. Address
         const addressText = (docInfo.address || '').split(/\s*\|\s*/)[0].trim().toUpperCase();
         const pdcText = templateImage.includes('_tulum') ? "TULUM, QUINTANA ROO, MÉXICO." : "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.";
-        const maxAddressWidth = 155;
+        const maxAddressWidth = 132;
         const { finalAddress, fontSize: addressFontSize } = resolveAddressLayout(doc, addressText, pdcText, maxAddressWidth);
         doc.setFontSize(addressFontSize);
         doc.setTextColor(80, 80, 80);
@@ -212,16 +212,16 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         const folio = await folioPromise;
         const verifyUrl = `${window.location.origin}/api/verificar/${folioToSlug(folio)}`;
         const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'M' });
-        const qrSize = 23;
-        const qrPad = 2;
-        const qrX = 234;
-        const qrY = 107.5;
+        const qrSize = 19;
+        const qrPad = 1.5;
+        const qrX = 236;
+        const qrY = 101;
         // Marco blanco con borde rojo redondeado
         doc.setFillColor(255, 255, 255);
-        doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 3, 3, 'F');
+        doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'F');
         doc.setDrawColor(220, 20, 20);
         doc.setLineWidth(1.2);
-        doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 3, 3, 'S');
+        doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'S');
         // Dibujar módulos del QR (sin gap para asegurar lectura en Android)
         const modules = qrMatrix.modules;
         const modCount = modules.size;

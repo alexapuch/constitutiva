@@ -91,7 +91,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             // 3. Address
             const addressText = (docInfo.address || '').split(/\s*\|\s*/)[0].trim().toUpperCase();
             const pdcText = templateImage.includes('_tulum') ? "TULUM, QUINTANA ROO, MÉXICO." : "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.";
-            const maxAddressWidth = 155;
+            const maxAddressWidth = 132;
             const { finalAddress, fontSize: addressFontSize } = resolveAddressLayout(doc, addressText, pdcText, maxAddressWidth);
             doc.setFontSize(addressFontSize);
             doc.setTextColor(80, 80, 80);
@@ -113,16 +113,16 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             const folio = folios[i];
             const verifyUrl = `${window.location.origin}/api/verificar/${folioToSlug(folio)}`;
             const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'M' });
-            const qrSize = 23;
-            const qrPad = 2;
-            const qrX = 234;
-            const qrY = 107.5;
+            const qrSize = 19;
+            const qrPad = 1.5;
+            const qrX = 236;
+            const qrY = 101;
             // Marco blanco con borde rojo redondeado
             doc.setFillColor(255, 255, 255);
-            doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 3, 3, 'F');
+            doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'F');
             doc.setDrawColor(220, 20, 20);
             doc.setLineWidth(1.2);
-            doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 3, 3, 'S');
+            doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'S');
             // Dibujar módulos del QR (sin gap para asegurar lectura en Android)
             const modules = qrMatrix.modules;
             const modCount = modules.size;
