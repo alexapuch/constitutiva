@@ -116,7 +116,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             const qrSize = 19;
             const qrPad = 1.5;
             const qrX = 236;
-            const qrY = 108;
+            const qrY = 106.5;
             // Marco blanco con borde rojo redondeado
             doc.setFillColor(255, 255, 255);
             doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'F');
