@@ -82,7 +82,7 @@ function drawConstanciaPage(doc: jsPDF, entry: RegistryEntry, imgJpeg: string, f
   doc.setFont(font, 'bold');
   doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
 
-  const verifyUrl = `${window.location.origin}/v/${folioToSlug(entry.folio)}`;
+  const verifyUrl = `https://seprisa.app/v/${folioToSlug(entry.folio)}`;
   const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'L' });
   const qrSize = 19.5;
   const qrPad = 1.25;
@@ -210,7 +210,7 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
 
         // 6. QR Code de verificación — en preview folio ficticio, en descarga real crea el registro
         const folio = await folioPromise;
-        const verifyUrl = `${window.location.origin}/v/${folioToSlug(folio)}`;
+        const verifyUrl = `https://seprisa.app/v/${folioToSlug(folio)}`;
         const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'L' });
         const qrSize = 19.5;
         const qrPad = 1.25;

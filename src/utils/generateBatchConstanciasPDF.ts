@@ -111,7 +111,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
 
             // 6. QR Code de verificación (vector, sin imagen rasterizada)
             const folio = folios[i];
-            const verifyUrl = `${window.location.origin}/v/${folioToSlug(folio)}`;
+            const verifyUrl = `https://seprisa.app/v/${folioToSlug(folio)}`;
             const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'L' });
             const qrSize = 19.5;
             const qrPad = 1.25;
