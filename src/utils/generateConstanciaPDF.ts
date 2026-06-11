@@ -61,7 +61,7 @@ function drawConstanciaPage(doc: jsPDF, entry: RegistryEntry, imgJpeg: string, f
   doc.text(entry.employee_name.toUpperCase(), docWidth / 2, 53, { align: 'center' });
 
   doc.setFontSize(10);
-  doc.setTextColor(80, 80, 80);
+  doc.setTextColor(30, 30, 30);
   doc.text(entry.commercial_name.toUpperCase(), 118, 94.5, { align: 'left', maxWidth: 140 });
 
   const addressText = (entry.address || '').split(/\s*\|\s*/)[0].trim().toUpperCase();
@@ -69,7 +69,7 @@ function drawConstanciaPage(doc: jsPDF, entry: RegistryEntry, imgJpeg: string, f
   const maxAddressWidth = 132;
   const { finalAddress, fontSize: addressFontSize } = resolveAddressLayout(doc, addressText, pdcText, maxAddressWidth);
   doc.setFontSize(addressFontSize);
-  doc.setTextColor(80, 80, 80);
+  doc.setTextColor(30, 30, 30);
   doc.text(finalAddress, 96, 100.5, { align: 'left', maxWidth: maxAddressWidth, lineHeightFactor: 1.5 });
 
   doc.setFontSize(11);
@@ -182,7 +182,7 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
 
         // 2. Commercial Name
         doc.setFontSize(10);
-        doc.setTextColor(80, 80, 80); // Gray text
+        doc.setTextColor(30, 30, 30); // Dark text
         // Exact translation from 825.75px, 642.75px (1920x1080 base) with micro-adjustments (down and left, then slightly up by 2px)
         doc.text(docInfo.commercial_name.toUpperCase(), 118, 94.5, { align: 'left', maxWidth: 140 });
 
@@ -192,7 +192,7 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         const maxAddressWidth = 132;
         const { finalAddress, fontSize: addressFontSize } = resolveAddressLayout(doc, addressText, pdcText, maxAddressWidth);
         doc.setFontSize(addressFontSize);
-        doc.setTextColor(80, 80, 80);
+        doc.setTextColor(30, 30, 30);
         doc.text(finalAddress, 96, 100.5, { align: 'left', maxWidth: maxAddressWidth, lineHeightFactor: 1.5 });
 
         // 4. Date

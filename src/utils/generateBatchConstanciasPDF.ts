@@ -85,7 +85,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
 
             // 2. Commercial Name
             doc.setFontSize(10);
-            doc.setTextColor(80, 80, 80); // Gray text
+            doc.setTextColor(30, 30, 30); // Dark text
             doc.text(docInfo.commercial_name.toUpperCase(), 118, 94.5, { align: 'left', maxWidth: 140 });
 
             // 3. Address
@@ -94,7 +94,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             const maxAddressWidth = 132;
             const { finalAddress, fontSize: addressFontSize } = resolveAddressLayout(doc, addressText, pdcText, maxAddressWidth);
             doc.setFontSize(addressFontSize);
-            doc.setTextColor(80, 80, 80);
+            doc.setTextColor(30, 30, 30);
             doc.text(finalAddress, 96, 100.5, { align: 'left', maxWidth: maxAddressWidth, lineHeightFactor: 1.5 });
 
             // 4. Date
