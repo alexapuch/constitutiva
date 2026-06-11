@@ -33,7 +33,7 @@ import ManualCaratulasModal from '../components/admin/ManualCaratulasModal';
 import ActaBlankModal from '../components/admin/ActaBlankModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v1.97';
+const APP_VERSION = 'v1.98';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -200,7 +200,7 @@ export default function AdminView() {
 
   const handleCopyInstructions = async (doc: DocumentInfo) => {
     const code = doc.access_code || '';
-    const text = `Buenas tardes. Para firmar el acta constitutiva de *${doc.commercial_name}*, por favor sigan estos pasos:\n\n1. Ingresen al siguiente enlace: https://constitutiva.vercel.app\n2. En el apartado "Código de acceso", peguen este código: "${code}"\n3. Cuando se abra su acta, den clic en "Firmar y registrarse"\n4. Escriban su nombre, puesto y realicen su firma\n5. Finalmente, den clic en "Guardar firma"\n\nY listo, con eso quedará firmada.`;
+    const text = `Buenas tardes. Para firmar el acta constitutiva de *${doc.commercial_name}*, por favor sigan estos pasos:\n\n1. Ingresen al siguiente enlace: https://seprisa.app\n2. En el apartado "Código de acceso", peguen este código: "${code}"\n3. Cuando se abra su acta, den clic en "Firmar y registrarse"\n4. Escriban su nombre, puesto y realicen su firma\n5. Finalmente, den clic en "Guardar firma"\n\nY listo, con eso quedará firmada.`;
     try {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(text);
