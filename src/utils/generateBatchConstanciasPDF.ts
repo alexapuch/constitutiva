@@ -113,10 +113,10 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             const folio = folios[i];
             const verifyUrl = `${window.location.origin}/v/${folioToSlug(folio)}`;
             const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'L' });
-            const qrSize = 21.0;
-            const qrPad = 0.5;
-            const qrX = 235.0;
-            const qrY = 105.5;
+            const qrSize = 19.5;
+            const qrPad = 1.25;
+            const qrX = 235.75;
+            const qrY = 106.25;
             // Marco blanco con borde rojo redondeado
             doc.setFillColor(255, 255, 255);
             doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'F');
