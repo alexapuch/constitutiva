@@ -568,6 +568,10 @@ router.put('/constancias/batch', async (req, res) => {
     res.json({ success: true, updated: folios.length });
 });
 
+router.get('/v/:folio', (req, res) => {
+    res.redirect(`/api/verificar/${req.params.folio}`);
+});
+
 router.get('/verificar/:folio', async (req, res) => {
     const folio = req.params.folio.replace('-', '/');
     const { data, error } = await supabase

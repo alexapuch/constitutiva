@@ -10,6 +10,10 @@ app.use(express.json({ limit: '10mb' }));
 
 app.use('/api', apiRoutes);
 
+app.get('/v/:folio', (req, res) => {
+  res.redirect(`/api/v/${req.params.folio}`);
+});
+
 // --- Server Start ---
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {

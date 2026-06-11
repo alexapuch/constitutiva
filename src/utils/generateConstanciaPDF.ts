@@ -82,12 +82,12 @@ function drawConstanciaPage(doc: jsPDF, entry: RegistryEntry, imgJpeg: string, f
   doc.setFont(font, 'bold');
   doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
 
-  const verifyUrl = `${window.location.origin}/api/verificar/${folioToSlug(entry.folio)}`;
-  const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'M' });
-  const qrSize = 19;
-  const qrPad = 1.5;
-  const qrX = 236;
-  const qrY = 106.5;
+  const verifyUrl = `${window.location.origin}/v/${folioToSlug(entry.folio)}`;
+  const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'L' });
+  const qrSize = 18;
+  const qrPad = 2.0;
+  const qrX = 236.5;
+  const qrY = 107.0;
   doc.setFillColor(255, 255, 255);
   doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'F');
   doc.setDrawColor(220, 20, 20);
@@ -96,7 +96,7 @@ function drawConstanciaPage(doc: jsPDF, entry: RegistryEntry, imgJpeg: string, f
   const modules = qrMatrix.modules;
   const modCount = modules.size;
   const cellSize = qrSize / modCount;
-  doc.setFillColor(0, 0, 0);
+  doc.setFillColor(15, 23, 42);
   for (let row = 0; row < modCount; row++) {
     for (let col = 0; col < modCount; col++) {
       if (modules.data[row * modCount + col]) {
@@ -210,12 +210,12 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
 
         // 6. QR Code de verificación — en preview folio ficticio, en descarga real crea el registro
         const folio = await folioPromise;
-        const verifyUrl = `${window.location.origin}/api/verificar/${folioToSlug(folio)}`;
-        const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'M' });
-        const qrSize = 19;
-        const qrPad = 1.5;
-        const qrX = 236;
-        const qrY = 106.5;
+        const verifyUrl = `${window.location.origin}/v/${folioToSlug(folio)}`;
+        const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'L' });
+        const qrSize = 18;
+        const qrPad = 2.0;
+        const qrX = 236.5;
+        const qrY = 107.0;
         // Marco blanco con borde rojo redondeado
         doc.setFillColor(255, 255, 255);
         doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'F');
@@ -226,7 +226,7 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         const modules = qrMatrix.modules;
         const modCount = modules.size;
         const cellSize = qrSize / modCount;
-        doc.setFillColor(0, 0, 0);
+        doc.setFillColor(15, 23, 42);
         for (let row = 0; row < modCount; row++) {
             for (let col = 0; col < modCount; col++) {
                 if (modules.data[row * modCount + col]) {
