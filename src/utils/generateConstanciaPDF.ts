@@ -84,10 +84,10 @@ function drawConstanciaPage(doc: jsPDF, entry: RegistryEntry, imgJpeg: string, f
 
   const verifyUrl = `${window.location.origin}/v/${folioToSlug(entry.folio)}`;
   const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'L' });
-  const qrSize = 18;
-  const qrPad = 2.0;
-  const qrX = 236.5;
-  const qrY = 107.0;
+  const qrSize = 21.0;
+  const qrPad = 0.5;
+  const qrX = 235.0;
+  const qrY = 105.5;
   doc.setFillColor(255, 255, 255);
   doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'F');
   doc.setDrawColor(220, 20, 20);
@@ -212,10 +212,10 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         const folio = await folioPromise;
         const verifyUrl = `${window.location.origin}/v/${folioToSlug(folio)}`;
         const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'L' });
-        const qrSize = 18;
-        const qrPad = 2.0;
-        const qrX = 236.5;
-        const qrY = 107.0;
+        const qrSize = 21.0;
+        const qrPad = 0.5;
+        const qrX = 235.0;
+        const qrY = 105.5;
         // Marco blanco con borde rojo redondeado
         doc.setFillColor(255, 255, 255);
         doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'F');
