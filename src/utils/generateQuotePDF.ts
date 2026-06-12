@@ -157,36 +157,45 @@ export const generateQuotePDF = async (quoteData: QuoteData) => {
 
         // Totals Section
         const finalY = (doc as any).lastAutoTable.finalY + 10;
-
         const totalsLeftX = docWidth - 75; // Align to the right side
+        const hasIva = quoteData.iva > 0;
 
-        // Subtotal
-        doc.setFontSize(11);
-        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Subtotal:', totalsLeftX, finalY);
-        doc.setFont('helvetica', 'normal');
-        doc.text(formatCurrency(quoteData.subtotal), docWidth - 15, finalY, { align: 'right' });
+        if (hasIva) {
+            // Subtotal
+            doc.setFontSize(11);
+            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Subtotal:', totalsLeftX, finalY);
+            doc.setFont('helvetica', 'normal');
+            doc.text(formatCurrency(quoteData.subtotal), docWidth - 15, finalY, { align: 'right' });
 
-        // IVA
-        doc.setFont('helvetica', 'bold');
-        doc.text('IVA (16%):', totalsLeftX, finalY + 8);
-        doc.setFont('helvetica', 'normal');
-        doc.text(formatCurrency(quoteData.iva), docWidth - 15, finalY + 8, { align: 'right' });
+            // IVA
+            doc.setFont('helvetica', 'bold');
+            doc.text('IVA (16%):', totalsLeftX, finalY + 8);
+            doc.setFont('helvetica', 'normal');
+            doc.text(formatCurrency(quoteData.iva), docWidth - 15, finalY + 8, { align: 'right' });
 
-        // Total final
-        doc.setDrawColor(accentColor[0], accentColor[1], accentColor[2]);
-        doc.setLineWidth(0.5);
-        doc.line(totalsLeftX, finalY + 12, docWidth - 15, finalY + 12);
+            // Total final
+            doc.setDrawColor(accentColor[0], accentColor[1], accentColor[2]);
+            doc.setLineWidth(0.5);
+            doc.line(totalsLeftX, finalY + 12, docWidth - 15, finalY + 12);
 
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
-        doc.text('TOTAL:', totalsLeftX, finalY + 18);
-        doc.text(formatCurrency(quoteData.total), docWidth - 15, finalY + 18, { align: 'right' });
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
+            doc.text('TOTAL:', totalsLeftX, finalY + 18);
+            doc.text(formatCurrency(quoteData.total), docWidth - 15, finalY + 18, { align: 'right' });
+        } else {
+            // No IVA: just show the total directly at finalY
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
+            doc.text('TOTAL:', totalsLeftX, finalY);
+            doc.text(formatCurrency(quoteData.total), docWidth - 15, finalY, { align: 'right' });
+        }
 
         const pageHeight = doc.internal.pageSize.getHeight();
-        let currentY = finalY + 25; // Base Y after the TOTAL section (which ends around finalY + 18)
+        let currentY = finalY + (hasIva ? 25 : 7); // Base Y after the TOTAL section
 
         // Force single page (No adding pages)
 

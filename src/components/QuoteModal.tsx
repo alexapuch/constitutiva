@@ -24,6 +24,8 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
     const [companyName, setCompanyName] = useState('SEPRISA');
     const [showAdminSettings, setShowAdminSettings] = useState(false);
 
+    const [withIva, setWithIva] = useState(true);
+
     // Items
     const [items, setItems] = useState<QuoteItem[]>([
         { description: '', quantity: 1, unitPrice: 0, total: 0 }
@@ -39,11 +41,13 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
                 setAdminEmail(quoteToEdit.admin_email || 'jorgehmeza@yahoo.com.mx');
                 setAdminPhone(quoteToEdit.admin_phone || '984 87 6 47 43');
                 setCompanyName(quoteToEdit.company_name || 'SEPRISA');
+                setWithIva(quoteToEdit.iva > 0);
                 if (quoteToEdit.items && Array.isArray(quoteToEdit.items)) {
                     setItems(quoteToEdit.items);
                 }
             } else {
                 setClientName('');
+                setWithIva(true);
                 setItems([{ description: '', quantity: 1, unitPrice: 0, total: 0 }]);
             }
         } else {
@@ -82,7 +86,7 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
 
     const calculateTotals = () => {
         const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-        const iva = subtotal * 0.16;
+        const iva = withIva ? subtotal * 0.16 : 0;
         const total = subtotal + iva;
         return { subtotal, iva, total };
     };
@@ -377,15 +381,31 @@ export default function QuoteModal({ isOpen, onClose, quoteToEdit, onQuoteSaved 
                     </section>
 
                     {/* Totals */}
-                    <section className="border-t pt-4 space-y-2">
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="font-bold text-gray-600">Subtotal:</span>
-                            <span className="font-mono font-medium">{formatCurrency(subtotal)}</span>
+                    <section className="border-t pt-4 space-y-3">
+                        <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                            <input
+                                type="checkbox"
+                                id="withIva"
+                                checked={withIva}
+                                onChange={(e) => setWithIva(e.target.checked)}
+                                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                            />
+                            <label htmlFor="withIva" className="text-sm font-bold text-gray-700 cursor-pointer select-none">
+                                Incluir IVA (16%)
+                            </label>
                         </div>
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="font-bold text-gray-600">IVA (16%):</span>
-                            <span className="font-mono font-medium">{formatCurrency(iva)}</span>
-                        </div>
+                        {withIva ? (
+                            <>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="font-bold text-gray-600">Subtotal:</span>
+                                    <span className="font-mono font-medium">{formatCurrency(subtotal)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="font-bold text-gray-600">IVA (16%):</span>
+                                    <span className="font-mono font-medium">{formatCurrency(iva)}</span>
+                                </div>
+                            </>
+                        ) : null}
                         <div className="flex justify-between items-center pt-2 border-t-2 border-blue-900">
                             <span className="font-bold text-lg text-blue-900">TOTAL:</span>
                             <span className="font-mono font-extrabold text-lg text-blue-900">{formatCurrency(total)}</span>
