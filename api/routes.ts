@@ -574,6 +574,49 @@ router.get('/v/:folio', (req, res) => {
 
 router.get('/verificar/:folio', async (req, res) => {
     const folio = req.params.folio.replace('-', '/');
+
+    // Preview / test QR codes — no database lookup needed
+    if (folio.toUpperCase().startsWith('PREV/')) {
+        const bodyHtml = `
+            <div style="max-width:480px;margin:0 auto;padding:40px 16px">
+                <div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.08);padding:32px;margin-bottom:24px;border-top:4px solid #2563eb">
+                    <div style="text-align:center;margin-bottom:24px">
+                        <div style="font-size:56px;margin-bottom:12px">✨</div>
+                        <h1 style="color:#1e3a5f;margin:0 0 4px;font-size:22px;font-family:sans-serif">Vista Previa de Código QR</h1>
+                        <p style="color:#9ca3af;margin:0;font-size:14px;font-family:sans-serif">Este es un código QR de prueba</p>
+                    </div>
+                    <hr style="border:none;border-top:1px solid #f3f4f6;margin:0 0 20px"/>
+                    <div style="font-family:sans-serif;display:flex;flex-direction:column;gap:16px">
+                        <div><p style="margin:0 0 2px;font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Folio Temporal</p><p style="margin:0;font-weight:700;font-size:18px;color:#111827">${folio.toUpperCase()}</p></div>
+                        <div><p style="margin:0 0 2px;font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Acredita a</p><p style="margin:0;font-weight:600;color:#111827">JUAN PÉREZ (EJEMPLO)</p></div>
+                        <div><p style="margin:0 0 2px;font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Empresa</p><p style="margin:0;font-weight:600;color:#111827">EMPRESA DE PRUEBA S.A. DE C.V.</p></div>
+                        <div><p style="margin:0 0 2px;font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Estatus del QR</p><p style="margin:0;font-weight:700;color:#2563eb">VISTA PREVIA / TEST</p></div>
+                    </div>
+                    <p style="color:#9ca3af;font-size:12px;margin:24px 0 0;padding:16px 0 0;border-top:1px solid #f3f4f6;text-align:center;line-height:1.6;font-family:sans-serif">
+                        Este código QR se genera automáticamente al ver el borrador del documento. Una vez que se emita de manera oficial, se registrará en el sistema y se mostrará la verificación de validez.
+                    </p>
+                </div>
+                <div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.08);padding:32px;border-left:4px solid #2563eb;font-family:sans-serif">
+                    <h2 style="margin:0 0 8px;font-size:15px;color:#111827">¿Necesitas ayuda con tus constancias?</h2>
+                    <p style="margin:0 0 20px;font-size:14px;color:#6b7280">Si requieres soporte sobre el generador de documentos o tienes alguna duda técnica, contáctanos.</p>
+                    <a href="https://wa.me/529848764743" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#2563eb;color:#fff;padding:14px 24px;border-radius:12px;text-decoration:none;font-weight:600;font-size:15px">
+                        Contactar Soporte
+                    </a>
+                </div>
+            </div>`;
+
+        return res.send(`<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Vista Previa - SEPRISA</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#f9fafb;min-height:100vh;display:flex;align-items:center;justify-content:center}</style>
+</head>
+<body>${bodyHtml}</body>
+</html>`);
+    }
+
     const { data, error } = await supabase
         .from('constancias')
         .select('folio, employee_name, created_at, document_id, commercial_name')
