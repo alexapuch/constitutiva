@@ -208,11 +208,11 @@ export const generateQuotePDF = async (quoteData: QuoteData) => {
         }
 
         // Disclaimer Text
-        doc.setFontSize(Math.max(6, Math.floor(9 * footerScale)));
-        doc.setTextColor(100, 100, 100);
-        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(Math.max(5.5, Math.floor(7.5 * footerScale)));
+        doc.setTextColor(220, 38, 38); // Rojo chillón / intenso
+        doc.setFont('helvetica', 'bold'); // En negrita para destacar el aviso importante
 
-        const disclaimerText = "TODO TRABAJO REQUIERE EL 50% DE ANTICIPO Y EL SALDO RESTANTE CUANDO SE ENTREGUE EL TRABAJO, EN CASO DE APROBAR FAVOR DE ENVIAR CÉDULA FISCAL EN CASO DE QUE REQUIERA FACTURA.";
+        const disclaimerText = "ESTA COTIZACIÓN TIENE UNA VIGENCIA DE 7 DÍAS NATURALES A PARTIR DE SU FECHA DE EXPEDICIÓN. TODO TRABAJO REQUIERE EL 50% DE ANTICIPO Y EL SALDO RESTANTE CUANDO SE ENTREGUE EL TRABAJO, EN CASO DE APROBAR FAVOR DE ENVIAR CÉDULA FISCAL EN CASO DE QUE REQUIERA FACTURA.";
         const wrappedDisclaimer = doc.splitTextToSize(disclaimerText, docWidth - 30);
 
         const disclaimerY = currentY + (5 * footerScale);
