@@ -33,7 +33,7 @@ import ManualCaratulasModal from '../components/admin/ManualCaratulasModal';
 import ActaBlankModal from '../components/admin/ActaBlankModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v2.06';
+const APP_VERSION = 'v2.07';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -474,7 +474,7 @@ export default function AdminView() {
       />
 
       <div className="max-w-5xl mx-auto space-y-8">
-        <div className="flex justify-between items-center bg-white dark:bg-gray-800 px-4 py-3 rounded-lg shadow-sm transition-colors">
+        <div className="sticky top-2 z-30 flex justify-between items-center bg-white/95 dark:bg-gray-800/95 backdrop-blur-md px-4 py-3 rounded-lg shadow-md border border-gray-200/50 dark:border-gray-700/50 transition-colors">
           <button
             onClick={() => setShowSideMenu(true)}
             className="flex items-center gap-2 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white font-semibold transition-colors"
