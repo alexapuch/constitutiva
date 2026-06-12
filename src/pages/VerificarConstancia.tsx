@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { slugToFolio } from '../utils/generateFolio';
 
 interface ConstanciaData {
     folio: string;
@@ -17,6 +18,10 @@ export default function VerificarConstancia() {
     useEffect(() => {
         const fetchDoc = async () => {
             if (!id) { setNotFound(true); setLoading(false); return; }
+            if (id.toUpperCase().startsWith('PREV-')) {
+                setLoading(false);
+                return;
+            }
             try {
                 const res = await fetch(`/api/constancias/folio/${id}`);
                 const result = await res.json();
@@ -42,10 +47,68 @@ export default function VerificarConstancia() {
         }).toUpperCase();
     };
 
+    const isPreview = id?.toUpperCase().startsWith('PREV-');
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="w-10 h-10 border-4 border-blue-900 border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    if (isPreview) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-10">
+                {/* Card de Vista Previa */}
+                <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full mb-6 border-t-4 border-blue-600">
+                    <div className="flex flex-col items-center mb-6 text-center">
+                        <div className="text-6xl mb-3 animate-pulse">✨</div>
+                        <h1 className="text-2xl font-bold text-blue-900">Vista Previa de Código QR</h1>
+                        <p className="text-gray-500 text-sm mt-1">Este es un código QR de prueba</p>
+                    </div>
+
+                    <div className="space-y-4 border-t pt-5">
+                        <div>
+                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Folio Temporal</span>
+                            <p className="text-gray-800 font-bold text-lg mt-0.5">{id ? slugToFolio(id).toUpperCase() : 'PREV/0001'}</p>
+                        </div>
+                        <div>
+                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Acredita a</span>
+                            <p className="text-gray-800 font-semibold mt-0.5">JUAN PÉREZ (EJEMPLO)</p>
+                        </div>
+                        <div>
+                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Empresa</span>
+                            <p className="text-gray-800 font-semibold mt-0.5">EMPRESA DE PRUEBA S.A. DE C.V.</p>
+                        </div>
+                        <div>
+                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Estatus del QR</span>
+                            <p className="text-blue-600 font-bold mt-0.5">VISTA PREVIA / TEST</p>
+                        </div>
+                    </div>
+                    
+                    <p className="text-gray-400 text-xs mt-6 pt-4 border-t leading-relaxed text-center">
+                        Este código QR se genera automáticamente al ver el borrador del documento. Una vez que se emita de manera oficial, se registrará en el sistema y se mostrará la verificación de validez.
+                    </p>
+                </div>
+
+                {/* Card de contacto o información */}
+                <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full border-l-4 border-blue-600">
+                    <h2 className="text-base font-bold text-gray-800 mb-2">
+                        ¿Necesitas ayuda con tus constancias?
+                    </h2>
+                    <p className="text-gray-500 text-sm mb-5">
+                        Si requieres soporte sobre el generador de documentos o tienes alguna duda técnica, contáctanos.
+                    </p>
+                    <a
+                        href="https://wa.me/529848764743"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors w-full"
+                    >
+                        Contactar Soporte
+                    </a>
+                </div>
             </div>
         );
     }

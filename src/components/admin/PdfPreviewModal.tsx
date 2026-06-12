@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, X, ZoomIn, ZoomOut, Printer } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, Printer } from 'lucide-react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import Swal from 'sweetalert2';
 
@@ -52,7 +52,6 @@ interface PdfPreviewModalProps {
 export default function PdfPreviewModal({
   previewUrl, previewName, previewType, onClose
 }: PdfPreviewModalProps) {
-  const [savingVersion, setSavingVersion] = useState(false);
   const [numPages, setNumPages] = useState<number | null>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [zoom, setZoom] = useState(0.40);
@@ -97,12 +96,12 @@ export default function PdfPreviewModal({
         <div className="flex items-center gap-2">
           <button
             onClick={() => applyZoom(Math.round(zoom * 100) - 15)}
-            className="flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors rounded-lg w-11 h-11 text-white/80 hover:text-white"
+            className="hidden sm:flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors rounded-lg w-11 h-11 text-white/80 hover:text-white"
             title="Reducir zoom"
           >
             <ZoomOut className="w-5 h-5" />
           </button>
-          <div className="flex items-center bg-gray-700 rounded-lg px-2 h-11">
+          <div className="hidden sm:flex items-center bg-gray-700 rounded-lg px-2 h-11">
             <input
               type="number"
               value={zoomInput}
@@ -115,7 +114,7 @@ export default function PdfPreviewModal({
           </div>
           <button
             onClick={() => applyZoom(Math.round(zoom * 100) + 15)}
-            className="flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors rounded-lg w-11 h-11 text-white/80 hover:text-white"
+            className="hidden sm:flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors rounded-lg w-11 h-11 text-white/80 hover:text-white"
             title="Aumentar zoom"
           >
             <ZoomIn className="w-5 h-5" />
@@ -143,48 +142,10 @@ export default function PdfPreviewModal({
                 }, 10000);
               };
             }}
-            className="flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors rounded-lg w-11 h-11 text-white/80 hover:text-white"
+            className="hidden sm:flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors rounded-lg w-11 h-11 text-white/80 hover:text-white"
             title="Imprimir documento"
           >
             <Printer className="w-5 h-5" />
-          </button>
-          <button
-            disabled={savingVersion}
-            onClick={async () => {
-              setSavingVersion(true);
-              const fileName = `${previewName}.pdf`;
-              const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-              
-              try {
-                const res = await fetch(previewUrl);
-                const blob = await res.blob();
-                
-                // Auto-upload in background removed
-                
-                // Prompt local download right away
-                if (isMobile && navigator.share) {
-                  try {
-                    const file = new File([blob], fileName, { type: 'application/pdf' });
-                    await navigator.share({ files: [file] });
-                  } catch (err: any) {
-                    if (err.name !== 'AbortError') console.error('Share error:', err);
-                  }
-                } else {
-                  const a = document.createElement('a');
-                  a.href = previewUrl;
-                  a.download = fileName;
-                  a.click();
-                }
-              } catch (e: any) {
-                 Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo procesar la descarga.', confirmButtonColor: '#722F37' });
-              } finally {
-                setSavingVersion(false);
-              }
-            }}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-bold transition-colors min-h-[44px] disabled:opacity-50"
-          >
-            <Download className="w-5 h-5" />
-            {savingVersion ? 'Procesando...' : 'Descargar'}
           </button>
           <button
             onClick={() => { URL.revokeObjectURL(previewUrl); onClose(); }}
