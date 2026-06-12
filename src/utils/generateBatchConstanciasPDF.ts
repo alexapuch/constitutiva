@@ -50,7 +50,7 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
         const doc = new jsPDF({
             orientation: 'landscape',
             unit: 'mm',
-            format: [279.4, 157.16], // Custom 16:9 format matching 1920x1080 to prevent squishing
+            format: [279.4, 215.9], // Custom Letter landscape format to cover entire page when printing
             compress: true,
             encryption: {
                 ownerPassword: 'Meyersound1##',
@@ -81,42 +81,42 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             doc.setFont(font, 'bold');
             doc.setTextColor(27, 54, 93); // Dark blue
             doc.setFontSize(22);
-            doc.text(emp.name.toUpperCase(), docWidth / 2, 53, { align: 'center' });
+            doc.text(emp.name.toUpperCase(), (docWidth / 2) + 5.0, 78.0, { align: 'center' });
 
             // 2. Commercial Name
-            doc.setFontSize(10);
+            doc.setFontSize(12);
             doc.setTextColor(30, 30, 30); // Dark text
-            doc.text(docInfo.commercial_name.toUpperCase(), 118, 94.5, { align: 'left', maxWidth: 140 });
+            doc.text(docInfo.commercial_name.toUpperCase(), 77.0, 131.5, { align: 'left', maxWidth: 171.0 });
 
             // 3. Address
             const addressText = (docInfo.address || '').split(/\s*\|\s*/)[0].trim().toUpperCase();
             const pdcText = templateImage.includes('_tulum') ? "TULUM, QUINTANA ROO, MÉXICO." : "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.";
-            const maxAddressWidth = 132;
-            const { finalAddress, fontSize: addressFontSize } = resolveAddressLayout(doc, addressText, pdcText, maxAddressWidth);
+            const maxAddressWidth = 174.0;
+            const { finalAddress, fontSize: addressFontSize } = resolveAddressLayout(doc, addressText, pdcText, maxAddressWidth, 141.0, 157.0);
             doc.setFontSize(addressFontSize);
             doc.setTextColor(30, 30, 30);
-            doc.text(finalAddress, 96, 100.5, { align: 'left', maxWidth: maxAddressWidth, lineHeightFactor: 1.5 });
+            doc.text(finalAddress, 55.0, 141.0, { align: 'left', maxWidth: maxAddressWidth, lineHeightFactor: 1.5 });
 
             // 4. Date
-            doc.setFontSize(11);
+            doc.setFontSize(13);
             doc.setTextColor(255, 255, 255); // White text inside red banner
             doc.setFont(font, 'bold');
-            doc.text(docInfo.date.toUpperCase(), 145, 124, { align: 'center' });
+            doc.text(docInfo.date.toUpperCase(), 140.0, 170.3, { align: 'center' });
 
             // 5. Vigencia
-            doc.setFontSize(7);
+            doc.setFontSize(9);
             doc.setTextColor(100, 100, 100); // Dark gray
             doc.setFont(font, 'bold');
-            doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
+            doc.text('VIGENCIA AÑO FISCAL', 140.61, 184.5, { align: 'center' });
 
             // 6. QR Code de verificación (vector, sin imagen rasterizada)
             const folio = folios[i];
             const verifyUrl = `https://seprisa.app/v/${folioToSlug(folio)}`;
             const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'L' });
-            const qrSize = 19.5;
-            const qrPad = 1.25;
-            const qrX = 235.75;
-            const qrY = 106.25;
+            const qrSize = 25.0;
+            const qrPad = 1.5;
+            const qrX = 231.75;
+            const qrY = 151.5;
             // Marco blanco con borde rojo redondeado
             doc.setFillColor(255, 255, 255);
             doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'F');

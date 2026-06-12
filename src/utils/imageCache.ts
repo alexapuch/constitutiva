@@ -3,10 +3,13 @@ const jpegCache = new Map<string, string>();
 const pendingCache = new Map<string, Promise<string>>();
 
 export const getCachedJpeg = (url: string): Promise<string> => {
-  if (jpegCache.has(url)) return Promise.resolve(jpegCache.get(url)!);
-  if (pendingCache.has(url)) return pendingCache.get(url)!;
+  const cacheKey = url.split('?')[0];
+  if (jpegCache.has(cacheKey)) return Promise.resolve(jpegCache.get(cacheKey)!);
+  if (pendingCache.has(cacheKey)) return pendingCache.get(cacheKey)!;
 
-  const promise = fetch(url)
+  const fetchUrl = `${cacheKey}?t=${new Date().getTime()}`;
+
+  const promise = fetch(fetchUrl)
     .then(res => {
       if (!res.ok) throw new Error(`No se encontró la imagen ${url}`);
       return res.blob();
@@ -25,14 +28,14 @@ export const getCachedJpeg = (url: string): Promise<string> => {
         canvas.height = img.naturalHeight;
         canvas.getContext('2d')!.drawImage(img, 0, 0);
         const jpeg = canvas.toDataURL('image/jpeg', 0.88);
-        jpegCache.set(url, jpeg);
-        pendingCache.delete(url);
+        jpegCache.set(cacheKey, jpeg);
+        pendingCache.delete(cacheKey);
         resolve(jpeg);
       };
       img.src = imgData;
     }));
 
-  pendingCache.set(url, promise);
+  pendingCache.set(cacheKey, promise);
   return promise;
 };
 

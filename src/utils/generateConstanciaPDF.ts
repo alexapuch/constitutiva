@@ -17,36 +17,28 @@ interface RegistryEntry {
 }
 
 // Auto-shrink address font so it never overlaps the bottom layout bounds (max Y ≈ 116mm)
-export function resolveAddressLayout(doc: jsPDF, addressText: string, pdcText: string, maxWidth: number): { finalAddress: string | string[]; fontSize: number } {
-  const startY = 100.5;
-  const qrTopY = 116; // Changed from 105.5 since QR code is moved up and they don't overlap horizontally
+export function resolveAddressLayout(doc: jsPDF, addressText: string, pdcText: string, maxWidth: number, startY: number = 100.5, qrTopY: number = 116): { finalAddress: string; fontSize: number } {
   const lineHeightFactor = 1.5;
 
-  if (!addressText) return { finalAddress: pdcText, fontSize: 10 };
+  if (!addressText) return { finalAddress: pdcText, fontSize: 12 };
 
-  // If the user explicitly set the address to the city itself, render it once on line 1 only
+  // If the user explicitly set the address to the city itself, render it once only
   if (addressText.replace(/\.$/, '') === pdcText.replace(/\.$/, '')) {
-    return { finalAddress: pdcText, fontSize: 10 };
+    return { finalAddress: pdcText, fontSize: 12 };
   }
 
-  for (let fontSize = 10; fontSize >= 6; fontSize--) {
+  const cleanAddress = addressText.trim().replace(/[,.\s]+$/, '');
+  const fullAddress = `${cleanAddress}, ${pdcText}`;
+
+  for (let fontSize = 12; fontSize >= 6; fontSize--) {
     doc.setFontSize(fontSize);
-    const splitLines: string[] = doc.splitTextToSize(addressText, maxWidth);
-    const finalAddress: string | string[] = splitLines.length === 1
-      ? [addressText, pdcText]
-      : `${addressText} ${pdcText}`;
-    const rendered: string[] = typeof finalAddress === 'string'
-      ? doc.splitTextToSize(finalAddress, maxWidth)
-      : (finalAddress as string[]).flatMap((l: string) => doc.splitTextToSize(l, maxWidth));
+    const rendered: string[] = doc.splitTextToSize(fullAddress, maxWidth);
     const lineHeightMm = fontSize * 0.352778 * lineHeightFactor;
     const bottomY = startY + (rendered.length - 1) * lineHeightMm;
-    if (bottomY <= qrTopY) return { finalAddress, fontSize };
+    if (bottomY <= qrTopY) return { finalAddress: fullAddress, fontSize };
   }
-  // Fallback: use font 6 regardless
-  doc.setFontSize(6);
-  const splitLines: string[] = doc.splitTextToSize(addressText, maxWidth);
-  const finalAddress: string | string[] = splitLines.length === 1 ? [addressText, pdcText] : `${addressText} ${pdcText}`;
-  return { finalAddress, fontSize: 6 };
+  // Fallback: use font 6
+  return { finalAddress: fullAddress, fontSize: 6 };
 }
 
 function drawConstanciaPage(doc: jsPDF, entry: RegistryEntry, imgJpeg: string, font: string) {
@@ -58,36 +50,36 @@ function drawConstanciaPage(doc: jsPDF, entry: RegistryEntry, imgJpeg: string, f
   doc.setFont(font, 'bold');
   doc.setTextColor(27, 54, 93);
   doc.setFontSize(22);
-  doc.text(entry.employee_name.toUpperCase(), docWidth / 2, 53, { align: 'center' });
+  doc.text(entry.employee_name.toUpperCase(), (docWidth / 2) + 5.0, 78.0, { align: 'center' });
 
-  doc.setFontSize(10);
+  doc.setFontSize(12);
   doc.setTextColor(30, 30, 30);
-  doc.text(entry.commercial_name.toUpperCase(), 118, 94.5, { align: 'left', maxWidth: 140 });
+  doc.text(entry.commercial_name.toUpperCase(), 77.0, 131.5, { align: 'left', maxWidth: 171.0 });
 
   const addressText = (entry.address || '').split(/\s*\|\s*/)[0].trim().toUpperCase();
   const pdcText = 'PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.';
-  const maxAddressWidth = 132;
-  const { finalAddress, fontSize: addressFontSize } = resolveAddressLayout(doc, addressText, pdcText, maxAddressWidth);
+  const maxAddressWidth = 174.0;
+  const { finalAddress, fontSize: addressFontSize } = resolveAddressLayout(doc, addressText, pdcText, maxAddressWidth, 141.0, 157.0);
   doc.setFontSize(addressFontSize);
   doc.setTextColor(30, 30, 30);
-  doc.text(finalAddress, 96, 100.5, { align: 'left', maxWidth: maxAddressWidth, lineHeightFactor: 1.5 });
+  doc.text(finalAddress, 55.0, 141.0, { align: 'left', maxWidth: maxAddressWidth, lineHeightFactor: 1.5 });
 
-  doc.setFontSize(11);
+  doc.setFontSize(13);
   doc.setTextColor(255, 255, 255);
   doc.setFont(font, 'bold');
-  doc.text(entry.date.toUpperCase(), 145, 124, { align: 'center' });
+  doc.text(entry.date.toUpperCase(), 140.0, 170.3, { align: 'center' });
 
-  doc.setFontSize(7);
+  doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
   doc.setFont(font, 'bold');
-  doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
+  doc.text('VIGENCIA AÑO FISCAL', 140.61, 184.5, { align: 'center' });
 
   const verifyUrl = `https://seprisa.app/v/${folioToSlug(entry.folio)}`;
   const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'L' });
-  const qrSize = 19.5;
-  const qrPad = 1.25;
-  const qrX = 235.75;
-  const qrY = 106.25;
+  const qrSize = 25.0;
+  const qrPad = 1.5;
+  const qrX = 231.75;
+  const qrY = 151.5;
   doc.setFillColor(255, 255, 255);
   doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'F');
   doc.setDrawColor(220, 20, 20);
@@ -116,7 +108,7 @@ export const generateConstanciasBatchFromRegistry = async (entries: RegistryEntr
     const doc = new jsPDF({
       orientation: 'landscape',
       unit: 'mm',
-      format: [279.4, 157.16],
+      format: [279.4, 215.9],
       compress: true,
       encryption: { ownerPassword: 'Meyersound1##', userPermissions: ['print'] }
     });
@@ -153,7 +145,7 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         const doc = new jsPDF({
             orientation: 'landscape',
             unit: 'mm',
-            format: [279.4, 157.16], // Custom 16:9 format matching 1920x1080 to prevent squishing
+            format: [279.4, 215.9], // Custom Letter landscape format to cover entire page when printing
             compress: true,
             encryption: {
                 ownerPassword: 'Meyersound1##',
@@ -170,7 +162,6 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         const font = chineseFontLoaded ? 'NotoSansSC' : 'helvetica';
 
         doc.addImage(imgJpeg, 'JPEG', 0, 0, docWidth, docHeight, 'template', 'FAST');
-
         // Text position settings
 
         // 1. Name of the employee
@@ -178,44 +169,44 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         doc.setTextColor(27, 54, 93); // Dark blue from the template
         doc.setFontSize(22);
         // Move up further for Name
-        doc.text(emp.name.toUpperCase(), docWidth / 2, 53, { align: 'center' });
+        doc.text(emp.name.toUpperCase(), (docWidth / 2) + 5.0, 78.0, { align: 'center' });
 
         // 2. Commercial Name
-        doc.setFontSize(10);
+        doc.setFontSize(12);
         doc.setTextColor(30, 30, 30); // Dark text
         // Exact translation from 825.75px, 642.75px (1920x1080 base) with micro-adjustments (down and left, then slightly up by 2px)
-        doc.text(docInfo.commercial_name.toUpperCase(), 118, 94.5, { align: 'left', maxWidth: 140 });
+        doc.text(docInfo.commercial_name.toUpperCase(), 77.0, 131.5, { align: 'left', maxWidth: 171.0 });
 
         // 3. Address
         const addressText = (docInfo.address || '').split(/\s*\|\s*/)[0].trim().toUpperCase();
         const pdcText = templateImage.includes('_tulum') ? "TULUM, QUINTANA ROO, MÉXICO." : "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.";
-        const maxAddressWidth = 132;
-        const { finalAddress, fontSize: addressFontSize } = resolveAddressLayout(doc, addressText, pdcText, maxAddressWidth);
+        const maxAddressWidth = 174.0;
+        const { finalAddress, fontSize: addressFontSize } = resolveAddressLayout(doc, addressText, pdcText, maxAddressWidth, 141.0, 157.0);
         doc.setFontSize(addressFontSize);
         doc.setTextColor(30, 30, 30);
-        doc.text(finalAddress, 96, 100.5, { align: 'left', maxWidth: maxAddressWidth, lineHeightFactor: 1.5 });
+        doc.text(finalAddress, 55.0, 141.0, { align: 'left', maxWidth: maxAddressWidth, lineHeightFactor: 1.5 });
 
         // 4. Date
-        doc.setFontSize(11);
+        doc.setFontSize(13);
         doc.setTextColor(255, 255, 255); // White text inside red banner
         doc.setFont(font, 'bold');
         // Shift slightly down and left based on visual feedback
-        doc.text(docInfo.date.toUpperCase(), 145, 124, { align: 'center' });
+        doc.text(docInfo.date.toUpperCase(), 140.0, 170.3, { align: 'center' });
 
         // 5. Vigencia
-        doc.setFontSize(7);
+        doc.setFontSize(9);
         doc.setTextColor(100, 100, 100); // Dark gray
         doc.setFont(font, 'bold');
-        doc.text('VIGENCIA AÑO FISCAL', 142.61, 134.32, { align: 'center' });
+        doc.text('VIGENCIA AÑO FISCAL', 140.61, 184.5, { align: 'center' });
 
         // 6. QR Code de verificación — en preview folio ficticio, en descarga real crea el registro
         const folio = await folioPromise;
         const verifyUrl = `https://seprisa.app/v/${folioToSlug(folio)}`;
         const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'L' });
-        const qrSize = 19.5;
-        const qrPad = 1.25;
-        const qrX = 235.75;
-        const qrY = 106.25;
+        const qrSize = 25.0;
+        const qrPad = 1.5;
+        const qrX = 231.75;
+        const qrY = 151.5;
         // Marco blanco con borde rojo redondeado
         doc.setFillColor(255, 255, 255);
         doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'F');

@@ -6,7 +6,7 @@ import Swal from 'sweetalert2';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-function LazyPage({ pageNumber, containerWidth }: { pageNumber: number; containerWidth: number }) {
+function LazyPage({ pageNumber, containerWidth, isLandscape }: { pageNumber: number; containerWidth: number; isLandscape: boolean }) {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -24,8 +24,10 @@ function LazyPage({ pageNumber, containerWidth }: { pageNumber: number; containe
     return () => observer.disconnect();
   }, []);
 
+  const ratio = isLandscape ? 0.7727 : 1.2941;
+
   return (
-    <div ref={ref} className="mb-4 shadow-lg flex justify-center bg-gray-300" style={{ minHeight: containerWidth * 1.2941 || 600, width: containerWidth || '100%' }}>
+    <div ref={ref} className="mb-4 shadow-lg flex justify-center bg-gray-300" style={{ minHeight: containerWidth * ratio || (isLandscape ? 460 : 600), width: containerWidth || '100%' }}>
       {isVisible ? (
         <Page
           pageNumber={pageNumber}
@@ -48,7 +50,7 @@ interface PdfPreviewModalProps {
 }
 
 export default function PdfPreviewModal({
-  previewUrl, previewName, onClose
+  previewUrl, previewName, previewType, onClose
 }: PdfPreviewModalProps) {
   const [savingVersion, setSavingVersion] = useState(false);
   const [numPages, setNumPages] = useState<number | null>(null);
@@ -57,6 +59,7 @@ export default function PdfPreviewModal({
   const [zoomInput, setZoomInput] = useState('40');
   const pdfContainerRef = useRef<HTMLDivElement>(null);
 
+  const isLandscape = previewType === 'Constancia' || previewType === 'Constancias (Lote)';
   const pdfWidth = Math.max(containerWidth * zoom, 300);
 
   const applyZoom = (value: number) => {
@@ -199,7 +202,7 @@ export default function PdfPreviewModal({
           className="flex flex-col items-center"
         >
           {Array.from(new Array(numPages || 0), (_, index) => (
-            <LazyPage key={`page_${index + 1}`} pageNumber={index + 1} containerWidth={pdfWidth} />
+            <LazyPage key={`page_${index + 1}`} pageNumber={index + 1} containerWidth={pdfWidth} isLandscape={isLandscape} />
           ))}
         </Document>
       </div>
