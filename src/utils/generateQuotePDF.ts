@@ -210,7 +210,7 @@ export const generateQuotePDF = async (quoteData: QuoteData) => {
         // Disclaimer Text
         doc.setFontSize(Math.max(5.5, Math.floor(7.5 * footerScale)));
         doc.setTextColor(220, 38, 38); // Rojo chillón / intenso
-        doc.setFont('helvetica', 'bold'); // En negrita para destacar el aviso importante
+        doc.setFont('helvetica', 'normal');
 
         const disclaimerText = "LA PRESENTE COTIZACIÓN TIENE UNA VIGENCIA DE 7 DÍAS NATURALES CONTADOS A PARTIR DE SU FECHA DE EMISIÓN. PARA INICIAR CUALQUIER TRABAJO SE REQUIERE UN ANTICIPO DEL 50%, LIQUIDÁNDOSE EL IMPORTE RESTANTE AL MOMENTO DE LA ENTREGA. EN CASO DE APROBACIÓN, FAVOR DE ENVIAR SU CÉDULA FISCAL SI REQUIERE FACTURA.";
         const wrappedDisclaimer = doc.splitTextToSize(disclaimerText, docWidth - 30);
