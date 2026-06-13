@@ -129,17 +129,32 @@ export default function PdfPreviewModal({
               
               iframe.onload = () => {
                 try {
-                  iframe.contentWindow?.focus();
-                  iframe.contentWindow?.print();
+                  const win = iframe.contentWindow;
+                  if (win) {
+                    win.addEventListener('afterprint', () => {
+                      setTimeout(() => {
+                        if (document.body.contains(iframe)) {
+                          document.body.removeChild(iframe);
+                        }
+                      }, 500);
+                    });
+                    win.focus();
+                    win.print();
+                  }
                 } catch (e) {
                   console.error('Error al imprimir:', e);
                   window.open(previewUrl, '_blank');
+                  if (document.body.contains(iframe)) {
+                    document.body.removeChild(iframe);
+                  }
                 }
+                
+                // Fallback cleanup after 5 minutes in case afterprint is not supported
                 setTimeout(() => {
                   if (document.body.contains(iframe)) {
                     document.body.removeChild(iframe);
                   }
-                }, 10000);
+                }, 300000);
               };
             }}
             className="hidden sm:flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors rounded-lg w-11 h-11 text-white/80 hover:text-white"
