@@ -33,7 +33,7 @@ import ManualCaratulasModal from '../components/admin/ManualCaratulasModal';
 import ActaBlankModal from '../components/admin/ActaBlankModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v2.11';
+const APP_VERSION = 'v2.12';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -260,6 +260,11 @@ export default function AdminView() {
             <input type="radio" name="caratula-color" value="200,0,0">
             <div class="w-6 h-6 rounded-md shadow-sm border border-gray-200" style="background-color: rgb(200,0,0)"></div>
             <span class="font-medium text-gray-800">Rojo</span>
+          </label>
+          <label class="flex items-center gap-3 p-2 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+            <input type="radio" name="caratula-color" value="249,115,22">
+            <div class="w-6 h-6 rounded-md shadow-sm border border-gray-200" style="background-color: rgb(249,115,22)"></div>
+            <span class="font-medium text-gray-800">Naranja</span>
           </label>
           <label class="flex items-center gap-3 p-2 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
             <input type="radio" name="caratula-color" value="0,100,0">

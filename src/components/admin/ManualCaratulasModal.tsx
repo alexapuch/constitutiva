@@ -127,6 +127,7 @@ export default function ManualCaratulasModal({ isOpen, onClose, onPreview }: Pro
                 <option value="31,73,125">Azul (Seprisa)</option>
                 <option value="114,47,55">Vino</option>
                 <option value="200,0,0">Rojo</option>
+                <option value="249,115,22">Naranja</option>
                 <option value="0,100,0">Verde Oscuro</option>
                 <option value="218,165,32">Amarillo / Dorado</option>
               </select>
