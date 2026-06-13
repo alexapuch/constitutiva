@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, lazy, Suspense } from 'react';
 import Swal from 'sweetalert2';
 import { DocumentInfo, Employee } from '../types';
 import { Trash2, Save, FileText, Users, Plus, Download, Award, Eye, CheckCircle2, RotateCcw, ChevronDown, ChevronRight, MessageCircle, Check, Pencil, Search } from 'lucide-react';
@@ -14,26 +14,27 @@ import { preloadTemplates } from '../utils/imageCache';
 import { generatePdfName } from '../utils/pdfNameGenerator';
 import SwipeableRow from '../components/SwipeableRow';
 import AdminLoginForm from '../components/AdminLoginForm';
-import QuoteModal from '../components/QuoteModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../utils/supabaseClient';
+import { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../utils/constanciaConstants';
 
-// Nuevos componentes extraidos
-import SideMenu from '../components/admin/SideMenu';
-import DashboardView from '../components/admin/DashboardView';
-import QuoteHistoryDrawer from '../components/admin/QuoteHistoryDrawer';
-import ConstanciasHistoryDrawer from '../components/admin/ConstanciasHistoryDrawer';
-import PdfPreviewModal from '../components/admin/PdfPreviewModal';
-import CartaResponsivaView from '../components/admin/CartaResponsivaView';
-import ManualConstanciaModal, { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../components/admin/ManualConstanciaModal';
-import ManualDC3Modal from '../components/admin/ManualDC3Modal';
+// Nuevos componentes extraidos (Cargados perezosamente / Lazy loading)
+const SideMenu = lazy(() => import('../components/admin/SideMenu'));
+const DashboardView = lazy(() => import('../components/admin/DashboardView'));
+const QuoteHistoryDrawer = lazy(() => import('../components/admin/QuoteHistoryDrawer'));
+const ConstanciasHistoryDrawer = lazy(() => import('../components/admin/ConstanciasHistoryDrawer'));
+const PdfPreviewModal = lazy(() => import('../components/admin/PdfPreviewModal'));
+const CartaResponsivaView = lazy(() => import('../components/admin/CartaResponsivaView'));
+const ManualConstanciaModal = lazy(() => import('../components/admin/ManualConstanciaModal'));
+const ManualDC3Modal = lazy(() => import('../components/admin/ManualDC3Modal'));
+const ManualOrganigramaModal = lazy(() => import('../components/admin/ManualOrganigramaModal'));
+const ManualCaratulasModal = lazy(() => import('../components/admin/ManualCaratulasModal'));
+const ActaBlankModal = lazy(() => import('../components/admin/ActaBlankModal'));
+const QuoteModal = lazy(() => import('../components/QuoteModal'));
 import { generateDC3PDF } from '../utils/generateDC3PDF';
-import ManualOrganigramaModal from '../components/admin/ManualOrganigramaModal';
-import ManualCaratulasModal from '../components/admin/ManualCaratulasModal';
-import ActaBlankModal from '../components/admin/ActaBlankModal';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v2.14';
+const APP_VERSION = 'v2.15';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -439,10 +440,11 @@ export default function AdminView() {
   if (!isAuthenticated) return <AdminLoginForm />;
 
   return (
-    <div
-      className="min-h-screen bg-gray-100 dark:bg-gray-900 pb-8 px-4 sm:px-6 lg:px-8 font-sans transition-colors"
-      style={{ paddingTop: 'max(2rem, env(safe-area-inset-top))' }}
-    >
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center p-4"><div className="w-8 h-8 border-4 border-blue-900 border-t-transparent rounded-full animate-spin" /></div>}>
+      <div
+        className="min-h-screen bg-gray-100 dark:bg-gray-900 pb-8 px-4 sm:px-6 lg:px-8 font-sans transition-colors"
+        style={{ paddingTop: 'max(2rem, env(safe-area-inset-top))' }}
+      >
       <SideMenu
         isOpen={showSideMenu}
         onClose={() => setShowSideMenu(false)}
@@ -1359,6 +1361,7 @@ export default function AdminView() {
           setPreviewName('');
         }}
       />
-    </div>
+      </div>
+    </Suspense>
   );
 }
