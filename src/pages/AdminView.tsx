@@ -34,7 +34,7 @@ const QuoteModal = lazy(() => import('../components/QuoteModal'));
 import { generateDC3PDF } from '../utils/generateDC3PDF';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v2.15';
+const APP_VERSION = 'v2.16';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -420,17 +420,61 @@ export default function AdminView() {
 
   const docInfo = documents.find(d => d.id === selectedDocId);
 
+  const runWithLoading = async (task: () => Promise<any>, message: string = 'Generando el documento...') => {
+    Swal.fire({
+      title: 'Generando PDF',
+      text: message,
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    try {
+      await task();
+      Swal.close();
+    } catch (err: any) {
+      console.error(err);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: err.message || 'Ocurrió un error al generar el PDF.',
+        confirmButtonColor: '#722F37'
+      });
+    }
+  };
+
   const handleDownloadPDF = async () => {
     if (!docInfo) return;
-    await generateConstitutivaPDF(docInfo, employees);
+    await runWithLoading(async () => {
+      await generateConstitutivaPDF(docInfo, employees);
+    }, 'Preparando Acta Constitutiva...');
   };
 
   const handlePreview = async (generator: () => Promise<string | void>, type: string, name: string) => {
-    const url = await generator();
-    if (url) {
-      setPreviewUrl(url);
-      setPreviewType(type);
-      setPreviewName(name);
+    Swal.fire({
+      title: 'Generando Vista Previa',
+      text: 'Preparando el visualizador de PDF...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    try {
+      const url = await generator();
+      Swal.close();
+      if (url) {
+        setPreviewUrl(url);
+        setPreviewType(type);
+        setPreviewName(name);
+      }
+    } catch (err: any) {
+      console.error(err);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: err.message || 'Ocurrió un error al generar la vista previa.',
+        confirmButtonColor: '#722F37'
+      });
     }
   };
 
@@ -1022,7 +1066,15 @@ export default function AdminView() {
                 <div className="flex flex-wrap items-center gap-2 mt-4">
                   <div className="flex-1 sm:flex-none flex items-center">
                     <button
-                      onClick={async () => { if (docInfo) { const isTulum = (docInfo.address || '').split(/\s*\|\s*/)[1] === 'TULUM'; const tmpl = isTulum ? '/constancia_vacia_tulum.png' : '/constancia_vacia.png'; await generateBatchConstanciasPDF(docInfo, employees, tmpl); } }}
+                      onClick={async () => { 
+                        if (docInfo) { 
+                          const isTulum = (docInfo.address || '').split(/\s*\|\s*/)[1] === 'TULUM'; 
+                          const tmpl = isTulum ? '/constancia_vacia_tulum.png' : '/constancia_vacia.png'; 
+                          await runWithLoading(async () => {
+                            await generateBatchConstanciasPDF(docInfo, employees, tmpl); 
+                          }, 'Generando constancias en lote...');
+                        } 
+                      }}
                       disabled={employees.length === 0}
                       className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 text-sm rounded-l-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm font-bold min-h-[38px]"
                       title="Descargar Todas las Constancias"
@@ -1041,7 +1093,13 @@ export default function AdminView() {
                   </div>
                   <div className="flex-1 sm:flex-none flex items-center">
                     <button
-                      onClick={async () => { if (docInfo) { await generateSimulacroPDF(docInfo, employees, false, turnosSimulacro); } }}
+                      onClick={async () => { 
+                        if (docInfo) { 
+                          await runWithLoading(async () => {
+                            await generateSimulacroPDF(docInfo, employees, false, turnosSimulacro); 
+                          }, 'Generando Cédula de Simulacro...');
+                        } 
+                      }}
                       className="flex-1 flex items-center justify-center gap-1.5 bg-[#1f497d] text-white px-3 py-1.5 text-sm rounded-l-md hover:bg-[#15345a] transition-colors shadow-sm font-bold min-h-[38px]"
                       title="Descargar Cédula de Evaluación de Simulacro"
                     >
@@ -1078,7 +1136,11 @@ export default function AdminView() {
                       onClick={async () => { 
                         if (docInfo) { 
                           const color = await promptCaratulaColor();
-                          if (color) await generateCaratulasPDF(docInfo, false, color); 
+                          if (color) {
+                            await runWithLoading(async () => {
+                              await generateCaratulasPDF(docInfo, false, color); 
+                            }, 'Generando Carátulas de Anexos...');
+                          }
                         } 
                       }}
                       className="flex-1 flex items-center justify-center gap-1.5 bg-purple-600 text-white px-3 py-1.5 text-sm rounded-l-md hover:bg-purple-700 transition-colors shadow-md font-bold min-h-[38px]"

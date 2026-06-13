@@ -16,11 +16,13 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
     const [role, setRole] = useState('EMPLEADO');
     const [brigade] = useState('MULTIBRIGADA');
     const [isSaving] = useState(false);
+    const [isCanvasEmpty, setIsCanvasEmpty] = useState(true);
     const sigCanvas = useRef<SignatureCanvas>(null);
 
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
+            setIsCanvasEmpty(true);
         } else {
             document.body.style.overflow = '';
         }
@@ -59,6 +61,7 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
         // Close modal immediately — upload happens in background
         setName('');
         setRole('EMPLEADO');
+        setIsCanvasEmpty(true);
         sigCanvas.current.clear();
         onClose();
 
@@ -76,10 +79,10 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
         <AnimatePresence>
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] min-w-0 break-words"
+                     initial={{ opacity: 0, y: 20 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     exit={{ opacity: 0, y: 20 }}
+                     className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] min-w-0 break-words"
                 >
                     <div className="flex justify-between items-center p-4 border-b bg-blue-50">
                         <h3 className="text-xl font-extrabold text-blue-900 tracking-tight">Agregar mi firma</h3>
@@ -124,18 +127,36 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between">
-                                    <span>Firma</span>
+                                <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
+                                    <span className="flex items-center gap-2">
+                                        Firma 
+                                        {isCanvasEmpty ? (
+                                            <span className="text-[10px] bg-gray-100 text-gray-400 font-bold px-2 py-0.5 rounded-full select-none">Vacío</span>
+                                        ) : (
+                                            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full animate-pulse select-none">✓ Firma detectada</span>
+                                        )}
+                                    </span>
                                     <button
-                                        onClick={() => sigCanvas.current?.clear()}
+                                        onClick={() => {
+                                            sigCanvas.current?.clear();
+                                            setIsCanvasEmpty(true);
+                                        }}
                                         className="text-sm text-red-500 font-bold hover:text-red-700"
                                     >
                                         Limpiar
                                     </button>
                                 </label>
-                                <div className="border border-gray-300 rounded-md bg-gray-50" style={{ touchAction: 'none' }}>
+                                <div 
+                                    className={`border rounded-md bg-gray-50 transition-all duration-300 ${
+                                        isCanvasEmpty 
+                                            ? 'border-gray-300' 
+                                            : 'border-emerald-500 ring-2 ring-emerald-100'
+                                    }`} 
+                                    style={{ touchAction: 'none' }}
+                                >
                                     <SignatureCanvas
                                         ref={sigCanvas}
+                                        onEnd={() => setIsCanvasEmpty(sigCanvas.current ? sigCanvas.current.isEmpty() : true)}
                                         canvasProps={{
                                             className: 'signature-canvas w-full h-40 rounded-md cursor-crosshair',
                                             style: { touchAction: 'none' }
