@@ -1537,16 +1537,36 @@ Generate a JSON object matching this structure:
             };
         }
 
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: promptText,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: responseSchema
+        let response: any;
+        const maxAttempts = 3;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                response = await ai.models.generateContent({
+                    model: "gemini-2.5-flash",
+                    contents: promptText,
+                    config: {
+                        responseMimeType: "application/json",
+                        responseSchema: responseSchema
+                    }
+                });
+                break;
+            } catch (genErr: any) {
+                const isOverloaded =
+                    genErr?.status === 503 ||
+                    genErr?.message?.includes('503') ||
+                    genErr?.message?.toLowerCase().includes('overloaded') ||
+                    genErr?.message?.toLowerCase().includes('unavailable');
+                if (isOverloaded && attempt < maxAttempts) {
+                    const waitMs = 6000 * attempt;
+                    console.log(`[IA] Modelo sobrecargado, intento ${attempt}/${maxAttempts}. Esperando ${waitMs / 1000}s...`);
+                    await new Promise(resolve => setTimeout(resolve, waitMs));
+                } else {
+                    throw genErr;
+                }
             }
-        });
+        }
 
-        if (response.text) {
+        if (response?.text) {
             console.log(`[IA] ✅ Sección "${section}" generada exitosamente.`);
             let textCleaned = response.text.trim();
             if (textCleaned.startsWith('```')) {

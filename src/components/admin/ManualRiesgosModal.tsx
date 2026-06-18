@@ -330,7 +330,10 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
         signal: controller.signal
       });
 
-      if (!res.ok) throw new Error('Error al conectar con la IA de sugerencias.');
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || 'Error al conectar con la IA de sugerencias.');
+      }
       const data = await res.json();
 
       if (activeTab === 'generales') {
