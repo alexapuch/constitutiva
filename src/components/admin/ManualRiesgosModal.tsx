@@ -568,12 +568,12 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Población Flotante</label>
                     <input type="number" value={poblacionFlotante} onChange={e => setPoblacionFlotante(e.target.value)} className="w-full border rounded p-2 text-sm" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Antigüedad (Años)</label>
-                    <div className="flex items-center gap-2">
-                      <input type="text" value={antiguedad} onChange={e => setAntiguedad(e.target.value)} disabled={antiguedad === 'N.D.'} placeholder="Ej. 10" className={`flex-1 border rounded p-2 text-sm bg-white dark:bg-gray-750 dark:text-white ${antiguedad === 'N.D.' ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed' : ''}`} />
-                      <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 select-none whitespace-nowrap cursor-pointer">
-                        <input type="checkbox" checked={antiguedad === 'N.D.'} onChange={e => setAntiguedad(e.target.checked ? 'N.D.' : '')} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" />
+                    <div className="flex items-center gap-1">
+                      <input type="text" value={antiguedad} onChange={e => setAntiguedad(e.target.value)} disabled={antiguedad === 'N.D.'} placeholder="Ej. 10" className={`min-w-0 flex-1 border rounded p-2 text-sm bg-white dark:bg-gray-750 dark:text-white ${antiguedad === 'N.D.' ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed' : ''}`} />
+                      <label className="flex items-center gap-1 text-[10px] font-bold text-gray-500 select-none whitespace-nowrap cursor-pointer shrink-0">
+                        <input type="checkbox" checked={antiguedad === 'N.D.'} onChange={e => setAntiguedad(e.target.checked ? 'N.D.' : '')} className="w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500" />
                         N/D
                       </label>
                     </div>
