@@ -736,7 +736,7 @@ router.post('/analyze-risks', async (req, res) => {
         const placesData = places.map((p: any) => `- ${p.name} (Tipo: ${p.types?.join(', ')})`).join('\n');
 
         const response = await ai.models.generateContent({
-            model: "gemini-1.5-flash",
+            model: "gemini-2.5-flash-lite",
             contents: `I have the following real establishments located near the user's coordinates:
 ${placesData}
 
@@ -830,7 +830,7 @@ Please perform the following:
 Return ONLY a JSON object matching the requested schema.`;
 
         const response = await ai.models.generateContent({
-            model: "gemini-1.5-flash",
+            model: "gemini-2.5-flash-lite",
             contents: promptText,
             config: {
                 responseMimeType: "application/json",
@@ -1542,7 +1542,7 @@ Generate a JSON object matching this structure:
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
                 response = await ai.models.generateContent({
-                    model: "gemini-1.5-flash",
+                    model: "gemini-2.5-flash-lite",
                     contents: promptText,
                     config: {
                         responseMimeType: "application/json",
