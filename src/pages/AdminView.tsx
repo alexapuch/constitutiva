@@ -37,7 +37,7 @@ const ManualRiesgosModal = lazy(() => import('../components/admin/ManualRiesgosM
 import { generateDC3PDF } from '../utils/generateDC3PDF';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v2.21';
+const APP_VERSION = 'v2.22';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
