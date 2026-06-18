@@ -114,6 +114,8 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     estado: 'BUENO',
     recomendaciones: '',
   });
+  const [gasDictamenVigencia, setGasDictamenVigencia] = useState('');
+  const [gasDictamenFecha, setGasDictamenFecha] = useState('');
   const [electrica, setElectrica] = useState({
     subestacion: false,
     tableros: false,
@@ -128,6 +130,8 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     recomendaciones: '',
     estado: 'BUENO',
   });
+  const [electricaDictamenVigencia, setElectricaDictamenVigencia] = useState('');
+  const [electricaDictamenFecha, setElectricaDictamenFecha] = useState('');
   const [especiales, setEspeciales] = useState({
     bombasAgua: false,
     ac: false,
@@ -727,6 +731,18 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
                     <input type="text" value={gas.recomendaciones} onChange={e => setGas({ ...gas, recomendaciones: e.target.value })} className="w-full border rounded p-2 text-sm bg-white dark:bg-gray-750" />
                   </div>
                 </div>
+                {gas.dictamenTecnico && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                    <div>
+                      <label className="block text-xs font-bold text-blue-700 dark:text-blue-300 mb-1">📋 Vigencia del Dictamen de Gas</label>
+                      <input type="text" value={gasDictamenVigencia} onChange={e => setGasDictamenVigencia(e.target.value.toUpperCase())} placeholder="Ej. JUNIO 2026 - JUNIO 2027" className="w-full border rounded p-2 text-sm bg-white dark:bg-gray-750" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-blue-700 dark:text-blue-300 mb-1">📅 Fecha de Elaboración</label>
+                      <input type="text" value={gasDictamenFecha} onChange={e => setGasDictamenFecha(e.target.value.toUpperCase())} placeholder="Ej. 15 DE JUNIO DE 2026" className="w-full border rounded p-2 text-sm bg-white dark:bg-gray-750" />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Eléctrica */}
@@ -751,6 +767,18 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
                     <input type="text" value={electrica.recomendaciones} onChange={e => setElectrica({ ...electrica, recomendaciones: e.target.value })} className="w-full border rounded p-2 text-sm bg-white dark:bg-gray-750" />
                   </div>
                 </div>
+                {electrica.dictamenTecnico && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                    <div>
+                      <label className="block text-xs font-bold text-blue-700 dark:text-blue-300 mb-1">📋 Vigencia del Dictamen Eléctrico</label>
+                      <input type="text" value={electricaDictamenVigencia} onChange={e => setElectricaDictamenVigencia(e.target.value.toUpperCase())} placeholder="Ej. JUNIO 2026 - JUNIO 2027" className="w-full border rounded p-2 text-sm bg-white dark:bg-gray-750" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-blue-700 dark:text-blue-300 mb-1">📅 Fecha de Elaboración</label>
+                      <input type="text" value={electricaDictamenFecha} onChange={e => setElectricaDictamenFecha(e.target.value.toUpperCase())} placeholder="Ej. 15 DE JUNIO DE 2026" className="w-full border rounded p-2 text-sm bg-white dark:bg-gray-750" />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Especiales */}

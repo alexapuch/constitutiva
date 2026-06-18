@@ -1006,7 +1006,19 @@ Floating Population: ${visitantes || "N/A"}\n\n`;
                 required: ["estructural", "escalerasServicio", "escalerasEmergencia"]
             };
         } else if (section === 'instalaciones') {
-            promptText += `Estimate installations (hidro, gas, electrical, specials). Generate a JSON object matching this structure:
+            promptText += `Estimate installations (hidro, gas, electrical, specials) for this specific business type.
+
+CRITICAL RULES FOR GAS INSTALLATIONS:
+- If the business is an OFFICE, LAW FIRM (despacho/bufete), CONSULTING, ACCOUNTING, STORE (tienda), SHOE STORE (zapatería), CLOTHING STORE, or any business that typically does NOT cook food or use gas appliances, then ALL gas fields (tanqueEstacionario, tanqueMovil, calentadorAgua, dictamenTecnico) MUST be false, capacidad must be "N/A", fugas must be false, and estado "N/A".
+- Only restaurants, hotels, laundries, bakeries, food establishments, or industrial businesses should have gas installations set to true.
+
+CRITICAL RULES FOR ELECTRICAL INSTALLATIONS:
+- ALL businesses ALWAYS have electrical installations. Set ALL electrical fields to true (subestacion, tableros, cableado, contactos, interruptores, lamparas, dictamenTecnico).
+- lamparasEmergencia should be true for most businesses.
+- plantaEmergencia and transformador depend on the size (large businesses have them).
+- estado should be "BUENO" for most normal businesses.
+
+Generate a JSON object matching this structure:
 {
   "hidrosanitaria": {
     "cisterna": boolean,
