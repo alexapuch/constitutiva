@@ -299,8 +299,8 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
   };
 
   const handleGetAiSuggestions = async () => {
-    if (!commercialName) {
-      Swal.fire('Atención', 'Por favor selecciona una empresa o escribe el nombre comercial.', 'warning');
+    if (!commercialName || !giro || !m2Construccion) {
+      Swal.fire('Atención', 'Para usar la Inteligencia Artificial, es obligatorio llenar el Nombre Comercial, el Giro y los Metros Cuadrados (M² Construcción).', 'warning');
       return;
     }
     setLoadingAi(true);
@@ -570,7 +570,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Antigüedad (Años)</label>
-                    <input type="text" value={antiguedad} onChange={e => setAntiguedad(e.target.value)} className="w-full border rounded p-2 text-sm" />
+                    <input type="text" value={antiguedad} onChange={e => setAntiguedad(e.target.value.toUpperCase())} placeholder="Ej. 10 o N/D" className="w-full border rounded p-2 text-sm bg-white dark:bg-gray-750 dark:text-white" />
                   </div>
                 </div>
               </div>
