@@ -981,23 +981,39 @@ export default function AdminView() {
                          className="text-blue-600 focus:ring-blue-500"
                        /> Tulum
                      </label>
+                     <label className="flex items-center gap-2 text-sm text-gray-700">
+                       <input
+                         type="radio"
+                         name="city_selector"
+                         checked={((docInfo.address || '').split(/\s*\|\s*/)[1]) === 'CANCUN'}
+                         onChange={async () => {
+                           const newAddr = (docInfo.address || '').split(/\s*\|\s*/)[0] + ' | CANCUN';
+                           updateSelectedDoc('address', newAddr);
+                           if (selectedDocId) await supabase.from('document_info').update({ address: newAddr }).eq('id', selectedDocId);
+                         }}
+                         className="text-blue-600 focus:ring-blue-500"
+                       /> Cancún
+                     </label>
                   </div>
                   <textarea
-                    key={`addr-${selectedDocId}`}
-                    rows={2}
-                    defaultValue={(docInfo.address || '').split(/\s*\|\s*/)[0]}
-                    onChange={(e) => {
-                       const currentCity = (docInfo.address || '').split(/\s*\|\s*/)[1] || 'PLAYA DEL CARMEN';
-                       updateSelectedDoc('address', e.target.value.toUpperCase() + ' | ' + currentCity);
-                    }}
-                    className="w-full border border-gray-300 rounded-t-md p-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
-                    placeholder="Ej. Calle 6 bis entre 25 y 30, Col. Centro"
+                     key={`addr-${selectedDocId}`}
+                     rows={2}
+                     defaultValue={(docInfo.address || '').split(/\s*\|\s*/)[0]}
+                     onChange={(e) => {
+                        const currentCity = (docInfo.address || '').split(/\s*\|\s*/)[1] || 'PLAYA DEL CARMEN';
+                        updateSelectedDoc('address', e.target.value.toUpperCase() + ' | ' + currentCity);
+                     }}
+                     className="w-full border border-gray-300 rounded-t-md p-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
+                     placeholder="Ej. Calle 6 bis entre 25 y 30, Col. Centro"
                   />
                   <div className="w-full bg-gray-100 border border-t-0 border-gray-300 rounded-b-md px-3 py-2 text-sm font-semibold text-gray-700 select-none">
                     {((docInfo.address || '').split(/\s*\|\s*/)[0] ? ", " : "") + 
-                    (((docInfo.address || '').split(/\s*\|\s*/)[1] || 'PLAYA DEL CARMEN') === 'TULUM' 
-                       ? "TULUM, QUINTANA ROO, MÉXICO." 
-                       : "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.")}
+                    (() => {
+                      const city = (docInfo.address || '').split(/\s*\|\s*/)[1] || 'PLAYA DEL CARMEN';
+                      if (city === 'TULUM') return "TULUM, QUINTANA ROO, MÉXICO.";
+                      if (city === 'CANCUN') return "CANCÚN, QUINTANA ROO, MÉXICO.";
+                      return "PLAYA DEL CARMEN, QUINTANA ROO, MÉXICO.";
+                    })()}
                   </div>
                 </div>
 

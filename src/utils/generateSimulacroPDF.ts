@@ -57,7 +57,8 @@ export const generateSimulacroPDF = async (
     const rawAddress = docInfo.address || '';
     const addrParts = rawAddress.split('|');
     const baseAddress = addrParts[0] ? addrParts[0].trim() : '';
-    const cityPrefix = addrParts[1]?.trim() === 'TULUM' ? 'TULUM' : 'PLAYA DEL CARMEN';
+    const cityPart = addrParts[1]?.trim().toUpperCase() || 'PLAYA DEL CARMEN';
+    const cityPrefix = cityPart === 'TULUM' ? 'TULUM' : (cityPart === 'CANCUN' || cityPart === 'CANCÚN' ? 'CANCÚN' : 'PLAYA DEL CARMEN');
 
     autoTable(doc, {
         startY: currentY,
