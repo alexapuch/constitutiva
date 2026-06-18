@@ -33,6 +33,7 @@ const ActaBlankModal = lazy(() => import('../components/admin/ActaBlankModal'));
 const QuoteModal = lazy(() => import('../components/QuoteModal'));
 const GeoRiesgosModal = lazy(() => import('../components/admin/GeoRiesgosModal'));
 const ManualIncendioModal = lazy(() => import('../components/admin/ManualIncendioModal'));
+const ManualRiesgosModal = lazy(() => import('../components/admin/ManualRiesgosModal'));
 import { generateDC3PDF } from '../utils/generateDC3PDF';
 import { Menu } from 'lucide-react';
 
@@ -103,6 +104,7 @@ export default function AdminView() {
   const [showActaBlankModal, setShowActaBlankModal] = useState(false);
   const [showGeoRiesgosModal, setShowGeoRiesgosModal] = useState(false);
   const [showIncendioModal, setShowIncendioModal] = useState(false);
+  const [showRiesgosModal, setShowRiesgosModal] = useState(false);
   const [turnosSimulacro, setTurnosSimulacro] = useState<'M' | 'MV' | 'MVN'>('MV');
   const [editingEmpId, setEditingEmpId] = useState<number | null>(null);
   const [editingEmpName, setEditingEmpName] = useState('');
@@ -130,13 +132,13 @@ export default function AdminView() {
   }, [selectedDocId]);
 
   useEffect(() => {
-    if (showQuickModal || showDC3Modal || showOrganigramaModal || showCaratulasModal || showQuoteDrawer || showSideMenu || showCartaResponsiva || previewUrl || showGeoRiesgosModal || showIncendioModal) {
+    if (showQuickModal || showDC3Modal || showOrganigramaModal || showCaratulasModal || showQuoteDrawer || showSideMenu || showCartaResponsiva || previewUrl || showGeoRiesgosModal || showIncendioModal || showRiesgosModal) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
     return () => { document.body.style.overflow = ''; };
-  }, [showQuickModal, showDC3Modal, showOrganigramaModal, showCaratulasModal, showQuoteDrawer, showSideMenu, showCartaResponsiva, previewUrl, showGeoRiesgosModal, showIncendioModal]);
+  }, [showQuickModal, showDC3Modal, showOrganigramaModal, showCaratulasModal, showQuoteDrawer, showSideMenu, showCartaResponsiva, previewUrl, showGeoRiesgosModal, showIncendioModal, showRiesgosModal]);
 
   useEffect(() => {
     fetchDocuments();
@@ -528,6 +530,7 @@ export default function AdminView() {
         onOpenActaBlank={() => setShowActaBlankModal(true)}
         onOpenGeoRiesgos={() => setShowGeoRiesgosModal(true)}
         onOpenIncendio={() => setShowIncendioModal(true)}
+        onOpenRiesgos={() => setShowRiesgosModal(true)}
         onLogout={async () => {
           await supabase.auth.signOut();
           setIsAuthenticated(false);
@@ -1462,6 +1465,13 @@ export default function AdminView() {
         onClose={() => setShowIncendioModal(false)}
         documents={documents}
         onPreview={(url, name) => { setPreviewUrl(url); setPreviewName(name); setPreviewType('Análisis de Incendio'); }}
+      />
+
+      <ManualRiesgosModal
+        isOpen={showRiesgosModal}
+        onClose={() => setShowRiesgosModal(false)}
+        documents={documents}
+        onPreview={(url, name) => { setPreviewUrl(url); setPreviewName(name); setPreviewType('Identificación de Riesgos'); }}
       />
 
       <PdfPreviewModal

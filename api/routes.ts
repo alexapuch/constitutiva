@@ -871,5 +871,685 @@ Return ONLY a JSON object matching the requested schema.`;
     }
 });
 
+router.post('/generate-risk-section', async (req, res) => {
+    try {
+        const { company_name, commercial_name, address, activity, m2, usuarios, visitantes, section } = req.body;
+        console.log(`[IA] Iniciando generación de sección: ${section} para ${commercial_name || company_name}`);
+        console.log(`[IA] 🤖 Generando sección "${section}" para: "${commercial_name || company_name}" (${activity || 'Sin giro'})`);
+        const apiKey = process.env.GEMINI_API_KEY;
+        
+        if (!apiKey) {
+            console.error("[IA ERROR] ❌ No se encontró GEMINI_API_KEY.");
+            return res.status(500).json({ error: "No Gemini API Key found." });
+        }
+
+        const ai = new GoogleGenAI({
+            apiKey,
+            httpOptions: {
+                headers: {
+                    "User-Agent": "aistudio-build",
+                },
+            },
+        });
+
+        let promptText = `Analyze this business:
+Business Name: ${company_name || "N/A"}
+Commercial Name: ${commercial_name || "N/A"}
+Address: ${address || ""}
+Business Activity / Giro: ${activity || "N/A"}
+Square Meters (m²): ${m2 || 50}
+Fixed Population: ${usuarios || "N/A"}
+Floating Population: ${visitantes || "N/A"}\n\n`;
+
+        let responseSchema: any = {};
+
+        if (section === 'generales') {
+            promptText += `Estimate general info and croquis signals. Generate a JSON object matching this structure:
+{
+  "direccion": "street name and number",
+  "antiguedad": "building age in years (e.g. '5', '10', 'N.D.')",
+  "poblacionFija": number of employees,
+  "poblacionFlotante": number of customers/visitors,
+  "croquis": {
+    "norteGeografico": boolean,
+    "riesgosInternos": boolean,
+    "zonasAltoRiesgo": boolean,
+    "equiposEmergencia": boolean,
+    "rutasEvacuacion": boolean,
+    "zonaConteo": boolean
+  }
+}`;
+            responseSchema = {
+                type: Type.OBJECT,
+                properties: {
+                    direccion: { type: Type.STRING },
+                    antiguedad: { type: Type.STRING },
+                    poblacionFija: { type: Type.INTEGER },
+                    poblacionFlotante: { type: Type.INTEGER },
+                    croquis: {
+                        type: Type.OBJECT,
+                        properties: {
+                            norteGeografico: { type: Type.BOOLEAN },
+                            riesgosInternos: { type: Type.BOOLEAN },
+                            zonasAltoRiesgo: { type: Type.BOOLEAN },
+                            equiposEmergencia: { type: Type.BOOLEAN },
+                            rutasEvacuacion: { type: Type.BOOLEAN },
+                            zonaConteo: { type: Type.BOOLEAN }
+                        },
+                        required: ["norteGeografico", "riesgosInternos", "zonasAltoRiesgo", "equiposEmergencia", "rutasEvacuacion", "zonaConteo"]
+                    }
+                },
+                required: ["direccion", "antiguedad", "poblacionFija", "poblacionFlotante", "croquis"]
+            };
+        } else if (section === 'estructural') {
+            promptText += `Estimate structural risks and stairs. Generate a JSON object matching this structure:
+{
+  "estructural": {
+    "inclinacion": boolean,
+    "separacion": boolean,
+    "deformacion": boolean,
+    "grietasMuros": boolean,
+    "hundimiento": boolean,
+    "grietasPiso": boolean,
+    "filtracion": boolean,
+    "danosEscaleras": boolean
+  },
+  "escalerasServicio": {
+    "homogeneas": boolean,
+    "barandal": boolean,
+    "pasamanos": boolean,
+    "cinta": boolean,
+    "iluminacion": boolean,
+    "estado": "BUENO | REGULAR | MALO"
+  },
+  "escalerasEmergencia": {
+    "homogeneas": boolean,
+    "barandal": boolean,
+    "pasamanos": boolean,
+    "cinta": boolean,
+    "iluminacion": boolean,
+    "estado": "BUENO | REGULAR | MALO"
+  }
+}`;
+            const stairSchema = {
+                type: Type.OBJECT,
+                properties: {
+                    homogeneas: { type: Type.BOOLEAN },
+                    barandal: { type: Type.BOOLEAN },
+                    pasamanos: { type: Type.BOOLEAN },
+                    cinta: { type: Type.BOOLEAN },
+                    iluminacion: { type: Type.BOOLEAN },
+                    estado: { type: Type.STRING }
+                },
+                required: ["homogeneas", "barandal", "pasamanos", "cinta", "iluminacion", "estado"]
+            };
+            responseSchema = {
+                type: Type.OBJECT,
+                properties: {
+                    estructural: {
+                        type: Type.OBJECT,
+                        properties: {
+                            inclinacion: { type: Type.BOOLEAN },
+                            separacion: { type: Type.BOOLEAN },
+                            deformacion: { type: Type.BOOLEAN },
+                            grietasMuros: { type: Type.BOOLEAN },
+                            hundimiento: { type: Type.BOOLEAN },
+                            grietasPiso: { type: Type.BOOLEAN },
+                            filtracion: { type: Type.BOOLEAN },
+                            danosEscaleras: { type: Type.BOOLEAN }
+                        },
+                        required: ["inclinacion", "separacion", "deformacion", "grietasMuros", "hundimiento", "grietasPiso", "filtracion", "danosEscaleras"]
+                    },
+                    escalerasServicio: stairSchema,
+                    escalerasEmergencia: stairSchema
+                },
+                required: ["estructural", "escalerasServicio", "escalerasEmergencia"]
+            };
+        } else if (section === 'instalaciones') {
+            promptText += `Estimate installations (hidro, gas, electrical, specials). Generate a JSON object matching this structure:
+{
+  "hidrosanitaria": {
+    "cisterna": boolean,
+    "tinaco": boolean,
+    "danosTuberia": boolean,
+    "danosLlaves": boolean,
+    "dictamenTecnico": boolean
+  },
+  "gas": {
+    "tanqueEstacionario": boolean,
+    "tanqueMovil": boolean,
+    "calentadorAgua": boolean,
+    "dictamenTecnico": boolean,
+    "capacidad": "string (e.g. '120 L', '0 L', '30 kg')",
+    "fugas": boolean,
+    "estado": "BUENO | REGULAR | MALO",
+    "recomendaciones": "string"
+  },
+  "electrica": {
+    "subestacion": boolean,
+    "tableros": boolean,
+    "cableado": boolean,
+    "contactos": boolean,
+    "interruptores": boolean,
+    "lamparas": boolean,
+    "lamparasEmergencia": boolean,
+    "plantaEmergencia": boolean,
+    "transformador": boolean,
+    "dictamenTecnico": boolean,
+    "recomendaciones": "string",
+    "estado": "BUENO | REGULAR | MALO"
+  },
+  "especiales": {
+    "bombasAgua": boolean,
+    "ac": boolean,
+    "extractores": boolean,
+    "ventiladores": boolean,
+    "cercaElectrica": boolean,
+    "alarmaGeneral": boolean,
+    "presurizadores": boolean,
+    "recomendaciones": "string"
+  }
+}`;
+            responseSchema = {
+                type: Type.OBJECT,
+                properties: {
+                    hidrosanitaria: {
+                        type: Type.OBJECT,
+                        properties: {
+                            cisterna: { type: Type.BOOLEAN },
+                            tinaco: { type: Type.BOOLEAN },
+                            danosTuberia: { type: Type.BOOLEAN },
+                            danosLlaves: { type: Type.BOOLEAN },
+                            dictamenTecnico: { type: Type.BOOLEAN }
+                        },
+                        required: ["cisterna", "tinaco", "danosTuberia", "danosLlaves", "dictamenTecnico"]
+                    },
+                    gas: {
+                        type: Type.OBJECT,
+                        properties: {
+                            tanqueEstacionario: { type: Type.BOOLEAN },
+                            tanqueMovil: { type: Type.BOOLEAN },
+                            calentadorAgua: { type: Type.BOOLEAN },
+                            dictamenTecnico: { type: Type.BOOLEAN },
+                            capacidad: { type: Type.STRING },
+                            fugas: { type: Type.BOOLEAN },
+                            estado: { type: Type.STRING },
+                            recomendaciones: { type: Type.STRING }
+                        },
+                        required: ["tanqueEstacionario", "tanqueMovil", "calentadorAgua", "dictamenTecnico", "capacidad", "fugas", "estado", "recomendaciones"]
+                    },
+                    electrica: {
+                        type: Type.OBJECT,
+                        properties: {
+                            subestacion: { type: Type.BOOLEAN },
+                            tableros: { type: Type.BOOLEAN },
+                            cableado: { type: Type.BOOLEAN },
+                            contactos: { type: Type.BOOLEAN },
+                            interruptores: { type: Type.BOOLEAN },
+                            lamparas: { type: Type.BOOLEAN },
+                            lamparasEmergencia: { type: Type.BOOLEAN },
+                            plantaEmergencia: { type: Type.BOOLEAN },
+                            transformador: { type: Type.BOOLEAN },
+                            dictamenTecnico: { type: Type.BOOLEAN },
+                            recomendaciones: { type: Type.STRING },
+                            estado: { type: Type.STRING }
+                        },
+                        required: ["subestacion", "tableros", "cableado", "contactos", "interruptores", "lamparas", "lamparasEmergencia", "plantaEmergencia", "transformador", "dictamenTecnico", "recomendaciones", "estado"]
+                    },
+                    especiales: {
+                        type: Type.OBJECT,
+                        properties: {
+                            bombasAgua: { type: Type.BOOLEAN },
+                            ac: { type: Type.BOOLEAN },
+                            extractores: { type: Type.BOOLEAN },
+                            ventiladores: { type: Type.BOOLEAN },
+                            cercaElectrica: { type: Type.BOOLEAN },
+                            alarmaGeneral: { type: Type.BOOLEAN },
+                            presurizadores: { type: Type.BOOLEAN },
+                            recomendaciones: { type: Type.STRING }
+                        },
+                        required: ["bombasAgua", "ac", "extractores", "ventiladores", "cercaElectrica", "alarmaGeneral", "presurizadores", "recomendaciones"]
+                    }
+                },
+                required: ["hidrosanitaria", "gas", "electrica", "especiales"]
+            };
+        } else if (section === 'no_estructural') {
+            promptText += `Estimate non-structural objects that can fall, slide, or flip. Generate a JSON object matching this structure:
+{
+  "caer": {
+    "lamparas": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "ventiladores": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "pantallas": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "evaporador": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "cristaleria": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "canceles": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "techos": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "plafones": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "repisas": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "cuadros": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "espejos": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "liquidosToxicos": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "liquidosInflamables": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "liquidosCorrosivos": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "otros": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" }
+  },
+  "deslizarse": {
+    "escritorios": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "mesas": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "sillas": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "refrigeradores": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "ruedas": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" }
+  },
+  "volcar": {
+    "computo": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "libreros": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "roperos": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "lockers": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "archiveros": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "estantes": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "vitrinas": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "tanquesGas": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },
+    "subdivisiones": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" }
+  }
+}`;
+            const itemSchema = {
+                type: Type.OBJECT,
+                properties: {
+                    siNo: { type: Type.BOOLEAN },
+                    cantidad: { type: Type.INTEGER },
+                    estado: { type: Type.STRING }
+                },
+                required: ["siNo", "cantidad", "estado"]
+            };
+            responseSchema = {
+                type: Type.OBJECT,
+                properties: {
+                    caer: {
+                        type: Type.OBJECT,
+                        properties: {
+                            lamparas: itemSchema,
+                            ventiladores: itemSchema,
+                            pantallas: itemSchema,
+                            evaporador: itemSchema,
+                            cristaleria: itemSchema,
+                            canceles: itemSchema,
+                            techos: itemSchema,
+                            plafones: itemSchema,
+                            repisas: itemSchema,
+                            cuadros: itemSchema,
+                            espejos: itemSchema,
+                            liquidosToxicos: itemSchema,
+                            liquidosInflamables: itemSchema,
+                            liquidosCorrosivos: itemSchema,
+                            otros: itemSchema
+                        },
+                        required: ["lamparas", "ventiladores", "pantallas", "evaporador", "cristaleria", "canceles", "techos", "plafones", "repisas", "cuadros", "espejos", "liquidosToxicos", "liquidosInflamables", "liquidosCorrosivos", "otros"]
+                    },
+                    deslizarse: {
+                        type: Type.OBJECT,
+                        properties: {
+                            escritorios: itemSchema,
+                            mesas: itemSchema,
+                            sillas: itemSchema,
+                            refrigeradores: itemSchema,
+                            ruedas: itemSchema
+                        },
+                        required: ["escritorios", "mesas", "sillas", "refrigeradores", "ruedas"]
+                    },
+                    volcar: {
+                        type: Type.OBJECT,
+                        properties: {
+                            computo: itemSchema,
+                            libreros: itemSchema,
+                            roperos: itemSchema,
+                            lockers: itemSchema,
+                            archiveros: itemSchema,
+                            estantes: itemSchema,
+                            vitrinas: itemSchema,
+                            tanquesGas: itemSchema,
+                            subdivisiones: itemSchema
+                        },
+                        required: ["computo", "libreros", "roperos", "lockers", "archiveros", "estantes", "vitrinas", "tanquesGas", "subdivisiones"]
+                    }
+                },
+                required: ["caer", "deslizarse", "volcar"]
+            };
+        } else if (section === 'otros_internos') {
+            promptText += `Estimate other internal risks (inflammable items, obstacles, etc.) and finishes. Generate a JSON object matching this structure:
+{
+  "acabados": {
+    "lambrinesIncombustibles": boolean,
+    "lambrinesCombustibles": boolean,
+    "pisosDesniveles": boolean,
+    "pisosFalsos": boolean,
+    "losetasAzulejos": boolean,
+    "cantidadM2": number,
+    "estado": "BUENO | REGULAR | MALO",
+    "recomendaciones": "string"
+  },
+  "otrosRiesgos": {
+    "inflamar": { "combustibles": boolean, "solventes": boolean, "papelCarton": boolean, "recomendaciones": "string" },
+    "propiciar": { "cigarros": boolean, "colillas": boolean, "velas": boolean, "instalacionGas": boolean, "cafeteras": boolean, "contactos": boolean, "apagadores": boolean, "cablesMalEstado": boolean, "microondas": boolean, "recomendaciones": "string" },
+    "obstaculizar": { "tapetes": boolean, "macetas": boolean, "archiveros": boolean, "pizarrones": boolean, "muebles": boolean, "equiposLimpieza": boolean, "herramientas": boolean, "puertasCerradas": boolean, "lavadoras": boolean, "bombeo": boolean, "recomendaciones": "string" }
+  }
+}`;
+            responseSchema = {
+                type: Type.OBJECT,
+                properties: {
+                    acabados: {
+                        type: Type.OBJECT,
+                        properties: {
+                            lambrinesIncombustibles: { type: Type.BOOLEAN },
+                            lambrinesCombustibles: { type: Type.BOOLEAN },
+                            pisosDesniveles: { type: Type.BOOLEAN },
+                            pisosFalsos: { type: Type.BOOLEAN },
+                            losetasAzulejos: { type: Type.BOOLEAN },
+                            cantidadM2: { type: Type.INTEGER },
+                            estado: { type: Type.STRING },
+                            recomendaciones: { type: Type.STRING }
+                        },
+                        required: ["lambrinesIncombustibles", "lambrinesCombustibles", "pisosDesniveles", "pisosFalsos", "losetasAzulejos", "cantidadM2", "estado", "recomendaciones"]
+                    },
+                    otrosRiesgos: {
+                        type: Type.OBJECT,
+                        properties: {
+                            inflamar: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    combustibles: { type: Type.BOOLEAN },
+                                    solventes: { type: Type.BOOLEAN },
+                                    papelCarton: { type: Type.BOOLEAN },
+                                    recomendaciones: { type: Type.STRING }
+                                },
+                                required: ["combustibles", "solventes", "papelCarton", "recomendaciones"]
+                            },
+                            propiciar: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    cigarros: { type: Type.BOOLEAN },
+                                    colillas: { type: Type.BOOLEAN },
+                                    velas: { type: Type.BOOLEAN },
+                                    instalacionGas: { type: Type.BOOLEAN },
+                                    cafeteras: { type: Type.BOOLEAN },
+                                    contactos: { type: Type.BOOLEAN },
+                                    apagadores: { type: Type.BOOLEAN },
+                                    cablesMalEstado: { type: Type.BOOLEAN },
+                                    microondas: { type: Type.BOOLEAN },
+                                    recomendaciones: { type: Type.STRING }
+                                },
+                                required: ["cigarros", "colillas", "velas", "instalacionGas", "cafeteras", "contactos", "apagadores", "cablesMalEstado", "microondas", "recomendaciones"]
+                            },
+                            obstaculizar: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    tapetes: { type: Type.BOOLEAN },
+                                    macetas: { type: Type.BOOLEAN },
+                                    archiveros: { type: Type.BOOLEAN },
+                                    pizarrones: { type: Type.BOOLEAN },
+                                    muebles: { type: Type.BOOLEAN },
+                                    equiposLimpieza: { type: Type.BOOLEAN },
+                                    herramientas: { type: Type.BOOLEAN },
+                                    puertasCerradas: { type: Type.BOOLEAN },
+                                    lavadoras: { type: Type.BOOLEAN },
+                                    bombeo: { type: Type.BOOLEAN },
+                                    recomendaciones: { type: Type.STRING }
+                                },
+                                required: ["tapetes", "macetas", "archiveros", "pizarrones", "muebles", "equiposLimpieza", "herramientas", "puertasCerradas", "lavadoras", "bombeo", "recomendaciones"]
+                            }
+                        },
+                        required: ["inflamar", "propiciar", "obstaculizar"]
+                    }
+                },
+                required: ["acabados", "otrosRiesgos"]
+            };
+        } else if (section === 'externos') {
+            promptText += `Estimate external risks (surroundings, socio-organizational, geological, hydro, sanitary). Generate a JSON object matching this structure:
+{
+  "riesgosExternos": {
+    "entorno": {
+      "tanquesElevados": { "siNo": boolean, "distancia": "string" },
+      "postesMalEstado": { "siNo": boolean, "distancia": "string" },
+      "torresAltaTension": { "siNo": boolean, "distancia": "string" },
+      "transformadores": { "siNo": boolean, "distancia": "string" },
+      "inmueblesDanados": { "siNo": boolean, "distancia": "string" },
+      "banquetas": { "siNo": boolean, "distancia": "string" },
+      "alcantarillas": { "siNo": boolean, "distancia": "string" },
+      "arboles": { "siNo": boolean, "distancia": "string" },
+      "callesTransitadas": { "siNo": boolean, "distancia": "string" },
+      "fabricasGas": { "siNo": boolean, "distancia": "string" },
+      "tanquesGasLp": { "siNo": boolean, "distancia": "string" },
+      "gasolineras": { "siNo": boolean, "distancia": "string" },
+      "espectaculares": { "siNo": boolean, "distancia": "string" },
+      "almacenesPeligrosos": { "siNo": boolean, "distancia": "string" },
+      "fabricas": { "siNo": boolean, "distancia": "string" },
+      "costas": { "siNo": boolean, "distancia": "string" },
+      "tallerSolventes": { "siNo": boolean, "distancia": "string" }
+    },
+    "socioOrganizativo": {
+      "accidentes": { "vehiculosParticulares": boolean, "vehiculosPeligrosos": boolean, "vehiculosPasajeros": boolean, "aereos": boolean, "otros": boolean },
+      "delictivo": { "robo": boolean, "roboViolencia": boolean, "invasion": boolean, "interrupcion": boolean, "sabotajeServicios": boolean, "sabotajePrivados": boolean, "otros": boolean },
+      "disturbios": { "marchas": boolean, "plantones": boolean, "vandalismo": boolean, "otros": boolean },
+      "lugaresPublicos": { "bares": boolean, "cantinas": boolean, "antros": boolean, "iglesias": boolean, "restaurantesBares": boolean, "salones": boolean, "construcciones": boolean, "hospitales": boolean, "centrosNocturnos": boolean }
+    },
+    "geologico": { "fallas": boolean, "sismos": boolean, "deslizamiento": boolean, "hundimiento": boolean },
+    "quimico": { "incendios": boolean, "explosiones": boolean, "fugas": boolean, "radiaciones": boolean },
+    "hidrometeorologico": {
+      "inundacion": { "rio": boolean, "lago": boolean, "lluvia": boolean, "mar": boolean },
+      "otros": { "vientosFuertes": boolean, "huracan": boolean, "mareaTormenta": boolean, "tormentaElectrica": boolean, "lluviaTorrencial": boolean, "tromba": boolean, "tornado": boolean, "granizo": boolean, "sequia": boolean }
+    },
+    "sanitario": {
+      "epidemia": { "siNo": boolean, "vulnerableA": "string" },
+      "plaga": { "siNo": boolean, "vulnerableA": "string" },
+      "envenenamiento": { "siNo": boolean, "vulnerableA": "string" }
+    }
+  }
+}`;
+            const extItemSchema = {
+                type: Type.OBJECT,
+                properties: {
+                    siNo: { type: Type.BOOLEAN },
+                    distancia: { type: Type.STRING }
+                },
+                required: ["siNo", "distancia"]
+            };
+            responseSchema = {
+                type: Type.OBJECT,
+                properties: {
+                    riesgosExternos: {
+                        type: Type.OBJECT,
+                        properties: {
+                            entorno: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    tanquesElevados: extItemSchema,
+                                    postesMalEstado: extItemSchema,
+                                    torresAltaTension: extItemSchema,
+                                    transformadores: extItemSchema,
+                                    inmueblesDanados: extItemSchema,
+                                    banquetas: extItemSchema,
+                                    alcantarillas: extItemSchema,
+                                    arboles: extItemSchema,
+                                    callesTransitadas: extItemSchema,
+                                    fabricasGas: extItemSchema,
+                                    tanquesGasLp: extItemSchema,
+                                    gasolineras: extItemSchema,
+                                    espectaculares: extItemSchema,
+                                    almacenesPeligrosos: extItemSchema,
+                                    fabricas: extItemSchema,
+                                    costas: extItemSchema,
+                                    tallerSolventes: extItemSchema
+                                },
+                                required: ["tanquesElevados", "postesMalEstado", "torresAltaTension", "transformadores", "inmueblesDanados", "banquetas", "alcantarillas", "arboles", "callesTransitadas", "fabricasGas", "tanquesGasLp", "gasolineras", "espectaculares", "almacenesPeligrosos", "fabricas", "costas", "tallerSolventes"]
+                            },
+                            socioOrganizativo: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    accidentes: {
+                                        type: Type.OBJECT,
+                                        properties: {
+                                            vehiculosParticulares: { type: Type.BOOLEAN },
+                                            vehiculosPeligrosos: { type: Type.BOOLEAN },
+                                            vehiculosPasajeros: { type: Type.BOOLEAN },
+                                            aereos: { type: Type.BOOLEAN },
+                                            otros: { type: Type.BOOLEAN }
+                                        },
+                                        required: ["vehiculosParticulares", "vehiculosPeligrosos", "vehiculosPasajeros", "aereos", "otros"]
+                                    },
+                                    delictivo: {
+                                        type: Type.OBJECT,
+                                        properties: {
+                                            robo: { type: Type.BOOLEAN },
+                                            roboViolencia: { type: Type.BOOLEAN },
+                                            invasion: { type: Type.BOOLEAN },
+                                            interrupcion: { type: Type.BOOLEAN },
+                                            sabotajeServicios: { type: Type.BOOLEAN },
+                                            sabotajePrivados: { type: Type.BOOLEAN },
+                                            otros: { type: Type.BOOLEAN }
+                                        },
+                                        required: ["robo", "roboViolencia", "invasion", "interrupcion", "sabotajeServicios", "sabotajePrivados", "otros"]
+                                    },
+                                    disturbios: {
+                                        type: Type.OBJECT,
+                                        properties: {
+                                            marchas: { type: Type.BOOLEAN },
+                                            plantones: { type: Type.BOOLEAN },
+                                            vandalismo: { type: Type.BOOLEAN },
+                                            otros: { type: Type.BOOLEAN }
+                                        },
+                                        required: ["marchas", "plantones", "vandalismo", "otros"]
+                                    },
+                                    lugaresPublicos: {
+                                        type: Type.OBJECT,
+                                        properties: {
+                                            bares: { type: Type.BOOLEAN },
+                                            cantinas: { type: Type.BOOLEAN },
+                                            antros: { type: Type.BOOLEAN },
+                                            iglesias: { type: Type.BOOLEAN },
+                                            restaurantesBares: { type: Type.BOOLEAN },
+                                            salones: { type: Type.BOOLEAN },
+                                            construcciones: { type: Type.BOOLEAN },
+                                            hospitales: { type: Type.BOOLEAN },
+                                            centrosNocturnos: { type: Type.BOOLEAN }
+                                        },
+                                        required: ["bares", "cantinas", "antros", "iglesias", "restaurantesBares", "salones", "construcciones", "hospitales", "centrosNocturnos"]
+                                    }
+                                },
+                                required: ["accidentes", "delictivo", "disturbios", "lugaresPublicos"]
+                            },
+                            geologico: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    fallas: { type: Type.BOOLEAN },
+                                    sismos: { type: Type.BOOLEAN },
+                                    deslizamiento: { type: Type.BOOLEAN },
+                                    hundimiento: { type: Type.BOOLEAN }
+                                },
+                                required: ["fallas", "sismos", "deslizamiento", "hundimiento"]
+                            },
+                            quimico: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    incendios: { type: Type.BOOLEAN },
+                                    explosiones: { type: Type.BOOLEAN },
+                                    fugas: { type: Type.BOOLEAN },
+                                    radiaciones: { type: Type.BOOLEAN }
+                                },
+                                required: ["incendios", "explosiones", "fugas", "radiaciones"]
+                            },
+                            hidrometeorologico: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    inundacion: {
+                                        type: Type.OBJECT,
+                                        properties: {
+                                            rio: { type: Type.BOOLEAN },
+                                            lago: { type: Type.BOOLEAN },
+                                            lluvia: { type: Type.BOOLEAN },
+                                            mar: { type: Type.BOOLEAN }
+                                        },
+                                        required: ["rio", "lago", "lluvia", "mar"]
+                                    },
+                                    otros: {
+                                        type: Type.OBJECT,
+                                        properties: {
+                                            vientosFuertes: { type: Type.BOOLEAN },
+                                            huracan: { type: Type.BOOLEAN },
+                                            mareaTormenta: { type: Type.BOOLEAN },
+                                            tormentaElectrica: { type: Type.BOOLEAN },
+                                            lluviaTorrencial: { type: Type.BOOLEAN },
+                                            tromba: { type: Type.BOOLEAN },
+                                            tornado: { type: Type.BOOLEAN },
+                                            granizo: { type: Type.BOOLEAN },
+                                            sequia: { type: Type.BOOLEAN }
+                                        },
+                                        required: ["vientosFuertes", "huracan", "mareaTormenta", "tormentaElectrica", "lluviaTorrencial", "tromba", "tornado", "granizo", "sequia"]
+                                    }
+                                },
+                                required: ["inundacion", "otros"]
+                            },
+                            sanitario: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    epidemia: {
+                                        type: Type.OBJECT,
+                                        properties: {
+                                            siNo: { type: Type.BOOLEAN },
+                                            vulnerableA: { type: Type.STRING }
+                                        },
+                                        required: ["siNo", "vulnerableA"]
+                                    },
+                                    plaga: {
+                                        type: Type.OBJECT,
+                                        properties: {
+                                            siNo: { type: Type.BOOLEAN },
+                                            vulnerableA: { type: Type.STRING }
+                                        },
+                                        required: ["siNo", "vulnerableA"]
+                                    },
+                                    envenenamiento: {
+                                        type: Type.OBJECT,
+                                        properties: {
+                                            siNo: { type: Type.BOOLEAN },
+                                            vulnerableA: { type: Type.STRING }
+                                        },
+                                        required: ["siNo", "vulnerableA"]
+                                    }
+                                },
+                                required: ["epidemia", "plaga", "envenenamiento"]
+                            }
+                        },
+                        required: ["entorno", "socioOrganizativo", "geologico", "quimico", "hidrometeorologico", "sanitario"]
+                    }
+                },
+                required: ["riesgosExternos"]
+            };
+        }
+
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: promptText,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: responseSchema
+            }
+        });
+
+        if (response.text) {
+            console.log(`[IA] ✅ Sección "${section}" generada exitosamente.`);
+            let textCleaned = response.text.trim();
+            if (textCleaned.startsWith('```')) {
+                textCleaned = textCleaned.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/, '').trim();
+            }
+            const resultData = JSON.parse(textCleaned);
+            return res.json(resultData);
+        } else {
+            throw new Error("Empty response from Gemini.");
+        }
+    } catch (error: any) {
+        console.error(`[IA ERROR] ❌ Error en generate-risk-section (${req.body.section}):`, error);
+        res.status(500).json({ error: error.message || "Failed to generate risk section data." });
+    }
+});
+
 export default router;
 
