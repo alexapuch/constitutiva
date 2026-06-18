@@ -42,6 +42,7 @@ export default function App() {
             <Route path="/admin" element={<AdminView />} />
             <Route path="/verificar/:id" element={<VerificarConstancia />} />
           </Routes>
+
         </Suspense>
       </BrowserRouter>
     </ThemeProvider>

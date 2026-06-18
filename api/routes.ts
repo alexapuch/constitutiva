@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { customAlphabet } from 'nanoid';
+import { GoogleGenAI, Type } from '@google/genai';
+
 
 const generateCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 6);
 
@@ -17,7 +19,16 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY || '');
 
 
 // Background cleanup function for deleted docs > 15 days
+let lastCleanupTime = 0;
+const CLEANUP_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
+
 const cleanupDeletedDocs = async () => {
+    const now = Date.now();
+    if (now - lastCleanupTime < CLEANUP_INTERVAL) {
+        return;
+    }
+    lastCleanupTime = now;
+
     try {
         const fifteenDaysAgo = new Date();
         fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
@@ -69,7 +80,7 @@ router.post('/documents', async (req, res) => {
         .select()
         .single();
     if (error) return res.status(500).json({ error: error.message });
-    res.json({ id: data.id, access_code: data.access_code });
+    res.json(data);
 });
 
 // GET document by access code
@@ -696,4 +707,169 @@ router.get('/verificar/:folio', async (req, res) => {
 </html>`);
 });
 
+router.get('/maps-key', (req, res) => {
+    res.json({ key: process.env.GOOGLE_MAPS_PLATFORM_KEY || "" });
+});
+
+router.post('/analyze-risks', async (req, res) => {
+    try {
+        const { places } = req.body;
+        
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            return res.status(500).json({ error: "No Gemini API Key found in environment variables." });
+        }
+
+        if (!places || !Array.isArray(places) || places.length === 0) {
+            return res.status(400).json({ error: "No places provided." });
+        }
+
+        const ai = new GoogleGenAI({
+            apiKey,
+            httpOptions: {
+                headers: {
+                    "User-Agent": "aistudio-build",
+                },
+            },
+        });
+
+        const placesData = places.map((p: any) => `- ${p.name} (Tipo: ${p.types?.join(', ')})`).join('\n');
+
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: `I have the following real establishments located near the user's coordinates:
+${placesData}
+
+For each establishment, please provide:
+1. A risk level ("Alto", "Medio", or "Bajo").
+2. A realistic civil protection risk description based on the nature of the establishment (e.g. for a restaurant, "Posible incendio por el uso de gas...", for a bank, "Riesgo de asaltos...", for a cinema, "Alta concentración de personas en horarios pico...").
+3. Make sure to return them in the exact same order and use the identical name provided.
+
+Return ONLY a JSON array.`,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            name: { type: Type.STRING, description: "Exact Name of the establishment as provided" },
+                            riskLevel: { type: Type.STRING, description: "Alto, Medio, or Bajo" },
+                            riskDescription: { type: Type.STRING, description: "Detailed civil protection risk description" },
+                        },
+                        required: ["name", "riskLevel", "riskDescription"],
+                    },
+                },
+            },
+        });
+
+        let results = [];
+        try {
+            if (response.text) {
+                results = JSON.parse(response.text.trim());
+            }
+        } catch (e) {
+            console.error("Failed to parse JSON", e);
+            return res.status(500).json({ error: "Invalid JSON response from AI." });
+        }
+
+        // Merge results with input places
+        const mergedResults = places.map((p: any) => {
+            const riskData = results.find((r: any) => r.name === p.name) || { riskLevel: 'Bajo', riskDescription: 'Sin riesgo aparente.' };
+            return {
+                ...p,
+                riskLevel: riskData.riskLevel,
+                riskDescription: riskData.riskDescription
+            };
+        });
+
+        res.json({ results: mergedResults });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Failed to fetch risk data." });
+    }
+});
+
+router.post('/generate-fire-risk-data', async (req, res) => {
+    try {
+        const { company_name, commercial_name, address, activity, m2, usuarios, visitantes } = req.body;
+        const apiKey = process.env.GEMINI_API_KEY;
+        
+        if (!apiKey) {
+            return res.status(500).json({ error: "No Gemini API Key found in environment variables." });
+        }
+
+        const ai = new GoogleGenAI({
+            apiKey,
+            httpOptions: {
+                headers: {
+                    "User-Agent": "aistudio-build",
+                },
+            },
+        });
+
+        const promptText = `Analyze this business to estimate inventory data for fire risk analysis (civil protection):
+Business Name (Razón Social): ${company_name || "N/A"}
+Commercial Name: ${commercial_name || "N/A"}
+Address: ${address || ""}
+Business Activity / Giro: ${activity || "N/A"}
+Square Meters (m²): ${m2 || 50}
+Provided Fixed Population: ${usuarios || "N/A"}
+Provided Floating Population: ${visitantes || "N/A"}
+
+Please perform the following:
+1. Return the clean, normalized address string as "direccion".
+2. Estimate the building age (e.g. "5", "10", "N.D.").
+3. Estimate the Fixed Population (poblacionFija) and Floating Population (poblacionFlotante) if they were not provided (use the provided ones if they are numbers > 0, otherwise estimate logically based on giro and m²).
+4. Estimate logical inventories (in Liters or Kilograms) based on the business type (activity/giro) and size (m²). For example:
+   - Gases Inflamables: A restaurant with cocina/food prep should have gas (e.g., 50 to 120 liters), an office or boutique should have 0.
+   - Liquidos Inflamables / Combustibles: Usually 0 or small quantities (e.g. 5-10L) unless it's a workshop/paint shop.
+   - Solidos Combustibles (furniture, paper, wood, inventory, clothes): Estimate based on m² (e.g. a small restaurant might have 800 to 1500 kg of tables, chairs, kitchen storage; an office might have 500 kg; a clothing boutique might have 1500 kg).
+   - Materiales Piroforicos: Almost always 0.
+
+Return ONLY a JSON object matching the requested schema.`;
+
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: promptText,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        direccion: { type: Type.STRING, description: "Clean, normalized full address" },
+                        antiguedad: { type: Type.STRING, description: "Estimated age of the building in years (e.g., '5', '10', 'N.D.')" },
+                        poblacionFija: { type: Type.INTEGER, description: "Estimated fixed population (employees/staff)" },
+                        poblacionFlotante: { type: Type.INTEGER, description: "Estimated floating population (customers/visitors)" },
+                        gasesInflamables: { type: Type.INTEGER, description: "Estimated LP gas or flammable gas inventory in liters" },
+                        liquidosInflamables: { type: Type.INTEGER, description: "Estimated flammable liquids in liters" },
+                        liquidosCombustibles: { type: Type.INTEGER, description: "Estimated combustible liquids in liters" },
+                        solidosCombustibles: { type: Type.INTEGER, description: "Estimated solid combustibles in kg" },
+                        materialesPiroforicos: { type: Type.INTEGER, description: "Estimated pyrophoric or explosive materials in kg" }
+                    },
+                    required: [
+                        "direccion", "antiguedad", "poblacionFija", "poblacionFlotante", "gasesInflamables",
+                        "liquidosInflamables", "liquidosCombustibles", "solidosCombustibles", "materialesPiroforicos"
+                    ]
+                }
+            }
+        });
+
+        if (response.text) {
+            let textCleaned = response.text.trim();
+            if (textCleaned.startsWith('```')) {
+                textCleaned = textCleaned.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/, '').trim();
+            }
+            const resultData = JSON.parse(textCleaned);
+            return res.json(resultData);
+        } else {
+            throw new Error("Empty response from Gemini.");
+        }
+    } catch (error: any) {
+        console.error(error);
+        res.status(500).json({ error: error.message || "Failed to generate risk data." });
+    }
+});
+
 export default router;
+

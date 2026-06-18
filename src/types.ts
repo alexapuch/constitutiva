@@ -24,3 +24,12 @@ export interface Employee {
   brigade: string;
   signature: string;
 }
+
+export interface RiskData {
+  name: string;
+  distance: string;
+  photoUri?: string;
+  riskLevel: 'Alto' | 'Medio' | 'Bajo';
+  riskDescription: string;
+}
+

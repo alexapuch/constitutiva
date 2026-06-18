@@ -31,6 +31,8 @@ const ManualOrganigramaModal = lazy(() => import('../components/admin/ManualOrga
 const ManualCaratulasModal = lazy(() => import('../components/admin/ManualCaratulasModal'));
 const ActaBlankModal = lazy(() => import('../components/admin/ActaBlankModal'));
 const QuoteModal = lazy(() => import('../components/QuoteModal'));
+const GeoRiesgosModal = lazy(() => import('../components/admin/GeoRiesgosModal'));
+const ManualIncendioModal = lazy(() => import('../components/admin/ManualIncendioModal'));
 import { generateDC3PDF } from '../utils/generateDC3PDF';
 import { Menu } from 'lucide-react';
 
@@ -99,6 +101,8 @@ export default function AdminView() {
   const [showConstanciasDrawer, setShowConstanciasDrawer] = useState(false);
   const [showCartaResponsiva, setShowCartaResponsiva] = useState(false);
   const [showActaBlankModal, setShowActaBlankModal] = useState(false);
+  const [showGeoRiesgosModal, setShowGeoRiesgosModal] = useState(false);
+  const [showIncendioModal, setShowIncendioModal] = useState(false);
   const [turnosSimulacro, setTurnosSimulacro] = useState<'M' | 'MV' | 'MVN'>('MV');
   const [editingEmpId, setEditingEmpId] = useState<number | null>(null);
   const [editingEmpName, setEditingEmpName] = useState('');
@@ -126,13 +130,13 @@ export default function AdminView() {
   }, [selectedDocId]);
 
   useEffect(() => {
-    if (showQuickModal || showDC3Modal || showOrganigramaModal || showCaratulasModal || showQuoteDrawer || showSideMenu || showCartaResponsiva || previewUrl) {
+    if (showQuickModal || showDC3Modal || showOrganigramaModal || showCaratulasModal || showQuoteDrawer || showSideMenu || showCartaResponsiva || previewUrl || showGeoRiesgosModal || showIncendioModal) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
     return () => { document.body.style.overflow = ''; };
-  }, [showQuickModal, showDC3Modal, showOrganigramaModal, showCaratulasModal, showQuoteDrawer, showSideMenu, showCartaResponsiva, previewUrl]);
+  }, [showQuickModal, showDC3Modal, showOrganigramaModal, showCaratulasModal, showQuoteDrawer, showSideMenu, showCartaResponsiva, previewUrl, showGeoRiesgosModal, showIncendioModal]);
 
   useEffect(() => {
     fetchDocuments();
@@ -294,6 +298,15 @@ export default function AdminView() {
   };
 
   const handleCreateDocument = async () => {
+    Swal.fire({
+      title: 'Creando nueva empresa',
+      text: 'Por favor espera un momento...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
     const { data: result, error } = await (async () => {
       try {
         const res = await fetch('/api/documents', {
@@ -314,8 +327,17 @@ export default function AdminView() {
       } catch (err: any) { return { data: null, error: err.message }; }
     })();
 
-    if (!error && result) {
-      await fetchDocuments();
+    Swal.close();
+
+    if (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al crear',
+        text: error || 'Ocurrió un error al crear la empresa.',
+        confirmButtonColor: '#722F37'
+      });
+    } else if (result) {
+      setDocuments(prevDocs => [result, ...prevDocs]);
       setSelectedDocId(result.id);
     }
   };
@@ -504,6 +526,8 @@ export default function AdminView() {
         onOpenCartaResponsiva={() => { setShowCartaResponsiva(true); }}
         onOpenConstanciasHistory={() => setShowConstanciasDrawer(true)}
         onOpenActaBlank={() => setShowActaBlankModal(true)}
+        onOpenGeoRiesgos={() => setShowGeoRiesgosModal(true)}
+        onOpenIncendio={() => setShowIncendioModal(true)}
         onLogout={async () => {
           await supabase.auth.signOut();
           setIsAuthenticated(false);
@@ -1410,6 +1434,18 @@ export default function AdminView() {
         onClose={() => setShowActaBlankModal(false)}
         documents={documents}
         onPreview={(url, name) => { setPreviewUrl(url); setPreviewName(name); setPreviewType('Acta para Firmar'); }}
+      />
+
+      <GeoRiesgosModal
+        isOpen={showGeoRiesgosModal}
+        onClose={() => setShowGeoRiesgosModal(false)}
+      />
+
+      <ManualIncendioModal
+        isOpen={showIncendioModal}
+        onClose={() => setShowIncendioModal(false)}
+        documents={documents}
+        onPreview={(url, name) => { setPreviewUrl(url); setPreviewName(name); setPreviewType('Análisis de Incendio'); }}
       />
 
       <PdfPreviewModal
