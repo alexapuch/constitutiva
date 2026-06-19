@@ -6,8 +6,6 @@ import { useTheme } from '../../context/ThemeContext';
 interface SideMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  activeTab: 'documents' | 'dashboard';
-  setActiveTab: (tab: 'documents' | 'dashboard') => void;
   quotesCount: number;
   onOpenQuoteHistory: () => void;
   onOpenNewQuote: () => void;
@@ -26,7 +24,7 @@ interface SideMenuProps {
 }
 
 export default function SideMenu({
-  isOpen, onClose, activeTab, setActiveTab, quotesCount,
+  isOpen, onClose, quotesCount,
   onOpenQuoteHistory, onOpenNewQuote, onOpenManualConstancia, onOpenManualDC3, onOpenOrganigrama,
   onOpenCaratulas, onOpenCartaResponsiva, onOpenConstanciasHistory, onOpenActaBlank, onOpenGeoRiesgos, onOpenIncendio, onOpenRiesgos, onLogout, onNavigateHome
 }: SideMenuProps) {
@@ -72,13 +70,7 @@ export default function SideMenu({
                 Inicio
               </button>
 
-              <button
-                onClick={() => { onClose(); setActiveTab(activeTab === 'dashboard' ? 'documents' : 'dashboard'); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium"
-              >
-                <BarChart3 className="w-5 h-5" />
-                {activeTab === 'dashboard' ? 'Ver Documentos' : 'Dashboard'}
-              </button>
+
 
               <div className="my-3 border-t border-gray-100 dark:border-gray-700" />
               <p className="px-5 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Acciones</p>

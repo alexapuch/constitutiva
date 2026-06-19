@@ -20,7 +20,7 @@ import { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../utils/constanciaCons
 
 // Nuevos componentes extraidos (Cargados perezosamente / Lazy loading)
 const SideMenu = lazy(() => import('../components/admin/SideMenu'));
-const DashboardView = lazy(() => import('../components/admin/DashboardView'));
+
 const QuoteHistoryDrawer = lazy(() => import('../components/admin/QuoteHistoryDrawer'));
 const ConstanciasHistoryDrawer = lazy(() => import('../components/admin/ConstanciasHistoryDrawer'));
 const PdfPreviewModal = lazy(() => import('../components/admin/PdfPreviewModal'));
@@ -78,7 +78,7 @@ export default function AdminView() {
     return () => authListener.subscription.unsubscribe();
   }, []);
 
-  const [activeTab, setActiveTab] = useState<'documents' | 'dashboard'>('documents');
+  const [activeTab, setActiveTab] = useState<'documents'>('documents');
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -516,8 +516,6 @@ export default function AdminView() {
       <SideMenu
         isOpen={showSideMenu}
         onClose={() => setShowSideMenu(false)}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
         quotesCount={quotes.length}
         onOpenQuoteHistory={() => { setShowQuoteDrawer(true); }}
         onOpenNewQuote={() => { setShowQuoteModal(true); }}
@@ -563,9 +561,7 @@ export default function AdminView() {
           <span className="text-sm font-medium text-gray-400">{APP_VERSION}</span>
         </div>
 
-        {activeTab === 'dashboard' && (
-          <DashboardView documents={documents} quotes={quotes} />
-        )}
+
 
         {activeTab === 'documents' && (<>
         <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden transition-colors">
