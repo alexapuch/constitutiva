@@ -168,9 +168,10 @@ interface MapContentProps {
   handleMapClick: (lat: number, lng: number) => void;
   onMapReady: (map: google.maps.Map) => void;
   onZoomChanged: (zoom: number) => void;
+  handleRemoveMarker: (id: string) => void;
 }
 
-function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDragEnd, handleMapClick, onMapReady, onZoomChanged }: MapContentProps) {
+function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDragEnd, handleMapClick, onMapReady, onZoomChanged, handleRemoveMarker }: MapContentProps) {
   const map = useMap();
 
   useEffect(() => {
@@ -268,6 +269,22 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
             position={{ lat: m.lat, lng: m.lng }}
             draggable={true}
             onDragend={(e) => handleMarkerDragEnd(m.id, e)}
+            onClick={() => {
+              Swal.fire({
+                title: '¿Eliminar marcador?',
+                text: `¿Estás seguro de que deseas eliminar el marcador "${cat?.name || 'Punto'}"?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#4b5563',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  handleRemoveMarker(m.id);
+                }
+              });
+            }}
             icon={{
               url: cat ? createMarkerIcon(cat.color, cat.iconSvg) : '',
               size: new google.maps.Size(36, 36),
@@ -674,6 +691,7 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
                   handleMapClick={handleMapClick}
                   onMapReady={setMapInstance}
                   onZoomChanged={setZoomLevel}
+                  handleRemoveMarker={handleRemoveMarker}
                 />
               </Map>
 
