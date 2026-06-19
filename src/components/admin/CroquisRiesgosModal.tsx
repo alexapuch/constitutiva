@@ -72,23 +72,24 @@ const createMarkerIcon = (color: string, iconSvg: string) => {
   return `data:image/svg+xml,${encodedSvg}`;
 };
 
-// Native Circle with dimension text label overlay
+// Native Circle with dimension text label overlay and radius line (acotación)
 function MapCircle({ center, radius }: { center: google.maps.LatLngLiteral; radius: number }) {
   const map = useMap();
   const circleRef = useRef<google.maps.Circle | null>(null);
   const labelRef = useRef<google.maps.Marker | null>(null);
+  const radiusLineRef = useRef<google.maps.Polyline | null>(null);
 
   useEffect(() => {
     if (!map || typeof google === 'undefined') return;
 
-    // 1. Draw native Circle (completely centered and accurate)
+    // 1. Draw native Circle (thicker outline and centered)
     const circle = new google.maps.Circle({
       map,
       center,
       radius,
       strokeColor: '#dc2626', // Red
-      strokeOpacity: 0.8,
-      strokeWeight: 3,
+      strokeOpacity: 0.9,
+      strokeWeight: 6, // Thicker line
       fillColor: '#dc2626',
       fillOpacity: 0.05,
       clickable: false
@@ -104,7 +105,6 @@ function MapCircle({ center, radius }: { center: google.maps.LatLngLiteral; radi
     const labelPos = {
       lat: center.lat + (rLat * Math.sin(angle)),
       lng: center.lng + (rLng => {
-        // approximate longitude offset at this latitude
         return (rLat / Math.cos(center.lat * d2r)) * Math.cos(angle);
       })()
     };
@@ -120,14 +120,37 @@ function MapCircle({ center, radius }: { center: google.maps.LatLngLiteral; radi
         text: `${radius} m`,
         color: '#dc2626',
         fontWeight: 'bold',
-        fontSize: '15px'
+        fontSize: '16px'
       }
     });
     labelRef.current = labelMarker;
 
+    // 3. Draw a dashed radius Polyline (la acotación) from center to label
+    const lineSymbol = {
+      path: 'M 0,-1 0,1',
+      strokeOpacity: 1,
+      scale: 3,
+      strokeColor: '#dc2626'
+    };
+
+    const radiusLine = new google.maps.Polyline({
+      map,
+      path: [center, labelPos],
+      strokeColor: '#dc2626',
+      strokeOpacity: 0,
+      strokeWeight: 2,
+      icons: [{
+        icon: lineSymbol,
+        offset: '0',
+        repeat: '12px'
+      }]
+    });
+    radiusLineRef.current = radiusLine;
+
     return () => {
       if (circleRef.current) circleRef.current.setMap(null);
       if (labelRef.current) labelRef.current.setMap(null);
+      if (radiusLineRef.current) radiusLineRef.current.setMap(null);
     };
   }, [map, center, radius]);
 
@@ -143,9 +166,10 @@ interface MapContentProps {
   markers: SavedMarker[];
   handleMarkerDragEnd: (id: string, e: google.maps.MapMouseEvent) => void;
   handleMapClick: (lat: number, lng: number) => void;
+  setZoom: (z: number) => void;
 }
 
-function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDragEnd, handleMapClick }: MapContentProps) {
+function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDragEnd, handleMapClick, setZoom }: MapContentProps) {
   const map = useMap();
 
   useEffect(() => {
@@ -166,6 +190,21 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
       google.maps.event.removeListener(dragEndListener);
     };
   }, [map, setCenter, setLat, setLng]);
+
+  useEffect(() => {
+    if (!map || typeof google === 'undefined') return;
+
+    const zoomListener = map.addListener('zoom_changed', () => {
+      const currentZoom = map.getZoom();
+      if (currentZoom !== undefined) {
+        setZoom(currentZoom);
+      }
+    });
+
+    return () => {
+      google.maps.event.removeListener(zoomListener);
+    };
+  }, [map, setZoom]);
 
   useEffect(() => {
     if (!map || typeof google === 'undefined') return;
@@ -225,6 +264,7 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
   const [lat, setLat] = useState('20.650283395825614');
   const [lng, setLng] = useState('-87.06150292348663');
   const [center, setCenter] = useState<google.maps.LatLngLiteral>({ lat: 20.650283395825614, lng: -87.06150292348663 });
+  const [zoom, setZoom] = useState(18);
   
   const [activeCategory, setActiveCategory] = useState<string>('trafico');
   const [markers, setMarkers] = useState<SavedMarker[]>([]);
@@ -541,7 +581,7 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
             <div className="flex-1 relative h-full bg-gray-900">
               <Map
                 center={center}
-                zoom={18}
+                zoom={zoom}
                 onClick={handleMapClick}
                 mapTypeId="hybrid"
                 gestureHandling="cooperative"
@@ -556,6 +596,7 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
                   markers={markers}
                   handleMarkerDragEnd={handleMarkerDragEnd}
                   handleMapClick={handleMapClick}
+                  setZoom={setZoom}
                 />
               </Map>
 
