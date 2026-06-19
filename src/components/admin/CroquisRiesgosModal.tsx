@@ -268,7 +268,7 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
             key={m.id}
             position={{ lat: m.lat, lng: m.lng }}
             draggable={true}
-            onDragend={(e) => handleMarkerDragEnd(m.id, e)}
+            onDragEnd={(e) => handleMarkerDragEnd(m.id, e)}
             onClick={() => {
               Swal.fire({
                 title: '¿Eliminar marcador?',
