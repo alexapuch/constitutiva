@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, Eye, Download, ShieldAlert, Sparkles, Loader2 } from 'lucide-react';
+import { X, Trash2, Eye, Download, ShieldAlert, Sparkles, Loader2, ClipboardCheck } from 'lucide-react';
 import { DocumentInfo } from '../../types';
 import { generateIncendioPDF } from '../../utils/generateIncendioPDF';
 import Swal from 'sweetalert2';
@@ -55,34 +55,155 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
   const [loadingAi, setLoadingAi] = useState(false);
   const [businessCategory, setBusinessCategory] = useState<string>('OTRO');
   const [subCategory, setSubCategory] = useState<string>('OTRO_COMERCIO');
+  const [numNiveles, setNumNiveles] = useState('1');
 
+  const handleNivelesChange = (val: string) => {
+    setNumNiveles(val);
+    const n = parseInt(val) || 1;
+    setNivel1Si(n >= 1);
+    setNivel2Si(n >= 2);
+    setNivel3Si(n >= 3);
+  };
+
+  const handlePreFillLocal = () => {
+    // Detect category from giro
+    const detected = detectCategoryFromGiro(giro);
+    setBusinessCategory(detected.category);
+    const sub = detected.subCategory || 'OTRO_COMERCIO';
+    setSubCategory(sub);
+    
+    // Set level states based on numNiveles
+    const n = parseInt(numNiveles) || 1;
+    setNivel1Si(n >= 1);
+    setNivel2Si(n >= 2);
+    setNivel3Si(n >= 3);
+
+    // Apply values to level inputs
+    setNivel1M2(m2Construccion);
+    setNivel2M2(n >= 2 ? m2Construccion : '');
+    setNivel3M2(n >= 3 ? m2Construccion : '');
+
+    applyLocalEstimates(detected.category, sub, m2Construccion);
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Pre-llenado Local Exitoso',
+      text: `Se estimaron los inventarios de riesgo para el giro "${giro || 'comercio'}" y ${numNiveles} nivel(es).`,
+      timer: 2000,
+      showConfirmButton: false
+    });
+  };
+
+  // Local rule-based estimation logic (does not use AI)
   // Local rule-based estimation logic (does not use AI)
   const detectCategoryFromGiro = (giroText: string): { category: string; subCategory?: string } => {
     const text = (giroText || '').toLowerCase();
-    if (text.includes('restaurante') || text.includes('cocina') || text.includes('alimento') || text.includes('comida') || text.includes('cafetera') || text.includes('bar')) {
+    
+    // Alimentos / Restaurante
+    if (
+      text.includes('restaurante') || text.includes('cocina') || text.includes('alimento') || 
+      text.includes('comida') || text.includes('cafetera') || text.includes('bar') || 
+      text.includes('panaderia') || text.includes('pasteleria') || text.includes('bistro') || 
+      text.includes('antro') || text.includes('cantina') || text.includes('pizzeria') || 
+      text.includes('taqueria') || text.includes('tacos') || text.includes('loncheria') || 
+      text.includes('fondita') || text.includes('puesto de comida') || text.includes('cenaduria') || 
+      text.includes('snack') || text.includes('comida rapida') || text.includes('hamburguesa') || 
+      text.includes('marisco') || text.includes('grill') || text.includes('sushi') || 
+      text.includes('heladeria') || text.includes('paleteria') || text.includes('creperia') ||
+      text.includes('tortilleria') || text.includes('tortilla') || text.includes('nixtamal') || 
+      text.includes('despacho de masa')
+    ) {
       return { category: 'RESTAURANTE' };
     }
-    if (text.includes('oficina') || text.includes('consultorio') || text.includes('despacho') || text.includes('servicio') || text.includes('administra')) {
+    
+    // Oficina / Consultorio / Despacho / Bufete
+    if (
+      text.includes('oficina') || text.includes('consultorio') || text.includes('despacho') || 
+      text.includes('servicio') || text.includes('administra') || text.includes('clinica') || 
+      text.includes('dental') || text.includes('abogado') || text.includes('contable') || 
+      text.includes('corporativo') || text.includes('bufete') || text.includes('medico') || 
+      text.includes('dentista') || text.includes('notaria') || text.includes('veterinaria') || 
+      text.includes('agencia')
+    ) {
       return { category: 'OFICINA' };
     }
-    if (text.includes('taller') || text.includes('mecanic') || text.includes('industrial') || text.includes('bodega') || text.includes('almacen')) {
+    
+    // Taller / Bodega
+    if (
+      text.includes('taller') || text.includes('mecanic') || text.includes('industrial') || 
+      text.includes('bodega') || text.includes('almacen') || text.includes('almacenamiento') || 
+      text.includes('distribucion') || text.includes('deposito') || text.includes('hojalateria') || 
+      text.includes('suspensiones') || text.includes('frenos') || text.includes('vulcanizadora') || 
+      text.includes('llanteria') || text.includes('servicio automotriz') || text.includes('enderezado') || 
+      text.includes('alineacion')
+    ) {
       return { category: 'TALLER' };
     }
+    
+    // Hotel / Hospedaje
     if (text.includes('hotel') || text.includes('motel') || text.includes('hospedaje')) {
       return { category: 'COMERCIO', subCategory: 'HOTEL' };
     }
+    
+    // Zapatería
     if (text.includes('zapato') || text.includes('calzado') || text.includes('zapateria')) {
       return { category: 'COMERCIO', subCategory: 'ZAPATERIA' };
     }
+    
+    // Lavandería / Tintorería (Always grouped together)
+    if (
+      text.includes('lavanderia') || text.includes('tintoreria') || text.includes('lavado y planchado') || 
+      text.includes('planchaduria') || text.includes('dry cleaning') || text.includes('lavamatica') || 
+      text.includes('tintoria')
+    ) {
+      return { category: 'COMERCIO', subCategory: 'LAVANDERIA' };
+    }
+    
+    // Tienda de Pinturas
+    if (text.includes('pintura') || text.includes('barniz') || text.includes('barnices') || text.includes('distribuidora de pinturas')) {
+      return { category: 'COMERCIO', subCategory: 'TIENDA_PINTURAS' };
+    }
+    
+    // Farmacia
+    if (text.includes('farmacia') || text.includes('drogueria') || text.includes('botica')) {
+      return { category: 'COMERCIO', subCategory: 'FARMACIA' };
+    }
+    
+    // Escuela / Colegio / Educación
+    if (
+      text.includes('escuela') || text.includes('educacion') || text.includes('guarderia') || 
+      text.includes('colegio') || text.includes('academia') || text.includes('universidad') || 
+      text.includes('kinder') || text.includes('preescolar') || text.includes('primaria') || 
+      text.includes('secundaria') || text.includes('preparatoria') || text.includes('instituto')
+    ) {
+      return { category: 'COMERCIO', subCategory: 'ESCUELA' };
+    }
+    
+    // Gimnasio / Spa / Estética
+    if (
+      text.includes('gimnasio') || text.includes('gym') || text.includes('crossfit') || 
+      text.includes('spa') || text.includes('estetica') || text.includes('peluqueria') || 
+      text.includes('barberia') || text.includes('salon de belleza') || text.includes('yoga') || 
+      text.includes('pilates')
+    ) {
+      return { category: 'COMERCIO', subCategory: 'GIMNASIO' };
+    }
+    
+    // Abarrotes
     if (text.includes('abarrotes') || text.includes('super') || text.includes('tiendita') || text.includes('minisuper') || text.includes('miscelanea')) {
       return { category: 'COMERCIO', subCategory: 'ABARROTES' };
     }
-    if (text.includes('plaza') || text.includes('mall') || text.includes('centro comercial') || text.includes('departamental')) {
+    
+    // Plaza Comercial
+    if (text.includes('plaza') || text.includes('mall') || text.includes('centro comercial') || text.includes('plazas comerciales') || text.includes('galerias') || text.includes('departamental')) {
       return { category: 'COMERCIO', subCategory: 'PLAZA_COMERCIAL' };
     }
-    if (text.includes('boutique') || text.includes('ropa') || text.includes('tienda') || text.includes('comercio') || text.includes('venta')) {
+    
+    // Otro Comercio
+    if (text.includes('boutique') || text.includes('ropa') || text.includes('tienda') || text.includes('comercio') || text.includes('venta') || text.includes('papeleria') || text.includes('jugueteria') || text.includes('ferreteria') || text.includes('merceria') || text.includes('boneteria') || text.includes('joyeria') || text.includes('optica')) {
       return { category: 'COMERCIO', subCategory: 'OTRO_COMERCIO' };
     }
+    
     return { category: 'OTRO' };
   };
 
@@ -122,6 +243,41 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
           liqComb = m2 <= 50 ? 5 : m2 <= 120 ? 20 : 50;     // Aceites comestibles
           solidos = Math.round(m2 * 15);                   // Cajas, empaques
           flotante = Math.ceil(m2 / 8);                    // Concurrido
+          break;
+        case 'FARMACIA':
+          gases = 0;
+          liqInf = m2 <= 50 ? 10 : m2 <= 120 ? 30 : 70;
+          liqComb = 0;
+          solidos = Math.round(m2 * 8);
+          flotante = Math.ceil(m2 / 10);
+          break;
+        case 'LAVANDERIA':
+          gases = m2 <= 50 ? 200 : m2 <= 120 ? 400 : 800;
+          liqInf = m2 <= 50 ? 15 : m2 <= 120 ? 40 : 80;
+          liqComb = m2 <= 50 ? 30 : m2 <= 120 ? 60 : 150;
+          solidos = Math.round(m2 * 10);
+          flotante = Math.ceil(m2 / 12);
+          break;
+        case 'TIENDA_PINTURAS':
+          gases = 0;
+          liqInf = m2 <= 50 ? 200 : m2 <= 120 ? 500 : 1200;
+          liqComb = m2 <= 50 ? 100 : m2 <= 120 ? 300 : 650;
+          solidos = Math.round(m2 * 15);
+          flotante = Math.ceil(m2 / 15);
+          break;
+        case 'ESCUELA':
+          gases = 0;
+          liqInf = 0;
+          liqComb = 0;
+          solidos = Math.round(m2 * 14);
+          flotante = Math.ceil(m2 / 4);
+          break;
+        case 'GIMNASIO':
+          gases = 0;
+          liqInf = 0;
+          liqComb = 0;
+          solidos = Math.round(m2 * 7);
+          flotante = Math.ceil(m2 / 8);
           break;
         case 'PLAZA_COMERCIAL':
           gases = m2 <= 100 ? 45 : m2 <= 500 ? 200 : 600;  // Gas locales comida
@@ -195,6 +351,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
       setSotanoM2((doc.sotanos || 0) > 0 ? '50' : '');
       
       const sup = doc.superiores || 1;
+      setNumNiveles(String(sup));
       setNivel1Si(sup >= 1);
       setNivel2Si(sup >= 2);
       setNivel3Si(sup >= 3);
@@ -477,12 +634,30 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                 >
                   <option value="ZAPATERIA">ZAPATERÍA</option>
                   <option value="ABARROTES">TIENDA DE ABARROTES</option>
+                  <option value="FARMACIA">FARMACIA</option>
+                  <option value="LAVANDERIA">LAVANDERÍA Y TINTORERÍA</option>
+                  <option value="TIENDA_PINTURAS">TIENDA DE PINTURAS</option>
                   <option value="HOTEL">HOTEL</option>
+                  <option value="ESCUELA">ESCUELA / COLEGIO</option>
+                  <option value="GIMNASIO">GIMNASIO / ESTÉTICA</option>
                   <option value="PLAZA_COMERCIAL">PLAZA COMERCIAL</option>
                   <option value="OTRO_COMERCIO">OTRO COMERCIO</option>
                 </select>
               </div>
             )}
+            
+            <div className="w-full md:w-28">
+              <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">
+                Niveles / Pisos
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={numNiveles}
+                onChange={e => handleNivelesChange(e.target.value)}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-red-600 outline-none font-bold"
+              />
+            </div>
             
             <div className="w-full md:w-36">
               <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">
@@ -503,24 +678,34 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
               />
             </div>
 
-            <button
-              type="button"
-              disabled={loadingAi}
-              onClick={handleGetAiSuggestions}
-              className="w-full md:w-auto bg-blue-900 hover:bg-blue-800 text-white font-extrabold px-5 py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 h-[42px] disabled:opacity-50"
-            >
-              {loadingAi ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Estimando...</span>
-                </>
-              ) : (
-                <>
+            {loadingAi ? (
+              <button
+                type="button"
+                className="w-full md:w-auto bg-red-600 hover:bg-red-700 text-white font-extrabold px-6 py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 h-[42px] disabled:opacity-50"
+              >
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Estimando...</span>
+              </button>
+            ) : (
+              <div className="flex gap-2 w-full md:w-auto">
+                <button
+                  type="button"
+                  onClick={handlePreFillLocal}
+                  className="flex-1 md:flex-none bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold px-6 py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 h-[42px]"
+                >
+                  <ClipboardCheck className="w-4 h-4 text-white" />
+                  <span>Pre-llenar (Giro y M²)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGetAiSuggestions}
+                  className="flex-1 md:flex-none bg-blue-900 hover:bg-blue-800 text-white font-extrabold px-6 py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 h-[42px]"
+                >
                   <Sparkles className="w-4 h-4 text-yellow-300 fill-yellow-300" />
                   <span>Sugerir con IA</span>
-                </>
-              )}
-            </button>
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

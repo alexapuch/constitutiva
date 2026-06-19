@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, Eye, Download, ShieldAlert, Sparkles, Loader2 } from 'lucide-react';
+import { X, Trash2, Eye, Download, ShieldAlert, Sparkles, Loader2, ClipboardCheck } from 'lucide-react';
 import { DocumentInfo } from '../../types';
 import { generateRiesgosPDF, RiesgosPDFData } from '../../utils/generateRiesgosPDF';
 import Swal from 'sweetalert2';
@@ -45,6 +45,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
   const representativeName = companyName; // Always equal to Razón Social
   const [commercialName, setCommercialName] = useState('');
   const [giro, setGiro] = useState('');
+  const [estimationGiro, setEstimationGiro] = useState('comercio');
   const [fecha, setFecha] = useState('');
   const [direccion, setDireccion] = useState('');
   const [municipio, setMunicipio] = useState('PLAYA DEL CARMEN');
@@ -280,6 +281,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
       setCompanyName(doc.company_name || '');
       setCommercialName(doc.commercial_name || '');
       setGiro(doc.activity || '');
+      setEstimationGiro(classifyGiro(doc.activity || ''));
       if (doc.date) setFecha(doc.date);
       setPoblacionFija(doc.usuarios ? String(doc.usuarios) : '1');
       setPoblacionFlotante(doc.visitantes ? String(doc.visitantes) : '3');
@@ -384,6 +386,475 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     }
   };
 
+  const classifyGiro = (giroText: string) => {
+    const norm = (giroText || '').toLowerCase();
+    
+    // Alimentos / Restaurante
+    if (
+      norm.includes('restaurante') || norm.includes('fondita') || norm.includes('puesto de comida') || 
+      norm.includes('comida rapida') || norm.includes('hamburguesa') || norm.includes('marisco') || 
+      norm.includes('grill') || norm.includes('sushi') || norm.includes('bistro') || 
+      norm.includes('pizzeria') || norm.includes('taqueria') || norm.includes('tacos') || 
+      norm.includes('loncheria') || norm.includes('cenaduria') || norm.includes('snack') || 
+      norm.includes('cocina') || norm.includes('alimento') || norm.includes('comida')
+    ) {
+      return 'restaurante';
+    }
+
+    // Cafetería
+    if (norm.includes('cafeteria') || norm.includes('creperia') || norm.includes('heladeria') || norm.includes('paleteria')) {
+      return 'cafeteria';
+    }
+
+    // Panadería
+    if (norm.includes('panaderia') || norm.includes('pasteleria')) {
+      return 'panaderia';
+    }
+
+    // Bar / Antro
+    if (norm.includes('bar') || norm.includes('antro') || norm.includes('cantina')) {
+      return 'bar';
+    }
+    
+    // Tortillería
+    if (norm.includes('tortilleria') || norm.includes('tortilla') || norm.includes('nixtamal') || norm.includes('despacho de masa')) {
+      return 'tortilleria';
+    }
+    
+    // Lavandería y Tintorería (Always grouped together)
+    if (
+      norm.includes('lavanderia') || norm.includes('tintoreria') || norm.includes('lavado y planchado') || 
+      norm.includes('planchaduria') || norm.includes('dry cleaning') || norm.includes('lavamatica') || 
+      norm.includes('tintoria')
+    ) {
+      return 'lavanderia';
+    }
+    
+    // Tienda de Pinturas
+    if (norm.includes('pintura') || norm.includes('barniz') || norm.includes('barnices') || norm.includes('distribuidora de pinturas')) {
+      return 'tienda_pinturas';
+    }
+    
+    // Taller Mecánico
+    if (
+      norm.includes('taller') || norm.includes('mecanico') || norm.includes('hojalateria') || 
+      norm.includes('automotriz') || norm.includes('suspensiones') || norm.includes('frenos') || 
+      norm.includes('vulcanizadora') || norm.includes('llanteria') || norm.includes('servicio automotriz') || 
+      norm.includes('enderezado') || norm.includes('alineacion')
+    ) {
+      return 'taller_mecanico';
+    }
+    
+    // Bodega / Almacén
+    if (norm.includes('bodega') || norm.includes('almacen') || norm.includes('almacenamiento') || norm.includes('distribucion') || norm.includes('deposito')) {
+      return 'bodega';
+    }
+    
+    // Plaza Comercial
+    if (norm.includes('plaza') || norm.includes('centro comercial') || norm.includes('mall') || norm.includes('galerias')) {
+      return 'plaza_comercial';
+    }
+
+    // Despacho Jurídico / Contable
+    if (norm.includes('despacho') || norm.includes('bufete') || norm.includes('abogado') || norm.includes('contable')) {
+      return 'despacho';
+    }
+
+    // Consultorio Médico
+    if (norm.includes('consultorio medico') || norm.includes('clinica') || norm.includes('medico')) {
+      return 'consultorio_medico';
+    }
+
+    // Consultorio Dental
+    if (norm.includes('consultorio dental') || norm.includes('dentista') || norm.includes('dental')) {
+      return 'consultorio_dental';
+    }
+
+    // Veterinaria
+    if (norm.includes('veterinaria') || norm.includes('estetica canina')) {
+      return 'veterinaria';
+    }
+    
+    // Oficina
+    if (norm.includes('oficina') || norm.includes('corporativo') || norm.includes('administrativo')) {
+      return 'oficina';
+    }
+    
+    // Gimnasio
+    if (norm.includes('gimnasio') || norm.includes('gym') || norm.includes('crossfit')) {
+      return 'gimnasio';
+    }
+
+    // Spa
+    if (norm.includes('spa') || norm.includes('baños de vapor')) {
+      return 'spa';
+    }
+
+    // Estética
+    if (norm.includes('estetica') || norm.includes('peluqueria') || norm.includes('barberia') || norm.includes('salon de belleza')) {
+      return 'estetica';
+    }
+    
+    // Escuela / Educación
+    if (
+      norm.includes('escuela') || norm.includes('educacion') || norm.includes('guarderia') || 
+      norm.includes('colegio') || norm.includes('academia') || norm.includes('universidad') || 
+      norm.includes('kinder') || norm.includes('preescolar') || norm.includes('primaria') || 
+      norm.includes('secundaria') || norm.includes('preparatoria') || norm.includes('instituto')
+    ) {
+      return 'escuela';
+    }
+
+    // Farmacia
+    if (norm.includes('farmacia') || norm.includes('drogueria') || norm.includes('botica')) {
+      return 'farmacia';
+    }
+
+    // Zapatería
+    if (norm.includes('zapateria') || norm.includes('zapato') || norm.includes('calzado')) {
+      return 'zapateria';
+    }
+
+    // Minisuper / Abarrotes
+    if (norm.includes('minisuper') || norm.includes('abarrotes') || norm.includes('tiendita') || norm.includes('super')) {
+      return 'minisuper';
+    }
+
+    // Hotel
+    if (norm.includes('hotel') || norm.includes('motel') || norm.includes('hospedaje')) {
+      return 'hotel';
+    }
+    
+    // Comercio General
+    if (
+      norm.includes('tienda') || norm.includes('boutique') || norm.includes('comercio') || 
+      norm.includes('regalos') || norm.includes('ropa') || norm.includes('papeleria') || 
+      norm.includes('jugueteria') || norm.includes('ferreteria') || norm.includes('merceria') || 
+      norm.includes('boneteria') || norm.includes('joyeria') || norm.includes('optica') || 
+      norm.includes('venta')
+    ) {
+      return 'comercio';
+    }
+    
+    return 'comercio'; // default fallback
+  };
+
+  const handlePreFillLocal = () => {
+    if (!commercialName || !giro || !m2Construccion) {
+      Swal.fire('Atención', 'Para pre-llenar usando reglas locales, es obligatorio ingresar el Nombre Comercial, el Giro y los Metros Cuadrados (M² Construcción).', 'warning');
+      return;
+    }
+
+    const category = estimationGiro;
+    const m2Val = parseFloat(m2Construccion) || 50;
+    const fixedPop = parseInt(poblacionFija) || 1;
+    const floatPop = parseInt(poblacionFlotante) || 3;
+    const numNiveles = parseInt(niveles) || 1;
+
+    const isFood = category === 'restaurante' || category === 'cafeteria' || category === 'bar' || category === 'panaderia' || category === 'tortilleria';
+    const isSpecialGas = isFood || category === 'lavanderia' || category === 'spa' || category === 'hotel';
+    const isOffice = category === 'oficina' || category === 'despacho' || category === 'consultorio_medico' || category === 'consultorio_dental' || category === 'escuela';
+    const isComercio = category === 'comercio' || category === 'tienda_pinturas' || category === 'farmacia' || category === 'zapateria' || category === 'minisuper' || category === 'estetica' || category === 'veterinaria';
+    const isIndustrial = category === 'taller_mecanico' || category === 'bodega';
+
+    if (activeTab === 'generales') {
+      setCroquis({
+        norteGeografico: true,
+        riesgosInternos: true,
+        zonasAltoRiesgo: isSpecialGas || category === 'taller_mecanico' || category === 'tienda_pinturas',
+        equiposEmergencia: true,
+        rutasEvacuacion: true,
+        zonaConteo: true,
+      });
+      Swal.fire({
+        icon: 'success',
+        title: 'Croquis Pre-llenado',
+        text: 'Se han marcado los elementos estándar para el Croquis.',
+        timer: 1500,
+        showConfirmButton: false
+      });
+    } else if (activeTab === 'estructural') {
+      setEstructural({
+        inclinacion: false,
+        separacion: false,
+        deformacion: false,
+        grietasMuros: false,
+        hundimiento: false,
+        grietasPiso: false,
+        filtracion: false,
+        danosEscaleras: false,
+      });
+
+      const hasStairs = numNiveles > 1;
+      const hasEmergStairs = numNiveles >= 3 || (m2Val > 300 && numNiveles > 1) || (category === 'plaza_comercial' && numNiveles > 1) || (category === 'hotel' && numNiveles > 1);
+
+      setEscalerasServicio({
+        homogeneas: hasStairs,
+        barandal: hasStairs,
+        pasamanos: hasStairs,
+        cinta: hasStairs,
+        iluminacion: hasStairs,
+        estado: 'BUENO',
+      });
+      setEscalerasEmergencia({
+        homogeneas: hasEmergStairs,
+        barandal: hasEmergStairs,
+        pasamanos: hasEmergStairs,
+        cinta: hasEmergStairs,
+        iluminacion: hasEmergStairs,
+        estado: 'BUENO',
+      });
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Estructural Pre-llenado',
+        text: `Escaleras configuradas para ${numNiveles} nivel(es) y ${m2Val} m².`,
+        timer: 1500,
+        showConfirmButton: false
+      });
+    } else if (activeTab === 'instalaciones') {
+      setHidrosanitaria({
+        cisterna: m2Val > 80 || category === 'lavanderia' || category === 'plaza_comercial' || category === 'spa' || category === 'hotel' || category === 'gimnasio',
+        tinaco: true,
+        danosTuberia: false,
+        danosLlaves: false,
+        dictamenTecnico: false,
+      });
+
+      let gasCapacity = 'N/A';
+      if (category === 'tortilleria') gasCapacity = '300 L';
+      else if (category === 'lavanderia') gasCapacity = '500 L';
+      else if (category === 'spa') gasCapacity = '300 L';
+      else if (category === 'hotel') gasCapacity = '1000 L';
+      else if (category === 'restaurante') gasCapacity = m2Val >= 100 ? '120 L' : '30 KG';
+      else if (category === 'cafeteria') gasCapacity = '30 KG';
+      else if (category === 'bar') gasCapacity = '30 KG';
+      else if (category === 'panaderia') gasCapacity = '120 L';
+
+      setGas({
+        tanqueEstacionario: isSpecialGas && (m2Val >= 100 || category === 'lavanderia' || category === 'tortilleria' || category === 'spa' || category === 'hotel'),
+        tanqueMovil: isSpecialGas && m2Val < 100 && category !== 'lavanderia' && category !== 'tortilleria' && category !== 'spa' && category !== 'hotel',
+        calentadorAgua: isSpecialGas || category === 'lavanderia' || category === 'spa' || category === 'hotel',
+        dictamenTecnico: isSpecialGas,
+        capacidad: gasCapacity,
+        fugas: false,
+        estado: 'BUENO',
+        recomendaciones: isSpecialGas 
+          ? 'REALIZAR PRUEBAS DE HERMETICIDAD ANUALES Y MANTENER VÁLVULAS LIBRES.'
+          : 'NO APLICA AL GIRO COMERCIAL.',
+      });
+
+      if (isSpecialGas) {
+        setGasDictamenVigencia('ENERO 2026 - ENERO 2027');
+        setGasDictamenFecha('15 DE ENERO DE 2026');
+      } else {
+        setGasDictamenFecha('');
+        setGasDictamenVigencia('');
+      }
+
+      const isLarge = m2Val >= 250 || category === 'plaza_comercial';
+      setElectrica({
+        subestacion: isLarge && (category === 'taller_mecanico' || category === 'plaza_comercial' || category === 'lavanderia' || category === 'hotel' || category === 'gimnasio'),
+        tableros: true,
+        cableado: true,
+        contactos: true,
+        interruptores: true,
+        lamparas: true,
+        lamparasEmergencia: true,
+        plantaEmergencia: isLarge,
+        transformador: isLarge && (category === 'taller_mecanico' || category === 'plaza_comercial' || category === 'hotel' || category === 'gimnasio'),
+        dictamenTecnico: true,
+        recomendaciones: 'MANTENER TABLEROS SEÑALIZADOS, CON DIRECTORIO Y CON TAPA PROTECTORA.',
+        estado: 'BUENO',
+      });
+      setElectricaDictamenFecha('15 DE ENERO DE 2026');
+      setElectricaDictamenVigencia('ENERO 2026 - ENERO 2027');
+
+      setEspeciales({
+        bombasAgua: m2Val > 80 || category === 'lavanderia' || category === 'plaza_comercial' || category === 'spa' || category === 'hotel' || category === 'gimnasio',
+        ac: category !== 'bodega',
+        extractores: isFood || category === 'taller_mecanico' || category === 'lavanderia' || category === 'spa' || category === 'gimnasio',
+        ventiladores: true,
+        cercaElectrica: false,
+        alarmaGeneral: m2Val > 150 || category === 'plaza_comercial',
+        presurizadores: false,
+        recomendaciones: 'SE RECOMIENDA MANTENIMIENTO PREVENTIVO PERIÓDICO A LOS EQUIPOS DE AIRE ACONDICIONADO.',
+      });
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Instalaciones Pre-llenadas',
+        text: 'Configuraciones de Gas, Luz e Hidráulica ajustadas al giro.',
+        timer: 1500,
+        showConfirmButton: false
+      });
+    } else if (activeTab === 'no_estructural') {
+      const cantLamps = Math.max(1, Math.round((m2Val / 8) * numNiveles));
+      const cantFans = Math.max(0, Math.round((m2Val / 15) * numNiveles));
+      const cantScreens = category === 'plaza_comercial' ? 12 : Math.max(0, Math.round(m2Val / 40));
+      const cantAC = Math.max(1, Math.round((m2Val / 35) * numNiveles));
+
+      const hasEvaporador = category === 'oficina' || category === 'despacho' || category === 'consultorio_medico' || category === 'consultorio_dental' || category === 'plaza_comercial' || category === 'hotel' || category === 'spa' || category === 'restaurante' || category === 'cafeteria' || category === 'veterinaria';
+      const hasCristaleria = isFood || category === 'farmacia' || category === 'estetica';
+      const hasCanceles = isComercio || isFood || category === 'plaza_comercial';
+      const hasPlafones = isOffice || category === 'plaza_comercial';
+      const hasRepisas = isOffice || isComercio || category === 'tienda_pinturas' || category === 'farmacia';
+      const hasCuadros = isOffice;
+      const hasEspejos = category === 'gimnasio' || category === 'estetica' || category === 'spa';
+      const hasToxicos = category === 'tienda_pinturas' || category === 'taller_mecanico' || category === 'lavanderia' || category === 'estetica';
+      const hasInflamables = category === 'tienda_pinturas' || category === 'taller_mecanico' || isFood || category === 'spa';
+
+      setCaer({
+        lamparas: { siNo: true, cantidad: cantLamps, estado: 'BUENO' },
+        ventiladores: { siNo: cantFans > 0, cantidad: cantFans, estado: 'BUENO' },
+        pantallas: { siNo: cantScreens > 0, cantidad: cantScreens, estado: 'BUENO' },
+        evaporador: { siNo: hasEvaporador, cantidad: hasEvaporador ? cantAC : 0, estado: 'BUENO' },
+        cristaleria: { siNo: hasCristaleria, cantidad: hasCristaleria ? (isFood ? 30 : 15) : 0, estado: 'BUENO' },
+        canceles: { siNo: hasCanceles, cantidad: hasCanceles ? (category === 'plaza_comercial' ? 15 : 2) : 0, estado: 'BUENO' },
+        techos: { siNo: false, cantidad: 0, estado: 'BUENO' },
+        plafones: { siNo: hasPlafones, cantidad: hasPlafones ? Math.round(m2Val / 5) : 0, estado: 'BUENO' },
+        repisas: { siNo: hasRepisas, cantidad: hasRepisas ? (category === 'tienda_pinturas' ? 12 : 4) : 0, estado: 'BUENO' },
+        cuadros: { siNo: hasCuadros, cantidad: hasCuadros ? 3 : 0, estado: 'BUENO' },
+        espejos: { siNo: hasEspejos, cantidad: hasEspejos ? (category === 'estetica' ? 6 : (category === 'gimnasio' ? 4 : 2)) : 0, estado: 'BUENO' },
+        liquidosToxicos: { siNo: hasToxicos, cantidad: hasToxicos ? (category === 'tienda_pinturas' ? 50 : 4) : 0, estado: 'BUENO' },
+        liquidosCorrosivos: { siNo: false, cantidad: 0, estado: 'BUENO' },
+        liquidosInflamables: { siNo: hasInflamables, cantidad: hasInflamables ? (category === 'tienda_pinturas' ? 200 : (category === 'taller_mecanico' ? 50 : 2)) : 0, estado: 'BUENO' },
+        otros: { siNo: false, cantidad: 0, estado: 'BUENO' },
+        recomendaciones: 'ASEGURAR LA CRISTALERÍA Y ELEMENTOS COLGANTES PARA EVITAR CAÍDAS EN CASO DE SISMO.',
+      });
+
+      setDeslizarse({
+        escritorios: { siNo: isOffice, cantidad: isOffice ? fixedPop : 0, estado: 'BUENO' },
+        mesas: { siNo: isOffice || isFood || category === 'escuela', cantidad: (isOffice || isFood || category === 'escuela') ? (isFood ? Math.round(m2Val / 5) : Math.round(m2Val / 12)) : 0, estado: 'BUENO' },
+        sillas: { siNo: true, cantidad: isFood ? floatPop + fixedPop : (isOffice ? fixedPop * 2 : 4), estado: 'BUENO' },
+        refrigeradores: { siNo: isFood || category === 'farmacia', cantidad: isFood ? 2 : (category === 'farmacia' ? 1 : 0), estado: 'BUENO' },
+        ruedas: { siNo: false, cantidad: 0, estado: 'BUENO' },
+        recomendaciones: 'MANTENER LAS SILLAS Y MESAS ACOMODADAS SIN OBSTRUIR PASILLOS.',
+      });
+
+      setVolcar({
+        computo: { siNo: isOffice || category === 'plaza_comercial' || category === 'escuela', cantidad: (isOffice || category === 'plaza_comercial' || category === 'escuela') ? fixedPop : 0, estado: 'BUENO' },
+        libreros: { siNo: isOffice || category === 'escuela', cantidad: (isOffice || category === 'escuela') ? 3 : 0, estado: 'BUENO' },
+        roperos: { siNo: false, cantidad: 0, estado: 'BUENO' },
+        lockers: { siNo: category === 'gimnasio' || category === 'escuela' || category === 'taller_mecanico', cantidad: (category === 'gimnasio' || category === 'escuela' || category === 'taller_mecanico') ? 2 : 0, estado: 'BUENO' },
+        archiveros: { siNo: isOffice, cantidad: isOffice ? Math.max(1, Math.round(fixedPop / 2)) : 0, estado: 'BUENO' },
+        estantes: { siNo: isComercio || isFood || category === 'bodega' || category === 'farmacia', cantidad: (isComercio || isFood || category === 'bodega' || category === 'farmacia') ? (category === 'tienda_pinturas' ? 15 : (category === 'bodega' ? 20 : 8)) : 0, estado: 'BUENO' },
+        vitrinas: { siNo: isComercio || category === 'farmacia', cantidad: (isComercio || category === 'farmacia') ? 3 : 0, estado: 'BUENO' },
+        tanquesGas: { siNo: isFood, cantidad: isFood ? 2 : 0, estado: 'BUENO' },
+        subdivisiones: { siNo: isOffice, cantidad: isOffice ? 4 : 0, estado: 'BUENO' },
+        recomendaciones: 'FIJAR LOS ESTANTES Y VITRINAS A LOS MUROS PARA EVITAR SU VOLCADURA.',
+      });
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Inventario Pre-llenado',
+        text: `Inventario calculado para ${m2Val} m² en ${numNiveles} nivel(es).`,
+        timer: 1500,
+        showConfirmButton: false
+      });
+    } else if (activeTab === 'otros_internos') {
+      setAcabados({
+        lambrinesIncombustibles: false,
+        lambrinesCombustibles: false,
+        pisosDesniveles: false,
+        pisosFalsos: isOffice || category === 'plaza_comercial',
+        losetasAzulejos: true,
+        cantidadM2: Math.round(m2Val),
+        estado: 'BUENO',
+        recomendaciones: 'MANTENER LOS ACABADOS LIMPIOS Y EN BUEN ESTADO FÍSICO.',
+      });
+
+      setOtrosRiesgos({
+        inflamar: {
+          combustibles: category === 'taller_mecanico' || category === 'tienda_pinturas' || isFood,
+          solventes: category === 'taller_mecanico' || category === 'tienda_pinturas',
+          papelCarton: isOffice || isComercio || category === 'bodega',
+          recomendaciones: 'MANTENER EL CARTÓN Y PAPEL EN CONTENEDORES CERRADOS.'
+        },
+        propiciar: {
+          cigarros: false,
+          colillas: false,
+          velas: false,
+          instalacionGas: isSpecialGas,
+          cafeteras: isOffice || category === 'gimnasio' || isFood,
+          contactos: true,
+          apagadores: true,
+          cablesMalEstado: false,
+          microondas: isOffice || isFood || category === 'plaza_comercial',
+          recomendaciones: 'DESCONECTAR APARATOS ELÉCTRICOS AL CIERRE DE LA JORNADA.'
+        },
+        obstaculizar: {
+          tapetes: false,
+          macetas: false,
+          archiveros: false,
+          pizarrones: false,
+          muebles: false,
+          equiposLimpieza: false,
+          herramientas: false,
+          puertasCerradas: false,
+          lavadoras: false,
+          bombeo: false,
+          recomendaciones: 'MANTENER LIBRES LAS RUTAS DE EVACUACIÓN Y SALIDAS DE EMERGENCIA.'
+        }
+      });
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Otros Internos Pre-llenados',
+        text: 'Acabados y otros riesgos configurados de forma segura.',
+        timer: 1500,
+        showConfirmButton: false
+      });
+    } else if (activeTab === 'externos') {
+      setRiesgosExternos({
+        entorno: {
+          tanquesElevados: { siNo: false, distancia: '' },
+          postesMalEstado: { siNo: false, distancia: '' },
+          torresAltaTension: { siNo: false, distancia: '' },
+          transformadores: { siNo: true, distancia: '15 MTS' },
+          inmueblesDanados: { siNo: false, distancia: '' },
+          banquetas: { siNo: true, distancia: '1 MTS' },
+          alcantarillas: { siNo: true, distancia: '5 MTS' },
+          arboles: { siNo: true, distancia: '3 MTS' },
+          callesTransitadas: { siNo: true, distancia: '5 MTS' },
+          fabricasGas: { siNo: false, distancia: '' },
+          tanquesGasLp: { siNo: isSpecialGas, distancia: isSpecialGas ? '15 MTS' : '' },
+          gasolineras: { siNo: false, distancia: '' },
+          espectaculares: { siNo: false, distancia: '' },
+          almacenesPeligrosos: { siNo: false, distancia: '' },
+          fabricas: { siNo: false, distancia: '' },
+          costas: { siNo: false, distancia: '' },
+          tallerSolventes: { siNo: category === 'tienda_pinturas' || category === 'taller_mecanico', distancia: (category === 'tienda_pinturas' || category === 'taller_mecanico') ? '10 MTS' : '' },
+        },
+        socioOrganizativo: {
+          accidentes: { vehiculosParticulares: true, vehiculosPeligrosos: false, vehiculosPasajeros: true, aereos: false, otros: false },
+          delictivo: { robo: true, roboViolencia: false, invasion: false, interrupcion: false, sabotajeServicios: false, sabotajePrivados: false, otros: false },
+          disturbios: { marchas: false, plantones: false, vandalismo: false, otros: false },
+          lugaresPublicos: { bares: false, cantinas: false, antros: false, iglesias: false, restaurantesBares: false, salones: false, construcciones: false, hospitals: false, centrosNocturnos: false }
+        },
+        geologico: { fallas: false, sismos: false, deslizamiento: false, hundimiento: false },
+        quimico: { incendios: false, explosiones: false, fugas: false, radiaciones: false },
+        hidrometeorologico: {
+          inundacion: { rio: false, lago: false, lluvia: true, mar: false },
+          otros: { vientosFuertes: true, huracan: true, mareaTormenta: false, tormentaElectrica: true, lluviaTorrencial: true, tromba: false, tornado: false, granizo: false, sequia: false }
+        },
+        sanitario: {
+          epidemia: { siNo: false, vulnerableA: '' },
+          plaga: { siNo: true, vulnerableA: 'INSECTOS Y ROEDORES' },
+          envenenamiento: { siNo: false, vulnerableA: '' }
+        }
+      });
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Riesgos Externos Pre-llenados',
+        text: 'Se configuraron los riesgos externos y fenómenos naturales urbanos usuales.',
+        timer: 1500,
+        showConfirmButton: false
+      });
+    }
+  };
+
   const handleLimpiar = () => {
     setSelectedDocId('');
     setCompanyName('');
@@ -413,7 +884,10 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     antiguedad,
     poblacionFija,
     poblacionFlotante,
-    telefono,
+    gasDictamenVigencia: gasDictamenVigencia.trim().toUpperCase(),
+    gasDictamenFecha: gasDictamenFecha.trim().toUpperCase(),
+    electricaDictamenVigencia: electricaDictamenVigencia.trim().toUpperCase(),
+    electricaDictamenFecha: electricaDictamenFecha.trim().toUpperCase(),
     croquis,
     estructural,
     escalerasServicio,
@@ -497,12 +971,48 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
               <select
                 value={selectedDocId}
                 onChange={e => handleDocChange(e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-600 outline-none"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-600 outline-none font-bold"
               >
                 <option value="">-- Manual (Sin cargar acta) --</option>
                 {documents.map(d => (
                   <option key={d.id} value={String(d.id)}>{d.commercial_name}</option>
                 ))}
+              </select>
+            </div>
+
+            <div className="w-full md:w-52">
+              <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">
+                Giro Estimación (Manual/Auto)
+              </label>
+              <select
+                value={estimationGiro}
+                onChange={e => setEstimationGiro(e.target.value)}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-600 outline-none font-bold text-xs uppercase"
+              >
+                <option value="comercio">Comercio General</option>
+                <option value="oficina">Oficina Administrativa / Corporativo</option>
+                <option value="despacho">Despacho Jurídico / Contable</option>
+                <option value="consultorio_medico">Consultorio Médico / Clínica</option>
+                <option value="consultorio_dental">Consultorio Dental</option>
+                <option value="restaurante">Restaurante</option>
+                <option value="cafeteria">Cafetería / Pastelería</option>
+                <option value="bar">Bar / Cantina / Antro</option>
+                <option value="lavanderia">Lavandería y Tintorería</option>
+                <option value="tienda_pinturas">Tienda de Pinturas</option>
+                <option value="taller_mecanico">Taller Mecánico / Hojalatería</option>
+                <option value="bodega">Bodega / Almacén</option>
+                <option value="plaza_comercial">Plaza Comercial</option>
+                <option value="tortilleria">Tortillería</option>
+                <option value="escuela">Escuela / Colegio / Instituto</option>
+                <option value="gimnasio">Gimnasio / CrossFit</option>
+                <option value="spa">Spa / Baños de Vapor</option>
+                <option value="estetica">Estética / Peluquería / Barbería</option>
+                <option value="farmacia">Farmacia / Botica</option>
+                <option value="zapateria">Zapatería</option>
+                <option value="panaderia">Panadería</option>
+                <option value="minisuper">Minisuper / Abarrotes</option>
+                <option value="veterinaria">Veterinaria / Estética Canina</option>
+                <option value="hotel">Hotel / Hospedaje</option>
               </select>
             </div>
             
@@ -516,14 +1026,24 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
                 <span>Cancelar IA...</span>
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={handleGetAiSuggestions}
-                className="w-full md:w-auto bg-blue-900 hover:bg-blue-800 text-white font-extrabold px-6 py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 h-[42px]"
-              >
-                <Sparkles className="w-4 h-4 text-yellow-300 fill-yellow-300" />
-                <span>Sugerir Sección con IA</span>
-              </button>
+              <div className="flex gap-2 w-full md:w-auto">
+                <button
+                  type="button"
+                  onClick={handlePreFillLocal}
+                  className="flex-1 md:flex-none bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold px-6 py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 h-[42px]"
+                >
+                  <ClipboardCheck className="w-4 h-4 text-white" />
+                  <span>Pre-llenar (Giro y M²)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGetAiSuggestions}
+                  className="flex-1 md:flex-none bg-blue-900 hover:bg-blue-800 text-white font-extrabold px-6 py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 h-[42px]"
+                >
+                  <Sparkles className="w-4 h-4 text-yellow-300 fill-yellow-300" />
+                  <span>Sugerir con IA</span>
+                </button>
+              </div>
             )}
           </div>
 
@@ -546,7 +1066,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Actividad o Giro</label>
-                    <input type="text" value={giro} onChange={e => setGiro(e.target.value)} className="w-full border rounded p-2 text-sm uppercase bg-white dark:bg-gray-750 dark:text-white" />
+                    <input type="text" value={giro} onChange={e => { setGiro(e.target.value); setEstimationGiro(classifyGiro(e.target.value)); }} className="w-full border rounded p-2 text-sm uppercase bg-white dark:bg-gray-750 dark:text-white" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Dirección (Calle y Número)</label>
@@ -562,7 +1082,11 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 border-t pt-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 border-t pt-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Niveles / Pisos</label>
+                    <input type="number" min="1" value={niveles} onChange={e => setNiveles(e.target.value)} className="w-full border rounded p-2 text-sm bg-white dark:bg-gray-750 dark:text-white" />
+                  </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">M² Construcción</label>
                     <input type="number" value={m2Construccion} onChange={e => setM2Construccion(e.target.value)} className="w-full border rounded p-2 text-sm" />

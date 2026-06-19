@@ -711,6 +711,21 @@ router.get('/maps-key', (req, res) => {
     res.json({ key: process.env.GOOGLE_MAPS_PLATFORM_KEY || "" });
 });
 
+// Helper function to call Gemini with automatic retries for transient/quota errors
+async function callGeminiWithRetry(fn: () => Promise<any>, maxRetries = 3, delayMs = 2000) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await fn();
+        } catch (error: any) {
+            console.warn(`Gemini call attempt ${attempt} failed: ${error.message || error}`);
+            if (attempt === maxRetries) {
+                throw error;
+            }
+            await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
+        }
+    }
+}
+
 router.post('/analyze-risks', async (req, res) => {
     try {
         const { places } = req.body;
@@ -735,7 +750,7 @@ router.post('/analyze-risks', async (req, res) => {
 
         const placesData = places.map((p: any) => `- ${p.name} (Tipo: ${p.types?.join(', ')})`).join('\n');
 
-        const response = await ai.models.generateContent({
+        const response = await callGeminiWithRetry(() => ai.models.generateContent({
             model: "gemini-2.5-flash-lite",
             contents: `I have the following real establishments located near the user's coordinates:
 ${placesData}
@@ -761,12 +776,16 @@ Return ONLY a JSON array.`,
                     },
                 },
             },
-        });
+        }));
 
         let results = [];
         try {
-            if (response.text) {
-                results = JSON.parse(response.text.trim());
+            if (response && response.text) {
+                let textCleaned = response.text.trim();
+                if (textCleaned.startsWith('```')) {
+                    textCleaned = textCleaned.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/, '').trim();
+                }
+                results = JSON.parse(textCleaned);
             }
         } catch (e) {
             console.error("Failed to parse JSON", e);
@@ -784,9 +803,9 @@ Return ONLY a JSON array.`,
         });
 
         res.json({ results: mergedResults });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Failed to fetch risk data." });
+    } catch (error: any) {
+        console.error("Failed to analyze risks:", error);
+        res.status(500).json({ error: `Failed to fetch risk data. ${error.message || ''}` });
     }
 });
 
@@ -829,7 +848,7 @@ Please perform the following:
 
 Return ONLY a JSON object matching the requested schema.`;
 
-        const response = await ai.models.generateContent({
+        const response = await callGeminiWithRetry(() => ai.models.generateContent({
             model: "gemini-2.5-flash-lite",
             contents: promptText,
             config: {
@@ -853,7 +872,7 @@ Return ONLY a JSON object matching the requested schema.`;
                     ]
                 }
             }
-        });
+        }));
 
         if (response.text) {
             let textCleaned = response.text.trim();
@@ -1227,7 +1246,17 @@ Generate a JSON object matching this structure:
                 required: ["caer", "deslizarse", "volcar"]
             };
         } else if (section === 'otros_internos') {
-            promptText += `Estimate other internal risks (inflammable items, obstacles, etc.) and finishes. Generate a JSON object matching this structure:
+            promptText += `Estimate other internal risks (inflammable items, obstacles, etc.) and finishes for this specific business type and size (m²).
+CRITICAL RULES FOR "otros_internos":
+1. "acabados":
+   - "losetasAzulejos" should be true for most modern businesses.
+   - "cantidadM2" MUST match the square meters (m²) provided or be close to it.
+   - "estado" should be "BUENO" for most standard businesses.
+2. "otrosRiesgos":
+   - "inflamar": "combustibles" and "solventes" should only be true for industrial/workshops or restaurants/bakeries. "papelCarton" should be true for retail or offices.
+   - "propiciar": "instalacionGas" should be true only if the business uses gas (food/restaurant/industrial). "cafeteras" should be true for offices, clinics, salons. "contactos" and "apagadores" should always be true. "velas" and "cigarros" should be false.
+   - "obstaculizar": All fields (tapetes, macetas, etc.) should generally be false for a compliant safe business, unless specifically relevant.
+Generate a JSON object matching this structure:
 {
   "acabados": {
     "lambrinesIncombustibles": boolean,
@@ -1315,7 +1344,19 @@ Generate a JSON object matching this structure:
                 required: ["acabados", "otrosRiesgos"]
             };
         } else if (section === 'externos') {
-            promptText += `Estimate external risks (surroundings, socio-organizational, geological, hydro, sanitary). Generate a JSON object matching this structure:
+            promptText += `Estimate realistic external risks and natural hazards for this business.
+CRITICAL RULES FOR "externos":
+1. "entorno":
+   - Evaluate standard urban external elements. "transformadores" (yes, e.g. "15 MTS"), "banquetas" (yes, "1 MTS"), "alcantarillas" (yes, "5 MTS"), "arboles" (yes, "3 MTS"), "callesTransitadas" (yes, "5 MTS") are usually true in urban commercial zones.
+   - High risk elements like "fabricasGas", "gasolineras", "torresAltaTension" should be false unless specifically relevant.
+2. "socioOrganizativo":
+   - "accidentes": "vehiculosParticulares" and "vehiculosPasajeros" should generally be true for street-facing businesses.
+   - "delictivo": "robo" should be true (medium/low concern).
+3. "hidrometeorologico":
+   - Since this system is located in Quintana Roo, Mexico (Playa del Carmen, Tulum, Cancún): "huracan", "vientosFuertes", "tormentaElectrica", "lluviaTorrencial" and "inundacion.lluvia" MUST always be true.
+4. "sanitario":
+   - "plaga": "siNo" should be true, "vulnerableA" should be "INSECTOS Y ROEDORES" (standard sanitary risk for any food, retail or office establishment).
+Generate a JSON object matching this structure:
 {
   "riesgosExternos": {
     "entorno": {

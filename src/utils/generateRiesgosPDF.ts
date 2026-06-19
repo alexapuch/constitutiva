@@ -19,7 +19,10 @@ export interface RiesgosPDFData {
   antiguedad: string;
   poblacionFija: string;
   poblacionFlotante: string;
-  telefono: string;
+  gasDictamenVigencia?: string;
+  gasDictamenFecha?: string;
+  electricaDictamenVigencia?: string;
+  electricaDictamenFecha?: string;
 
   croquis: {
     norteGeografico: boolean;
@@ -350,12 +353,11 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     // Levels, Area, Population (Compact Grid)
     setNormal(8.5);
     doc.text(`NIVELES: ${data.niveles || '1'}`, margin, y);
-    doc.text(`SUPERFICIE CONSTRUIDA M²: ${data.m2Construccion}`, margin + 50, y);
-    doc.text(`ANTIGÜEDAD (AÑOS): ${data.antiguedad}`, margin + 120, y);
+    doc.text(`SUPERFICIE CONSTRUIDA M²: ${data.m2Construccion}`, margin + 65, y);
+    doc.text(`ANTIGÜEDAD (AÑOS): ${data.antiguedad}`, margin + 130, y);
     y += 5;
     doc.text(`POBLACIÓN FIJA: ${data.poblacionFija}`, margin, y);
-    doc.text(`POBLACIÓN FLOTANTE: ${data.poblacionFlotante}`, margin + 50, y);
-    doc.text(`TELÉFONO: ${data.telefono || 'N/A'}`, margin + 120, y);
+    doc.text(`POBLACIÓN FLOTANTE: ${data.poblacionFlotante}`, margin + 65, y);
     y += 8;
 
     // Croquis de localización checklist
@@ -539,7 +541,20 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y = drawInstalacionRow('Tanque Estacionario', data.instalaciones.gas.tanqueEstacionario, data.instalaciones.gas.capacidad, data.instalaciones.gas.estado, y);
     y = drawInstalacionRow('Tanque Móvil', data.instalaciones.gas.tanqueMovil, '—', 'BUENO', y);
     y = drawInstalacionRow('Calentador de Agua', data.instalaciones.gas.calentadorAgua, '—', 'BUENO', y);
-    y = drawInstalacionRow('Cuenta con Dictamen Técnico', data.instalaciones.gas.dictamenTecnico, '—', 'VIGENTE', y);
+    y += 2;
+    if (data.instalaciones.gas.dictamenTecnico) {
+      doc.setFillColor(240, 244, 248);
+      doc.setDrawColor(18, 52, 86);
+      doc.rect(margin, y, w, 11, 'FD');
+      setBold(7.5);
+      doc.setTextColor(18, 52, 86);
+      doc.text('DICTAMEN TÉCNICO DE GAS (VIGENTE)', margin + 3, y + 3.5);
+      setNormal(7);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`FECHA DE ELABORACIÓN: ${data.gasDictamenFecha || 'N/D'}`, margin + 3, y + 7.5);
+      doc.text(`VIGENCIA: ${data.gasDictamenVigencia || 'N/D'}`, margin + 95, y + 7.5);
+      y += 13;
+    }
     if (data.instalaciones.gas.recomendaciones) {
       setNormal(7.5);
       doc.text(`Recomendaciones Gas: ${data.instalaciones.gas.recomendaciones.toUpperCase()}`, margin, y + 3.5);
@@ -551,7 +566,7 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     doc.addPage();
     y = 15;
 
-    // Eléctrica
+     // Eléctrica
     y = drawInstalacionesHeader('INSTALACIÓN ELÉCTRICA', y);
     y = drawInstalacionRow('Subestación / Transformador', data.instalaciones.electrica.subestacion || data.instalaciones.electrica.transformador, '—', data.instalaciones.electrica.estado, y);
     y = drawInstalacionRow('Tableros eléctricos', data.instalaciones.electrica.tableros, '—', 'BUENO', y);
@@ -559,7 +574,20 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y = drawInstalacionRow('Contactos / Apagadores / Lámparas', data.instalaciones.electrica.contactos || data.instalaciones.electrica.lamparas, '—', 'BUENO', y);
     y = drawInstalacionRow('Lámparas de emergencia', data.instalaciones.electrica.lamparasEmergencia, '—', 'BUENO', y);
     y = drawInstalacionRow('Planta de Emergencia', data.instalaciones.electrica.plantaEmergencia, '—', 'N/A', y);
-    y = drawInstalacionRow('Cuenta con Dictamen Técnico', data.instalaciones.electrica.dictamenTecnico, '—', 'VIGENTE', y);
+    y += 2;
+    if (data.instalaciones.electrica.dictamenTecnico) {
+      doc.setFillColor(240, 244, 248);
+      doc.setDrawColor(18, 52, 86);
+      doc.rect(margin, y, w, 11, 'FD');
+      setBold(7.5);
+      doc.setTextColor(18, 52, 86);
+      doc.text('DICTAMEN TÉCNICO DE INSTALACIÓN ELÉCTRICA (VIGENTE)', margin + 3, y + 3.5);
+      setNormal(7);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`FECHA DE ELABORACIÓN: ${data.electricaDictamenFecha || 'N/D'}`, margin + 3, y + 7.5);
+      doc.text(`VIGENCIA: ${data.electricaDictamenVigencia || 'N/D'}`, margin + 95, y + 7.5);
+      y += 13;
+    }
     if (data.instalaciones.electrica.recomendaciones) {
       setNormal(7.5);
       doc.text(`Recomendaciones Electricas: ${data.instalaciones.electrica.recomendaciones.toUpperCase()}`, margin, y + 3.5);
