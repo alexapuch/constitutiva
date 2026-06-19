@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { APIProvider, Map, Marker, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
+import { APIProvider, Map, Marker, InfoWindow, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 import { X, MapPin, ShieldAlert, AlertCircle, Trash2, Plus, Download, RefreshCw, Compass, Search } from 'lucide-react';
 import Swal from 'sweetalert2';
 import html2canvas from 'html2canvas';
@@ -173,6 +173,7 @@ interface MapContentProps {
 
 function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDragEnd, handleMapClick, onMapReady, onZoomChanged, handleRemoveMarker }: MapContentProps) {
   const map = useMap();
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
 
   useEffect(() => {
     if (map) {
@@ -233,6 +234,7 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
     if (!map || typeof google === 'undefined') return;
 
     const clickListener = map.addListener('click', (e: google.maps.MapMouseEvent) => {
+      setSelectedMarkerId(null);
       if (e.latLng) {
         handleMapClick(e.latLng.lat(), e.latLng.lng());
       }
@@ -270,20 +272,7 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
             draggable={true}
             onDragEnd={(e) => handleMarkerDragEnd(m.id, e)}
             onClick={() => {
-              Swal.fire({
-                title: '¿Eliminar marcador?',
-                text: `¿Estás seguro de que deseas eliminar el marcador "${cat?.name || 'Punto'}"?`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc2626',
-                cancelButtonColor: '#4b5563',
-                confirmButtonText: 'Sí, eliminar',
-                cancelButtonText: 'Cancelar'
-              }).then((result) => {
-                if (result.isConfirmed) {
-                  handleRemoveMarker(m.id);
-                }
-              });
+              setSelectedMarkerId(m.id);
             }}
             icon={{
               url: cat ? createMarkerIcon(cat.color, cat.iconSvg) : '',
@@ -294,6 +283,36 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
           />
         );
       })}
+
+      {/* InfoWindow popup to delete selected marker */}
+      {selectedMarkerId && (() => {
+        const activeMarker = markers.find(m => m.id === selectedMarkerId);
+        if (!activeMarker) return null;
+        const cat = RISK_CATEGORIES.find(c => c.id === activeMarker.categoryId);
+        return (
+          <InfoWindow
+            position={{ lat: activeMarker.lat, lng: activeMarker.lng }}
+            onCloseClick={() => setSelectedMarkerId(null)}
+          >
+            <div className="p-1.5 text-gray-900 flex flex-col items-center gap-1.5 min-w-[130px]">
+              <span className="font-extrabold text-[11px] text-blue-900 uppercase text-center leading-tight">
+                {cat?.name || 'Marcador'}
+              </span>
+              <button
+                onClick={() => {
+                  handleRemoveMarker(activeMarker.id);
+                  setSelectedMarkerId(null);
+                }}
+                className="bg-red-650 text-white text-[11px] font-bold px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors hover:bg-red-750"
+                style={{ backgroundColor: '#dc2626' }}
+              >
+                <Trash2 className="w-3.5 h-3.5 text-white" />
+                Eliminar
+              </button>
+            </div>
+          </InfoWindow>
+        );
+      })()}
     </>
   );
 }
