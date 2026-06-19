@@ -166,11 +166,25 @@ interface MapContentProps {
   markers: SavedMarker[];
   handleMarkerDragEnd: (id: string, e: google.maps.MapMouseEvent) => void;
   handleMapClick: (lat: number, lng: number) => void;
-  setZoom: (z: number) => void;
 }
 
-function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDragEnd, handleMapClick, setZoom }: MapContentProps) {
+function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDragEnd, handleMapClick }: MapContentProps) {
   const map = useMap();
+
+  // Watch for coordinate center changes from typing/button Centrar to pan map and reset zoom
+  useEffect(() => {
+    if (!map || typeof google === 'undefined') return;
+    const currentMapCenter = map.getCenter();
+    if (currentMapCenter) {
+      const diffLat = Math.abs(currentMapCenter.lat() - center.lat);
+      const diffLng = Math.abs(currentMapCenter.lng() - center.lng);
+      // If the difference is larger than a tiny epsilon (meaning user typed/updated via button, not dragged)
+      if (diffLat > 0.00001 || diffLng > 0.00001) {
+        map.setCenter(center);
+        map.setZoom(18);
+      }
+    }
+  }, [map, center]);
 
   useEffect(() => {
     if (!map || typeof google === 'undefined') return;
@@ -190,21 +204,6 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
       google.maps.event.removeListener(dragEndListener);
     };
   }, [map, setCenter, setLat, setLng]);
-
-  useEffect(() => {
-    if (!map || typeof google === 'undefined') return;
-
-    const zoomListener = map.addListener('zoom_changed', () => {
-      const currentZoom = map.getZoom();
-      if (currentZoom !== undefined) {
-        setZoom(currentZoom);
-      }
-    });
-
-    return () => {
-      google.maps.event.removeListener(zoomListener);
-    };
-  }, [map, setZoom]);
 
   useEffect(() => {
     if (!map || typeof google === 'undefined') return;
@@ -264,7 +263,6 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
   const [lat, setLat] = useState('20.650283395825614');
   const [lng, setLng] = useState('-87.06150292348663');
   const [center, setCenter] = useState<google.maps.LatLngLiteral>({ lat: 20.650283395825614, lng: -87.06150292348663 });
-  const [zoom, setZoom] = useState(18);
   
   const [activeCategory, setActiveCategory] = useState<string>('trafico');
   const [markers, setMarkers] = useState<SavedMarker[]>([]);
@@ -595,8 +593,8 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
             {/* Map Container */}
             <div className="flex-1 relative h-full bg-gray-900">
               <Map
-                center={center}
-                zoom={zoom}
+                defaultCenter={center}
+                defaultZoom={18}
                 onClick={handleMapClick}
                 mapTypeId="hybrid"
                 gestureHandling="cooperative"
@@ -611,7 +609,6 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
                   markers={markers}
                   handleMarkerDragEnd={handleMarkerDragEnd}
                   handleMapClick={handleMapClick}
-                  setZoom={setZoom}
                 />
               </Map>
 
