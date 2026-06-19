@@ -166,10 +166,33 @@ interface MapContentProps {
   markers: SavedMarker[];
   handleMarkerDragEnd: (id: string, e: google.maps.MapMouseEvent) => void;
   handleMapClick: (lat: number, lng: number) => void;
+  onMapReady: (map: google.maps.Map) => void;
+  onZoomChanged: (zoom: number) => void;
 }
 
-function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDragEnd, handleMapClick }: MapContentProps) {
+function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDragEnd, handleMapClick, onMapReady, onZoomChanged }: MapContentProps) {
   const map = useMap();
+
+  useEffect(() => {
+    if (map) {
+      onMapReady(map);
+    }
+  }, [map, onMapReady]);
+
+  useEffect(() => {
+    if (!map || typeof google === 'undefined') return;
+
+    const zoomListener = map.addListener('zoom_changed', () => {
+      const z = map.getZoom();
+      if (z !== undefined) {
+        onZoomChanged(z);
+      }
+    });
+
+    return () => {
+      google.maps.event.removeListener(zoomListener);
+    };
+  }, [map, onZoomChanged]);
 
   // Watch for coordinate center changes from typing/button Centrar to pan map and reset zoom
   useEffect(() => {
@@ -267,11 +290,21 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
   const [activeCategory, setActiveCategory] = useState<string>('trafico');
   const [markers, setMarkers] = useState<SavedMarker[]>([]);
   const [loadingAuto, setLoadingAuto] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(18);
+  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
 
   const captureAreaRef = useRef<HTMLDivElement>(null);
   
   const placesLib = useMapsLibrary('places');
   const geometryLib = useMapsLibrary('geometry');
+
+  const handleZoomChange = (z: number) => {
+    const parsedZoom = Math.max(10, Math.min(21, z));
+    setZoomLevel(parsedZoom);
+    if (mapInstance) {
+      mapInstance.setZoom(parsedZoom);
+    }
+  };
 
   // Parse coords helper
   const handleCoordsInput = (val: string) => {
@@ -506,8 +539,38 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
           </button>
         </div>
 
+        {/* Zoom Controls */}
         <div>
-          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase mb-2">2. Selecciona Tipo de Riesgo</h3>
+          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase mb-2">2. Nivel de Zoom</h3>
+          <div className="flex items-center gap-3 bg-white dark:bg-gray-700 p-2.5 rounded-lg border border-gray-200 dark:border-gray-650 justify-between shadow-sm">
+            <button
+              onClick={() => handleZoomChange(zoomLevel - 1)}
+              className="bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 text-gray-800 dark:text-white px-3 py-1 rounded font-black text-sm select-none transition-colors border border-gray-300 dark:border-gray-500"
+            >
+              -
+            </button>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 font-bold uppercase">Zoom:</span>
+              <input
+                type="number"
+                min="10"
+                max="21"
+                value={zoomLevel}
+                onChange={(e) => handleZoomChange(parseInt(e.target.value) || 18)}
+                className="w-12 text-center bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded px-1.5 py-1 text-sm font-black text-gray-900 dark:text-white"
+              />
+            </div>
+            <button
+              onClick={() => handleZoomChange(zoomLevel + 1)}
+              className="bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 text-gray-800 dark:text-white px-3 py-1 rounded font-black text-sm select-none transition-colors border border-gray-300 dark:border-gray-500"
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase mb-2">3. Selecciona Tipo de Riesgo</h3>
           <p className="text-xs text-gray-500 mb-3">Haz clic en una categoría y luego haz clic sobre el mapa para colocar el marcador.</p>
           <div className="flex flex-col gap-2">
             {RISK_CATEGORIES.map(category => (
@@ -609,6 +672,8 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
                   markers={markers}
                   handleMarkerDragEnd={handleMarkerDragEnd}
                   handleMapClick={handleMapClick}
+                  onMapReady={setMapInstance}
+                  onZoomChanged={setZoomLevel}
                 />
               </Map>
 
@@ -696,12 +761,12 @@ export default function CroquisRiesgosModal({ isOpen, onClose }: CroquisRiesgosM
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 bg-[#0B152A] border-b-4 border-red-700 shrink-0">
-            <div className="flex items-center gap-2.5">
-              <ShieldAlert className="w-6 h-6 text-red-500" />
-              <span className="text-white font-extrabold text-xl tracking-wide uppercase">Croquis de Riesgos Circundantes</span>
+          <div className="flex items-center justify-between px-6 py-4 bg-[#0B152A] border-b-4 border-red-700 shrink-0 gap-4">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <ShieldAlert className="w-6 h-6 text-red-500 shrink-0" />
+              <span className="text-white font-extrabold text-base sm:text-xl tracking-wide uppercase leading-tight">Croquis de Riesgos Circundantes</span>
             </div>
-            <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-full transition-colors">
+            <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-full transition-colors shrink-0">
               <X className="w-6 h-6 text-white" />
             </button>
           </div>

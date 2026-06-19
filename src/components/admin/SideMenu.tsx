@@ -65,20 +65,18 @@ export default function SideMenu({
               <p className="px-5 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Navegación</p>
               <button
                 onClick={() => { onClose(); onNavigateHome(); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium"
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium text-left"
               >
                 <Home className="w-5 h-5" />
                 Inicio
               </button>
-
-
 
               <div className="my-3 border-t border-gray-100 dark:border-gray-700" />
               <p className="px-5 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Acciones</p>
 
               <button
                 onClick={() => { onClose(); onOpenQuoteHistory(); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium"
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium text-left"
               >
                 <ClipboardList className="w-5 h-5" />
                 Historial de Cotizaciones
@@ -89,7 +87,7 @@ export default function SideMenu({
 
               <button
                 onClick={() => { onClose(); onOpenNewQuote(); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium"
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium text-left"
               >
                 <Calculator className="w-5 h-5" />
                 Nueva Cotización
@@ -97,7 +95,7 @@ export default function SideMenu({
 
               <button
                 onClick={() => { onClose(); onOpenManualConstancia(); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium"
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium text-left"
               >
                 <FileSignature className="w-5 h-5" />
                 Generar Constancia
@@ -105,7 +103,7 @@ export default function SideMenu({
 
               <button
                 onClick={() => { onClose(); onOpenManualDC3(); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors font-medium dark:text-gray-300 dark:hover:bg-red-950/20"
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors font-medium dark:text-gray-300 dark:hover:bg-red-950/20 text-left"
               >
                 <Award className="w-5 h-5" />
                 Generar DC3 (STPS)
@@ -113,7 +111,7 @@ export default function SideMenu({
 
               <button
                 onClick={() => { onClose(); onOpenOrganigrama(); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-teal-50 hover:text-teal-700 transition-colors font-medium"
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-teal-50 hover:text-teal-700 transition-colors font-medium text-left"
               >
                 <GitBranch className="w-5 h-5" />
                 Generar Organigrama
@@ -121,7 +119,7 @@ export default function SideMenu({
 
               <button
                 onClick={() => { onClose(); onOpenCaratulas(); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors font-medium"
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors font-medium text-left"
               >
                 <BookOpen className="w-5 h-5" />
                 Generar Carátulas
@@ -129,7 +127,7 @@ export default function SideMenu({
 
               <button
                 onClick={() => { onClose(); onOpenCartaResponsiva(); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium"
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium text-left"
               >
                 <ShieldCheck className="w-5 h-5" />
                 Carta Responsiva
@@ -137,7 +135,7 @@ export default function SideMenu({
 
               <button
                 onClick={() => { onClose(); onOpenActaBlank(); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-700 transition-colors font-medium"
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-700 transition-colors font-medium text-left"
               >
                 <FilePen className="w-5 h-5" />
                 Acta para Firmar
@@ -145,7 +143,7 @@ export default function SideMenu({
 
               <button
                 onClick={() => { onClose(); onOpenConstanciasHistory(); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium"
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium text-left"
               >
                 <ClipboardList className="w-5 h-5" />
                 Registro de Constancias
@@ -153,7 +151,7 @@ export default function SideMenu({
 
               <button
                 onClick={() => { onClose(); onOpenGeoRiesgos(); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium"
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium text-left"
               >
                 <ShieldCheck className="w-5 h-5" />
                 Analizador de GeoRiesgos
@@ -161,7 +159,7 @@ export default function SideMenu({
 
               <button
                 onClick={() => { onClose(); onOpenIncendio(); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium"
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium text-left"
               >
                 <ShieldCheck className="w-5 h-5 text-red-700" />
                 Análisis de Incendio
@@ -169,7 +167,7 @@ export default function SideMenu({
 
               <button
                 onClick={() => { onClose(); onOpenRiesgos(); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium"
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium text-left"
               >
                 <ShieldCheck className="w-5 h-5 text-blue-700" />
                 Identificación de Riesgos
@@ -177,7 +175,7 @@ export default function SideMenu({
 
               <button
                 onClick={() => { onClose(); onOpenCroquisRiesgos(); }}
-                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium"
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium text-left"
               >
                 <ShieldCheck className="w-5 h-5 text-purple-700" />
                 Croquis Riesgos Circundantes
