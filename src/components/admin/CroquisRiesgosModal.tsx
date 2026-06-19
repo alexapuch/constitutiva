@@ -19,35 +19,35 @@ const RISK_CATEGORIES: RiskCategory[] = [
     name: 'Tráfico vehicular',
     color: '#f97316', // Orange
     symbolLabel: '🚗',
-    iconSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-car"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/><path d="M5 12h14"/></svg>`
+    iconSvg: `<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/><path d="M5 12h14"/>`
   },
   {
     id: 'comercial',
     name: 'Locales varios / zona comercial',
     color: '#1d4ed8', // Blue
     symbolLabel: '🏪',
-    iconSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-store"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M30 7H0"/><path d="M22 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/><path d="M14 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/><path d="M6 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/></svg>`
+    iconSvg: `<path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M30 7H0"/><path d="M22 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/><path d="M14 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/><path d="M6 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/>`
   },
   {
     id: 'personas',
     name: 'Afluencia de personas',
     color: '#7c3aed', // Purple
     symbolLabel: '👥',
-    iconSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`
+    iconSvg: `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`
   },
   {
     id: 'maniobras',
     name: 'Maniobras y accesos',
     color: '#16a34a', // Green
     symbolLabel: '↔️',
-    iconSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left-right"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>`
+    iconSvg: `<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>`
   },
   {
     id: 'habitacional',
     name: 'Zona habitacional / área urbana',
     color: '#4b5563', // Grey
     symbolLabel: '🏠',
-    iconSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-home"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`
+    iconSvg: `<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>`
   }
 ];
 
@@ -59,12 +59,12 @@ interface SavedMarker {
   customName?: string;
 }
 
-// Function to generate the data URI of the custom marker pin
+// Function to generate the data URI of the custom marker pin (centered vector)
 const createMarkerIcon = (color: string, iconSvg: string) => {
   const encodedSvg = encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
       <circle cx="18" cy="18" r="16" fill="${color}" stroke="white" stroke-width="2" />
-      <g transform="translate(8, 8) scale(0.83)">
+      <g transform="translate(8, 8) scale(0.83)" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         ${iconSvg}
       </g>
     </svg>`
@@ -326,6 +326,32 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
     setMarkers(prev => prev.filter(m => m.id !== id));
   };
 
+  // Helper to space out markers if they overlap
+  const adjustOverlap = (plat: number, plng: number, existing: { lat: number; lng: number }[]) => {
+    let newLat = plat;
+    let newLng = plng;
+    let attempts = 0;
+    const minDistance = 0.00018; // approx 15-20 meters spacing
+
+    while (attempts < 15) {
+      const isTooClose = existing.some(m => {
+        const dLat = m.lat - newLat;
+        const dLng = m.lng - newLng;
+        return Math.sqrt(dLat * dLat + dLng * dLng) < minDistance;
+      });
+
+      if (!isTooClose) break;
+
+      // Shift radially by a tiny bit
+      const angle = Math.random() * Math.PI * 2;
+      newLat += Math.cos(angle) * 0.00016;
+      newLng += Math.sin(angle) * 0.00016;
+      attempts++;
+    }
+
+    return { lat: newLat, lng: newLng };
+  };
+
   // Automatic marker detection using Places API
   const handleAutoLoad = async () => {
     if (!placesLib || !geometryLib) {
@@ -359,8 +385,11 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
         return;
       }
 
+      // Limit commercial markers to 6 to prevent overcrowding
+      const limitedPlaces = places.slice(0, 6);
       const newMarkers: SavedMarker[] = [];
-      places.forEach(p => {
+      
+      limitedPlaces.forEach(p => {
         if (!p.location) return;
 
         const pLat = p.location.lat();
@@ -386,56 +415,41 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
           categoryId = 'comercial';
         }
 
+        // Apply spacing/de-cluttering relative to existing newMarkers
+        const adjusted = adjustOverlap(pLat, pLng, [...newMarkers]);
+
         newMarkers.push({
           id: `auto-${p.displayName || 'place'}-${Math.random()}`,
-          lat: pLat,
-          lng: pLng,
+          lat: adjusted.lat,
+          lng: adjusted.lng,
           categoryId
         });
       });
 
-      const programmaticMarkers: SavedMarker[] = [
+      const programmaticMarkers: SavedMarker[] = [];
+      const baseProgrammatic = [
         // Tráfico vehicular (Orange) - Placed along major avenues or streets
-        {
-          id: `auto-trafico-1-${Math.random()}`,
-          lat: centerPos.lat + 0.0006,
-          lng: centerPos.lng + 0.0006,
-          categoryId: 'trafico'
-        },
-        {
-          id: `auto-trafico-2-${Math.random()}`,
-          lat: centerPos.lat - 0.0006,
-          lng: centerPos.lng - 0.0006,
-          categoryId: 'trafico'
-        },
+        { lat: centerPos.lat + 0.0006, lng: centerPos.lng + 0.0006, categoryId: 'trafico' },
+        { lat: centerPos.lat - 0.0006, lng: centerPos.lng - 0.0006, categoryId: 'trafico' },
         // Zona habitacional (Grey) - Placed inside residential blocks
-        {
-          id: `auto-habitacional-1-${Math.random()}`,
-          lat: centerPos.lat + 0.0008,
-          lng: centerPos.lng - 0.0008,
-          categoryId: 'habitacional'
-        },
-        {
-          id: `auto-habitacional-2-${Math.random()}`,
-          lat: centerPos.lat - 0.0008,
-          lng: centerPos.lng + 0.0008,
-          categoryId: 'habitacional'
-        },
+        { lat: centerPos.lat + 0.0008, lng: centerPos.lng - 0.0008, categoryId: 'habitacional' },
+        { lat: centerPos.lat - 0.0008, lng: centerPos.lng + 0.0008, categoryId: 'habitacional' },
         // Afluencia de personas (Purple) - Placed near corners/domos
-        {
-          id: `auto-personas-1-${Math.random()}`,
-          lat: centerPos.lat - 0.0003,
-          lng: centerPos.lng + 0.0009,
-          categoryId: 'personas'
-        },
+        { lat: centerPos.lat - 0.0003, lng: centerPos.lng + 0.0009, categoryId: 'personas' },
         // Maniobras y accesos (Green) - Placed near streets/driveways
-        {
-          id: `auto-maniobras-1-${Math.random()}`,
-          lat: centerPos.lat + 0.0004,
-          lng: centerPos.lng - 0.0003,
-          categoryId: 'maniobras'
-        }
+        { lat: centerPos.lat + 0.0004, lng: centerPos.lng - 0.0003, categoryId: 'maniobras' }
       ];
+
+      baseProgrammatic.forEach((bp, index) => {
+        // Space out relative to commercial AND previous programmatic markers
+        const adjusted = adjustOverlap(bp.lat, bp.lng, [...newMarkers, ...programmaticMarkers]);
+        programmaticMarkers.push({
+          id: `auto-prog-${index}-${Math.random()}`,
+          lat: adjusted.lat,
+          lng: adjusted.lng,
+          categoryId: bp.categoryId
+        });
+      });
 
       setMarkers(prev => {
         // Merge without repeating coordinates
@@ -507,8 +521,9 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
                 <div 
                   className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm"
                   style={{ backgroundColor: category.color }}
-                  dangerouslySetInnerHTML={{ __html: category.iconSvg }}
-                />
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" dangerouslySetInnerHTML={{ __html: category.iconSvg }} />
+                </div>
                 <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-tight">
                   {category.name}
                 </span>
@@ -620,8 +635,9 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
                       <div 
                         className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-md text-white border-2 border-white"
                         style={{ backgroundColor: cat.color }}
-                        dangerouslySetInnerHTML={{ __html: cat.iconSvg }}
-                      />
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" dangerouslySetInnerHTML={{ __html: cat.iconSvg }} />
+                      </div>
                       <span className="text-xs font-extrabold text-blue-950 leading-snug">
                         {cat.name}
                       </span>
