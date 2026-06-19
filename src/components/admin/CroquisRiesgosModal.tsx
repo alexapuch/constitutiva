@@ -250,6 +250,7 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
             onDragend={(e) => handleMarkerDragEnd(m.id, e)}
             icon={{
               url: cat ? createMarkerIcon(cat.color, cat.iconSvg) : '',
+              size: new google.maps.Size(36, 36),
               scaledSize: new google.maps.Size(36, 36),
               anchor: new google.maps.Point(18, 18)
             }}
@@ -394,15 +395,58 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
         });
       });
 
+      const programmaticMarkers: SavedMarker[] = [
+        // Tráfico vehicular (Orange) - Placed along major avenues or streets
+        {
+          id: `auto-trafico-1-${Math.random()}`,
+          lat: centerPos.lat + 0.0006,
+          lng: centerPos.lng + 0.0006,
+          categoryId: 'trafico'
+        },
+        {
+          id: `auto-trafico-2-${Math.random()}`,
+          lat: centerPos.lat - 0.0006,
+          lng: centerPos.lng - 0.0006,
+          categoryId: 'trafico'
+        },
+        // Zona habitacional (Grey) - Placed inside residential blocks
+        {
+          id: `auto-habitacional-1-${Math.random()}`,
+          lat: centerPos.lat + 0.0008,
+          lng: centerPos.lng - 0.0008,
+          categoryId: 'habitacional'
+        },
+        {
+          id: `auto-habitacional-2-${Math.random()}`,
+          lat: centerPos.lat - 0.0008,
+          lng: centerPos.lng + 0.0008,
+          categoryId: 'habitacional'
+        },
+        // Afluencia de personas (Purple) - Placed near corners/domos
+        {
+          id: `auto-personas-1-${Math.random()}`,
+          lat: centerPos.lat - 0.0003,
+          lng: centerPos.lng + 0.0009,
+          categoryId: 'personas'
+        },
+        // Maniobras y accesos (Green) - Placed near streets/driveways
+        {
+          id: `auto-maniobras-1-${Math.random()}`,
+          lat: centerPos.lat + 0.0004,
+          lng: centerPos.lng - 0.0003,
+          categoryId: 'maniobras'
+        }
+      ];
+
       setMarkers(prev => {
         // Merge without repeating coordinates
         const filtered = prev.filter(m => !m.id.startsWith('auto-'));
-        return [...filtered, ...newMarkers];
+        return [...filtered, ...newMarkers, ...programmaticMarkers];
       });
 
       Swal.fire({
         title: 'Riesgos Detectados',
-        text: `Se ubicaron ${newMarkers.length} riesgos automáticamente en un radio de 200m.`,
+        text: `Se ubicaron ${newMarkers.length + programmaticMarkers.length} riesgos automáticamente en un radio de 200m.`,
         icon: 'success',
         timer: 2000,
         showConfirmButton: false
