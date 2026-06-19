@@ -19,6 +19,7 @@ interface SideMenuProps {
   onOpenGeoRiesgos: () => void;
   onOpenIncendio: () => void;
   onOpenRiesgos: () => void;
+  onOpenCroquisRiesgos: () => void;
   onLogout: () => void;
   onNavigateHome: () => void;
 }
@@ -26,7 +27,7 @@ interface SideMenuProps {
 export default function SideMenu({
   isOpen, onClose, quotesCount,
   onOpenQuoteHistory, onOpenNewQuote, onOpenManualConstancia, onOpenManualDC3, onOpenOrganigrama,
-  onOpenCaratulas, onOpenCartaResponsiva, onOpenConstanciasHistory, onOpenActaBlank, onOpenGeoRiesgos, onOpenIncendio, onOpenRiesgos, onLogout, onNavigateHome
+  onOpenCaratulas, onOpenCartaResponsiva, onOpenConstanciasHistory, onOpenActaBlank, onOpenGeoRiesgos, onOpenIncendio, onOpenRiesgos, onOpenCroquisRiesgos, onLogout, onNavigateHome
 }: SideMenuProps) {
   const { theme, toggleTheme } = useTheme();
 
@@ -172,6 +173,14 @@ export default function SideMenu({
               >
                 <ShieldCheck className="w-5 h-5 text-blue-700" />
                 Identificación de Riesgos
+              </button>
+
+              <button
+                onClick={() => { onClose(); onOpenCroquisRiesgos(); }}
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium"
+              >
+                <ShieldCheck className="w-5 h-5 text-purple-700" />
+                Croquis Riesgos Circundantes
               </button>
             </nav>
 
