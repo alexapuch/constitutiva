@@ -271,7 +271,10 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
             position={{ lat: m.lat, lng: m.lng }}
             draggable={true}
             onDragEnd={(e) => handleMarkerDragEnd(m.id, e)}
-            onClick={() => {
+            onClick={(e) => {
+              if (e.domEvent) {
+                e.domEvent.stopPropagation();
+              }
               setSelectedMarkerId(m.id);
             }}
             icon={{
@@ -294,12 +297,24 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
             position={{ lat: activeMarker.lat, lng: activeMarker.lng }}
             onCloseClick={() => setSelectedMarkerId(null)}
           >
-            <div className="p-1.5 text-gray-900 flex flex-col items-center gap-1.5 min-w-[130px]">
+            <div 
+              className="p-1.5 text-gray-900 flex flex-col items-center gap-1.5 min-w-[130px]"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+            >
               <span className="font-extrabold text-[11px] text-blue-900 uppercase text-center leading-tight">
                 {cat?.name || 'Marcador'}
               </span>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
                   handleRemoveMarker(activeMarker.id);
                   setSelectedMarkerId(null);
                 }}
