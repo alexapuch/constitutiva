@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { APIProvider, Map, Marker, useMap } from '@vis.gl/react-google-maps';
-import { X, MapPin, ShieldAlert, AlertCircle, Trash2, Plus, Download, RefreshCw, Compass } from 'lucide-react';
+import { APIProvider, Map, Marker, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
+import { X, MapPin, ShieldAlert, AlertCircle, Trash2, Plus, Download, RefreshCw, Compass, Search } from 'lucide-react';
 import Swal from 'sweetalert2';
 import html2canvas from 'html2canvas';
 
@@ -174,6 +174,92 @@ function CircleLabel({ center, radius }: { center: google.maps.LatLngLiteral; ra
   return null;
 }
 
+// Subcomponent to safely consume useMap and render overlays only after maps script/instance is fully loaded
+interface MapContentProps {
+  center: google.maps.LatLngLiteral;
+  setCenter: (c: google.maps.LatLngLiteral) => void;
+  setLat: (lat: string) => void;
+  setLng: (lng: string) => void;
+  markers: SavedMarker[];
+  handleMarkerDragEnd: (id: string, e: google.maps.MapMouseEvent) => void;
+  handleMapClick: (lat: number, lng: number) => void;
+}
+
+function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDragEnd, handleMapClick }: MapContentProps) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map || typeof google === 'undefined') return;
+
+    const dragEndListener = map.addListener('dragend', () => {
+      const newCenter = map.getCenter();
+      if (newCenter) {
+        const nLat = newCenter.lat();
+        const nLng = newCenter.lng();
+        setCenter({ lat: nLat, lng: nLng });
+        setLat(nLat.toString());
+        setLng(nLng.toString());
+      }
+    });
+
+    return () => {
+      google.maps.event.removeListener(dragEndListener);
+    };
+  }, [map, setCenter, setLat, setLng]);
+
+  useEffect(() => {
+    if (!map || typeof google === 'undefined') return;
+
+    const clickListener = map.addListener('click', (e: google.maps.MapMouseEvent) => {
+      if (e.latLng) {
+        handleMapClick(e.latLng.lat(), e.latLng.lng());
+      }
+    });
+
+    return () => {
+      google.maps.event.removeListener(clickListener);
+    };
+  }, [map, handleMapClick]);
+
+  if (!map || typeof google === 'undefined') return null;
+
+  return (
+    <>
+      {/* Center Core Marker */}
+      <Marker
+        position={center}
+        title="Punto Central"
+        icon={{
+          url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+          scaledSize: new google.maps.Size(40, 40)
+        }}
+      />
+
+      {/* 200m Dashed Circle Overlay */}
+      <DashedCircle center={center} radius={200} />
+      <CircleLabel center={center} radius={200} />
+
+      {/* Placed Custom Risk Markers */}
+      {markers.map(m => {
+        const cat = RISK_CATEGORIES.find(c => c.id === m.categoryId);
+        return (
+          <Marker
+            key={m.id}
+            position={{ lat: m.lat, lng: m.lng }}
+            draggable={true}
+            onDragend={(e) => handleMarkerDragEnd(m.id, e)}
+            icon={{
+              url: cat ? createMarkerIcon(cat.color, cat.iconSvg) : '',
+              scaledSize: new google.maps.Size(36, 36),
+              anchor: new google.maps.Point(18, 18)
+            }}
+          />
+        );
+      })}
+    </>
+  );
+}
+
 // Inner logic component
 function CroquisEditor({ apiKey }: { apiKey: string }) {
   const [lat, setLat] = useState('20.650283395825614');
@@ -182,10 +268,12 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
   
   const [activeCategory, setActiveCategory] = useState<string>('trafico');
   const [markers, setMarkers] = useState<SavedMarker[]>([]);
-  const [exporting, setExporting] = useState(false);
+  const [loadingAuto, setLoadingAuto] = useState(false);
 
   const captureAreaRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
+  
+  const placesLib = useMapsLibrary('places');
+  const geometryLib = useMapsLibrary('geometry');
 
   // Parse coords helper
   const handleCoordsInput = (val: string) => {
@@ -216,12 +304,11 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
   };
 
   // Add marker on map click
-  const handleMapClick = (e: google.maps.MapMouseEvent) => {
-    if (!e.latLng) return;
+  const handleMapClick = (plat: number, plng: number) => {
     const newMarker: SavedMarker = {
       id: Date.now().toString(),
-      lat: e.latLng.lat(),
-      lng: e.latLng.lng(),
+      lat: plat,
+      lng: plng,
       categoryId: activeCategory
     };
     setMarkers(prev => [...prev, newMarker]);
@@ -239,40 +326,92 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
     setMarkers(prev => prev.filter(m => m.id !== id));
   };
 
-  // Export layout to PDF/Image using html2canvas
-  const handleExport = async () => {
-    if (!captureAreaRef.current) return;
-    setExporting(true);
-    
-    // Short sleep to ensure style updates are completed
-    await new Promise(r => setTimeout(r, 600));
+  // Automatic marker detection using Places API
+  const handleAutoLoad = async () => {
+    if (!placesLib || !geometryLib) {
+      Swal.fire('Error', 'Las librerías de Google Maps no están listas.', 'error');
+      return;
+    }
+    const parsedLat = parseFloat(lat);
+    const parsedLng = parseFloat(lng);
+    if (isNaN(parsedLat) || isNaN(parsedLng)) {
+      Swal.fire('Error', 'Por favor ingresa coordenadas válidas.', 'error');
+      return;
+    }
+
+    setLoadingAuto(true);
 
     try {
-      const canvas = await html2canvas(captureAreaRef.current, {
-        useCORS: true,
-        allowTaint: true,
-        scale: 2, // Scale up for maximum resolution and sharpness
-        logging: false
+      const centerPos = { lat: parsedLat, lng: parsedLng };
+      
+      const { places } = await placesLib.Place.searchNearby({
+        fields: ['displayName', 'location', 'types'],
+        locationRestriction: {
+          center: centerPos,
+          radius: 200,
+        },
+        maxResultCount: 20,
       });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.download = `RIESGOS_CIRCUNDANTES_${lat}_${lng}.png`;
-      link.href = imgData;
-      link.click();
-      
+
+      if (!places || places.length === 0) {
+        Swal.fire('Info', 'No se encontraron establecimientos en un radio de 200m.', 'info');
+        setLoadingAuto(false);
+        return;
+      }
+
+      const newMarkers: SavedMarker[] = [];
+      places.forEach(p => {
+        if (!p.location) return;
+
+        const pLat = p.location.lat();
+        const pLng = p.location.lng();
+
+        // Calculate distance from center to make sure it is within 200m
+        const distance = geometryLib.spherical.computeDistanceBetween(centerPos, p.location);
+        if (distance > 200) return;
+
+        const types = p.types || [];
+        let categoryId = 'comercial'; // default to commercial
+
+        // Mapping logic based on types
+        if (types.some(t => ['bus_station', 'transit_station', 'gas_station', 'intersection', 'subway_station', 'train_station'].includes(t))) {
+          categoryId = 'trafico';
+        } else if (types.some(t => ['school', 'park', 'church', 'place_of_worship', 'tourist_attraction', 'museum', 'hospital', 'university'].includes(t))) {
+          categoryId = 'personas';
+        } else if (types.some(t => ['parking', 'warehouse', 'car_repair', 'storage'].includes(t))) {
+          categoryId = 'maniobras';
+        } else if (types.some(t => ['lodging', 'real_estate_agency', 'condominium', 'apartment_building', 'neighborhood'].includes(t))) {
+          categoryId = 'habitacional';
+        } else if (types.some(t => ['store', 'restaurant', 'food', 'cafe', 'bar', 'shopping_mall', 'bakery', 'convenience_store', 'supermarket', 'pharmacy'].includes(t))) {
+          categoryId = 'comercial';
+        }
+
+        newMarkers.push({
+          id: `auto-${p.displayName || 'place'}-${Math.random()}`,
+          lat: pLat,
+          lng: pLng,
+          categoryId
+        });
+      });
+
+      setMarkers(prev => {
+        // Merge without repeating coordinates
+        const filtered = prev.filter(m => !m.id.startsWith('auto-'));
+        return [...filtered, ...newMarkers];
+      });
+
       Swal.fire({
-        title: '¡Exportado!',
-        text: 'El croquis ha sido exportado e instalado en tus descargas.',
+        title: 'Riesgos Detectados',
+        text: `Se ubicaron ${newMarkers.length} riesgos automáticamente en un radio de 200m.`,
         icon: 'success',
         timer: 2000,
         showConfirmButton: false
       });
-    } catch (error) {
-      console.error(error);
-      Swal.fire('Error', 'No se pudo exportar el croquis.', 'error');
+    } catch (e) {
+      console.error(e);
+      Swal.fire('Error', 'Ocurrió un error al buscar establecimientos cercanos.', 'error');
     } finally {
-      setExporting(false);
+      setLoadingAuto(false);
     }
   };
 
@@ -282,7 +421,7 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
       <div className="w-full lg:w-80 flex flex-col gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shrink-0">
         <div>
           <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase mb-2">1. Coordenadas Centrales</h3>
-          <div className="flex gap-2">
+          <div className="flex gap-2 mb-2">
             <input
               type="text"
               placeholder="Lat, Lng o Latitud"
@@ -298,6 +437,18 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
               <RefreshCw className="w-5 h-5" />
             </button>
           </div>
+          <button
+            onClick={handleAutoLoad}
+            disabled={loadingAuto || !placesLib}
+            className="w-full bg-[#7b1f1c] hover:bg-[#5c1614] text-white py-2 rounded-lg font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5 h-[36px] disabled:opacity-50"
+          >
+            {loadingAuto ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Search className="w-4 h-4" />
+            )}
+            DETECTAR RIESGOS CERCANOS
+          </button>
         </div>
 
         <div>
@@ -360,36 +511,19 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
             )}
           </div>
         </div>
-
-        <button
-          onClick={handleExport}
-          disabled={exporting}
-          className="w-full bg-[#1e3a8a] hover:bg-blue-900 text-white py-3 rounded-lg font-bold shadow-md transition-colors flex items-center justify-center gap-2 min-h-[48px] disabled:opacity-50"
-        >
-          {exporting ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              <span>Generando...</span>
-            </>
-          ) : (
-            <>
-              <Download className="w-5 h-5" />
-              <span>EXPORTAR CROQUIS</span>
-            </>
-          )}
-        </button>
       </div>
 
       {/* Main Map Presentation Layout to Capture */}
-      <div className="flex-1 bg-white p-4 rounded-xl border border-gray-200 overflow-hidden flex flex-col justify-center items-center">
+      <div className="flex-1 bg-white p-4 rounded-xl border border-gray-200 overflow-auto flex items-center justify-center min-h-[500px] w-full">
         
-        {/* Document Frame precisely matching the User's PDF Layout */}
-        <div 
-          ref={captureAreaRef}
-          id="croquis-capture-area"
-          className="w-[900px] h-[675px] bg-[#0c1a30] text-white flex flex-col relative overflow-hidden shrink-0 border border-black shadow-lg"
-          style={{ width: '900px', height: '675px' }} // Lock dimensions for canvas generation quality consistency
-        >
+        {/* Responsive scaling container to avoid clipping */}
+        <div className="scale-[0.55] sm:scale-[0.65] md:scale-[0.75] lg:scale-[0.8] xl:scale-95 origin-center transition-transform shrink-0">
+          <div 
+            ref={captureAreaRef}
+            id="croquis-capture-area"
+            className="w-[900px] h-[675px] bg-[#0c1a30] text-white flex flex-col relative overflow-hidden shrink-0 border border-black shadow-lg"
+            style={{ width: '900px', height: '675px' }} // Lock dimensions for canvas generation quality consistency
+          >
           {/* Header Banner */}
           <div className="bg-[#0B152A] py-3 text-center border-b-4 border-red-700 shrink-0 z-10">
             <h2 className="text-2xl font-black tracking-widest text-white uppercase">
@@ -410,48 +544,16 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
                 gestureHandling="cooperative"
                 disableDefaultUI={true}
                 className="w-full h-full"
-                onDragend={(e) => {
-                  if (mapRef.current) {
-                    const centerLatLng = mapRef.current.getCenter();
-                    if (centerLatLng) {
-                      setCenter({ lat: centerLatLng.lat(), lng: centerLatLng.lng() });
-                      setLat(centerLatLng.lat().toString());
-                      setLng(centerLatLng.lng().toString());
-                    }
-                  }
-                }}
               >
-                {/* Center Core Marker */}
-                <Marker
-                  position={center}
-                  title="Punto Central"
-                  icon={{
-                    url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-                    scaledSize: new google.maps.Size(40, 40)
-                  }}
+                <MapContent
+                  center={center}
+                  setCenter={setCenter}
+                  setLat={setLat}
+                  setLng={setLng}
+                  markers={markers}
+                  handleMarkerDragEnd={handleMarkerDragEnd}
+                  handleMapClick={handleMapClick}
                 />
-
-                {/* 200m Dashed Circle Overlay */}
-                <DashedCircle center={center} radius={200} />
-                <CircleLabel center={center} radius={200} />
-
-                {/* Placed Custom Risk Markers */}
-                {markers.map(m => {
-                  const cat = RISK_CATEGORIES.find(c => c.id === m.categoryId);
-                  return (
-                    <Marker
-                      key={m.id}
-                      position={{ lat: m.lat, lng: m.lng }}
-                      draggable={true}
-                      onDragend={(e) => handleMarkerDragEnd(m.id, e)}
-                      icon={{
-                        url: cat ? createMarkerIcon(cat.color, cat.iconSvg) : '',
-                        scaledSize: new google.maps.Size(36, 36),
-                        anchor: new google.maps.Point(18, 18)
-                      }}
-                    />
-                  );
-                })}
               </Map>
 
               {/* Compass / North Overlay Arrow */}
@@ -493,9 +595,9 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
           </div>
 
         </div>
-
       </div>
     </div>
+  </div>
   );
 }
 
