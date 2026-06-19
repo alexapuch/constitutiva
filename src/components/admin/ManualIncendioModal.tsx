@@ -102,7 +102,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
     // Alimentos / Restaurante
     if (
       text.includes('restaurante') || text.includes('cocina') || text.includes('alimento') || 
-      text.includes('comida') || text.includes('cafetera') || text.includes('bar') || 
+      text.includes('comida') || text.includes('cafetera') || /\bbar(es)?\b/i.test(text) || 
       text.includes('panaderia') || text.includes('pasteleria') || text.includes('bistro') || 
       text.includes('antro') || text.includes('cantina') || text.includes('pizzeria') || 
       text.includes('taqueria') || text.includes('tacos') || text.includes('loncheria') || 

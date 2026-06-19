@@ -412,7 +412,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     }
 
     // Bar / Antro
-    if (norm.includes('bar') || norm.includes('antro') || norm.includes('cantina')) {
+    if (/\bbar(es)?\b/i.test(norm) || norm.includes('antro') || norm.includes('cantina')) {
       return 'bar';
     }
     
