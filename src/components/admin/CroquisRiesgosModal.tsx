@@ -72,78 +72,41 @@ const createMarkerIcon = (color: string, iconSvg: string) => {
   return `data:image/svg+xml,${encodedSvg}`;
 };
 
-// Dashed Circle Overlay using Polyline
-function DashedCircle({ center, radius }: { center: google.maps.LatLngLiteral; radius: number }) {
+// Native Circle with dimension text label overlay
+function MapCircle({ center, radius }: { center: google.maps.LatLngLiteral; radius: number }) {
   const map = useMap();
-  const polylineRef = useRef<google.maps.Polyline | null>(null);
+  const circleRef = useRef<google.maps.Circle | null>(null);
+  const labelRef = useRef<google.maps.Marker | null>(null);
 
   useEffect(() => {
-    if (!map) return;
+    if (!map || typeof google === 'undefined') return;
 
-    // Calculate circular path points (360 degrees)
-    const points: google.maps.LatLngLiteral[] = [];
-    const d2r = Math.PI / 180;
-    // Earth radius in meters
-    const rLat = (radius / 6378137) / d2r;
-    const rLng = rLat / Math.cos(center.lat * d2r);
-
-    for (let i = 0; i <= 360; i += 2) {
-      const theta = i * d2r;
-      points.push({
-        lat: center.lat + (rLat * Math.sin(theta)),
-        lng: center.lng + (rLng * Math.cos(theta))
-      });
-    }
-
-    const lineSymbol = {
-      path: 'M 0,-1 0,1',
-      strokeOpacity: 1,
-      scale: 2,
-      strokeColor: '#dc2626' // Red
-    };
-
-    const polyline = new google.maps.Polyline({
+    // 1. Draw native Circle (completely centered and accurate)
+    const circle = new google.maps.Circle({
       map,
-      path: points,
-      strokeColor: '#dc2626',
-      strokeOpacity: 0,
-      icons: [{
-        icon: lineSymbol,
-        offset: '0',
-        repeat: '10px'
-      }]
+      center,
+      radius,
+      strokeColor: '#dc2626', // Red
+      strokeOpacity: 0.8,
+      strokeWeight: 3,
+      fillColor: '#dc2626',
+      fillOpacity: 0.05,
+      clickable: false
     });
+    circleRef.current = circle;
 
-    polylineRef.current = polyline;
-
-    return () => {
-      if (polylineRef.current) {
-        polylineRef.current.setMap(null);
-      }
-    };
-  }, [map, center, radius]);
-
-  return null;
-}
-
-// 200m text label overlay
-function CircleLabel({ center, radius }: { center: google.maps.LatLngLiteral; radius: number }) {
-  const map = useMap();
-  const overlayRef = useRef<google.maps.Marker | null>(null);
-
-  useEffect(() => {
-    if (!map) return;
-
-    // Calculate position for text label on the edge of the circle (e.g. North-East)
+    // 2. Calculate North edge position for "200 m" label
     const d2r = Math.PI / 180;
     const rLat = (radius / 6378137) / d2r;
-    const rLng = rLat / Math.cos(center.lat * d2r);
     
-    // 45 degrees for North-East placement
+    // Position slightly offset to North-East so it is very visible
     const angle = 45 * d2r;
     const labelPos = {
       lat: center.lat + (rLat * Math.sin(angle)),
-      lng: center.lng + (rLng * Math.cos(angle))
+      lng: center.lng + (rLng => {
+        // approximate longitude offset at this latitude
+        return (rLat / Math.cos(center.lat * d2r)) * Math.cos(angle);
+      })()
     };
 
     const labelMarker = new google.maps.Marker({
@@ -151,23 +114,20 @@ function CircleLabel({ center, radius }: { center: google.maps.LatLngLiteral; ra
       position: labelPos,
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
-        scale: 0 // invisible marker point
+        scale: 0 // invisible marker
       },
       label: {
-        text: '200 m',
+        text: `${radius} m`,
         color: '#dc2626',
         fontWeight: 'bold',
-        fontSize: '15px',
-        className: 'circle-label-text'
+        fontSize: '15px'
       }
     });
-
-    overlayRef.current = labelMarker;
+    labelRef.current = labelMarker;
 
     return () => {
-      if (overlayRef.current) {
-        overlayRef.current.setMap(null);
-      }
+      if (circleRef.current) circleRef.current.setMap(null);
+      if (labelRef.current) labelRef.current.setMap(null);
     };
   }, [map, center, radius]);
 
@@ -235,9 +195,8 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
         }}
       />
 
-      {/* 200m Dashed Circle Overlay */}
-      <DashedCircle center={center} radius={200} />
-      <CircleLabel center={center} radius={200} />
+      {/* 200m Circle Overlay */}
+      <MapCircle center={center} radius={200} />
 
       {/* Placed Custom Risk Markers */}
       {markers.map(m => {
