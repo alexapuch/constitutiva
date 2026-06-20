@@ -712,7 +712,8 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y = drawChecklistHeader(y, 140);
     y = drawChecklistRow('Lambrines incombustibles', data.acabados.lambrinesIncombustibles, y, 140);
     y = drawChecklistRow('Lambrines combustibles', data.acabados.lambrinesCombustibles, y, 140);
-    y = drawChecklistRow('Pisos y desniveles / Pisos falsos', data.acabados.pisosDesniveles || data.acabados.pisosFalsos, y, 140);
+    y = drawChecklistRow('Pisos con desniveles', data.acabados.pisosDesniveles, y, 140);
+    y = drawChecklistRow('Pisos falsos', data.acabados.pisosFalsos, y, 140);
     y = drawChecklistRow('Losetas y azulejos', data.acabados.losetasAzulejos, y, 140);
     y += 5;
 
@@ -723,26 +724,58 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     doc.setTextColor(0, 0, 0);
     y += 4;
     y = drawNoEstructuralHeader('EQUIPOS Y SERVICIOS DE EMERGENCIA', y);
-    y = drawNoEstructuralRow('Sistema de Alarma / Detectores Humo', data.equiposEmergencia.alarmas, y);
+    y = drawNoEstructuralRow('Sistema de Alarma', data.equiposEmergencia.alarmas, y);
+    y = drawNoEstructuralRow('Detectores de humo', data.equiposEmergencia.detectoresHumo, y);
     y = drawNoEstructuralRow('Extintores portátiles', data.equiposEmergencia.extintores, y);
-    y = drawNoEstructuralRow('Equipo contra incendio (manta, traje, herramientas)', data.equiposEmergencia.manta, y);
-    y = drawNoEstructuralRow('Salidas de emergencia / Rutas de Evacuación', data.equiposEmergencia.salidaEmergencia, y);
-    y = drawNoEstructuralRow('Punto de Reunión / Señalización', data.equiposEmergencia.puntoReunion, y);
+    y = drawNoEstructuralRow('Traje de bombero', data.equiposEmergencia.trajeBombero, y);
+    y = drawNoEstructuralRow('Casco', data.equiposEmergencia.casco, y);
+    y = drawNoEstructuralRow('Herramientas', data.equiposEmergencia.herramienta, y);
+    y = drawNoEstructuralRow('Manta contra incendios', data.equiposEmergencia.manta, y);
+    y = drawNoEstructuralRow('Rutas de Evacuación', data.equiposEmergencia.rutaEvacuacion, y);
+    y = drawNoEstructuralRow('Salida de emergencia', data.equiposEmergencia.salidaEmergencia, y);
+    y = drawNoEstructuralRow('Punto de Reunión', data.equiposEmergencia.puntoReunion, y);
+    y = drawNoEstructuralRow('Señalización', data.equiposEmergencia.senalizacion, y);
+    y = drawNoEstructuralRow('Brigadas', data.equiposEmergencia.brigadas, y);
+    y = drawNoEstructuralRow('Equipo de comunicación', data.equiposEmergencia.comunicacion, y);
+    y = drawNoEstructuralRow('Zonas de seguridad', data.equiposEmergencia.zonasSeguridad, y);
     y += 5;
 
     // 2.8 OTROS RIESGOS INTERNOS
+    doc.addPage();
+    y = 15;
     setBold(9.5);
     doc.setTextColor(18, 52, 86);
     doc.text('2.8 OTROS RIESGOS INTERNOS COMO:', margin, y);
     doc.setTextColor(0, 0, 0);
     y += 4;
     y = drawChecklistHeader(y, 140);
-    y = drawChecklistRow('Objetos que pueden inflamar/explotar (combustibles, solventes, cartón)', data.otrosRiesgos.inflamar.combustibles || data.otrosRiesgos.inflamar.solventes, y, 140);
-    y = drawChecklistRow('Objetos que pueden propiciar un incendio (cigarros, velas, cables mal estado)', data.otrosRiesgos.propiciar.cigarros || data.otrosRiesgos.propiciar.cablesMalEstado, y, 140);
-    y = drawChecklistRow('Objetos que pueden obstaculizar evacuación (tapetes, macetas, muebles sueltos)', data.otrosRiesgos.obstaculizar.tapetes || data.otrosRiesgos.obstaculizar.muebles, y, 140);
+    y = drawChecklistRow('Papel y cartón', data.otrosRiesgos.inflamar.papelCarton, y, 140);
+    y = drawChecklistRow('Líquidos combustibles', data.otrosRiesgos.inflamar.combustibles, y, 140);
+    y = drawChecklistRow('Solventes', data.otrosRiesgos.inflamar.solventes, y, 140);
+    y = drawChecklistRow('Cigarros', data.otrosRiesgos.propiciar.cigarros, y, 140);
+    y = drawChecklistRow('Colillas encendidas', data.otrosRiesgos.propiciar.colillas, y, 140);
+    y = drawChecklistRow('Velas', data.otrosRiesgos.propiciar.velas, y, 140);
+    y = drawChecklistRow('Instalación de gas', data.otrosRiesgos.propiciar.instalacionGas, y, 140);
+    y = drawChecklistRow('Cafeteras', data.otrosRiesgos.propiciar.cafeteras, y, 140);
+    y = drawChecklistRow('Contactos eléctricos', data.otrosRiesgos.propiciar.contactos, y, 140);
+    y = drawChecklistRow('Apagadores', data.otrosRiesgos.propiciar.apagadores, y, 140);
+    y = drawChecklistRow('Cables en mal estado', data.otrosRiesgos.propiciar.cablesMalEstado, y, 140);
+    y = drawChecklistRow('Hornos de microondas', data.otrosRiesgos.propiciar.microondas, y, 140);
+    y = drawChecklistRow('Tapetes', data.otrosRiesgos.obstaculizar.tapetes, y, 140);
+    y = drawChecklistRow('Macetas', data.otrosRiesgos.obstaculizar.macetas, y, 140);
+    y = drawChecklistRow('Archiveros', data.otrosRiesgos.obstaculizar.archiveros, y, 140);
+    y = drawChecklistRow('Pizarrones', data.otrosRiesgos.obstaculizar.pizarrones, y, 140);
+    y = drawChecklistRow('Muebles sueltos', data.otrosRiesgos.obstaculizar.muebles, y, 140);
+    y = drawChecklistRow('Equipos de limpieza', data.otrosRiesgos.obstaculizar.equiposLimpieza, y, 140);
+    y = drawChecklistRow('Herramientas', data.otrosRiesgos.obstaculizar.herramientas, y, 140);
+    y = drawChecklistRow('Puertas cerradas con llave', data.otrosRiesgos.obstaculizar.puertasCerradas, y, 140);
+    y = drawChecklistRow('Lavadoras', data.otrosRiesgos.obstaculizar.lavadoras, y, 140);
+    y = drawChecklistRow('Equipos de bombeo', data.otrosRiesgos.obstaculizar.bombeo, y, 140);
     y += 6;
 
     // 3. RIESGOS EXTERNOS
+    doc.addPage();
+    y = 15;
     setBold(10);
     doc.setTextColor(18, 52, 86);
     doc.text('3. RIESGOS EXTERNOS (ENTORNO Y AGENTES PERTURBADORES)', margin, y);
