@@ -161,6 +161,7 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
                                             className: 'signature-canvas w-full h-40 rounded-md cursor-crosshair',
                                             style: { touchAction: 'none' }
                                         }}
+                                        backgroundColor="rgb(255, 255, 255)"
                                         minWidth={1}
                                         maxWidth={2.5}
                                         velocityFilterWeight={0.7}
