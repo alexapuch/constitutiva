@@ -698,7 +698,12 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y += 5;
 
     // 2.7 EQUIPOS Y SERVICIOS DE EMERGENCIA
-    y = drawNoEstructuralHeader('2.7 RIESGO DEFICIENCIAS EN LOS EQUIPOS Y SERVICIOS DE EMERGENCIA', y);
+    setBold(9.5);
+    doc.setTextColor(18, 52, 86);
+    doc.text('2.7 RIESGO DEFICIENCIAS EN LOS EQUIPOS Y SERVICIOS DE EMERGENCIA', margin, y);
+    doc.setTextColor(0, 0, 0);
+    y += 4;
+    y = drawNoEstructuralHeader('EQUIPOS Y SERVICIOS DE EMERGENCIA', y);
     y = drawNoEstructuralRow('Sistema de Alarma / Detectores Humo', data.equiposEmergencia.alarmas, y);
     y = drawNoEstructuralRow('Extintores portátiles', data.equiposEmergencia.extintores, y);
     y = drawNoEstructuralRow('Equipo contra incendio (manta, traje, herramientas)', data.equiposEmergencia.manta, y);
