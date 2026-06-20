@@ -935,7 +935,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
       onClick={handleCloseModal}
     >
       <div 
-        className="bg-white dark:bg-gray-800 shadow-2xl w-full h-full md:h-auto md:max-h-[95vh] md:max-w-5xl md:rounded-2xl overflow-hidden flex flex-col transition-all duration-300"
+        className="bg-white dark:bg-gray-800 shadow-2xl w-full h-full md:h-auto md:max-h-[95vh] md:max-w-5xl md:rounded-2xl overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         
