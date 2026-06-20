@@ -604,6 +604,8 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y += 6;
 
     // 2.5 RIESGOS POR ELEMENTOS NO ESTRUCTURALES
+    doc.addPage();
+    y = 15;
     setBold(9.5);
     doc.setTextColor(18, 52, 86);
     doc.text('2.5 RIESGOS POR ELEMENTOS NO ESTRUCTURALES (OBJETOS A CAER, DESLIZARSE O VOLCAR)', margin, y);
@@ -646,11 +648,21 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     };
 
     y = drawNoEstructuralHeader('OBJETOS QUE PUEDEN CAER', y);
-    y = drawNoEstructuralRow('Lámparas / Plafones / Techos', data.caer.lamparas, y);
-    y = drawNoEstructuralRow('Ventiladores / Evaporador A/C', data.caer.ventiladores, y);
-    y = drawNoEstructuralRow('Pantallas / Cuadros / Espejos', data.caer.pantallas, y);
-    y = drawNoEstructuralRow('Cristalería / Cancel de vidrio', data.caer.cristaleria, y);
-    y = drawNoEstructuralRow('Líquidos (tóxicos, inflamables, corrosivos)', data.caer.liquidosToxicos, y);
+    y = drawNoEstructuralRow('Lámparas', data.caer.lamparas, y);
+    y = drawNoEstructuralRow('Ventiladores', data.caer.ventiladores, y);
+    y = drawNoEstructuralRow('Pantallas', data.caer.pantallas, y);
+    y = drawNoEstructuralRow('Evaporador A/C', data.caer.evaporador, y);
+    y = drawNoEstructuralRow('Cristalería', data.caer.cristaleria, y);
+    y = drawNoEstructuralRow('Canceles de vidrio', data.caer.canceles, y);
+    y = drawNoEstructuralRow('Techos', data.caer.techos, y);
+    y = drawNoEstructuralRow('Plafones', data.caer.plafones, y);
+    y = drawNoEstructuralRow('Repisas', data.caer.repisas, y);
+    y = drawNoEstructuralRow('Cuadros', data.caer.cuadros, y);
+    y = drawNoEstructuralRow('Espejos', data.caer.espejos, y);
+    y = drawNoEstructuralRow('Líquidos Tóxicos', data.caer.liquidosToxicos, y);
+    y = drawNoEstructuralRow('Líquidos Inflamables', data.caer.liquidosInflamables, y);
+    y = drawNoEstructuralRow('Líquidos Corrosivos', data.caer.liquidosCorrosivos, y);
+    y = drawNoEstructuralRow('Otros', data.caer.otros, y);
     if (data.caer.recomendaciones) {
       setNormal(7.5);
       doc.text(`Recomendaciones Caer: ${data.caer.recomendaciones.toUpperCase()}`, margin, y + 3.5);
@@ -659,7 +671,9 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y += 4;
 
     y = drawNoEstructuralHeader('OBJETOS QUE PUEDEN DESLIZARSE', y);
-    y = drawNoEstructuralRow('Escritorios / Mesas / Sillas', data.deslizarse.mesas, y);
+    y = drawNoEstructuralRow('Escritorios', data.deslizarse.escritorios, y);
+    y = drawNoEstructuralRow('Mesas', data.deslizarse.mesas, y);
+    y = drawNoEstructuralRow('Sillas', data.deslizarse.sillas, y);
     y = drawNoEstructuralRow('Refrigeradores', data.deslizarse.refrigeradores, y);
     y = drawNoEstructuralRow('Objetos con ruedas', data.deslizarse.ruedas, y);
     if (data.deslizarse.recomendaciones) {
@@ -671,9 +685,14 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
 
     y = drawNoEstructuralHeader('EQUIPOS QUE PUEDEN VOLCAR', y);
     y = drawNoEstructuralRow('Equipo de cómputo', data.volcar.computo, y);
-    y = drawNoEstructuralRow('Libreros / Lockers / Archiveros', data.volcar.libreros, y);
-    y = drawNoEstructuralRow('Estantes no anclados / Vitrinas', data.volcar.estantes, y);
+    y = drawNoEstructuralRow('Libreros', data.volcar.libreros, y);
+    y = drawNoEstructuralRow('Roperos', data.volcar.roperos, y);
+    y = drawNoEstructuralRow('Lockers', data.volcar.lockers, y);
+    y = drawNoEstructuralRow('Archiveros', data.volcar.archiveros, y);
+    y = drawNoEstructuralRow('Estantes no anclados', data.volcar.estantes, y);
+    y = drawNoEstructuralRow('Vitrinas', data.volcar.vitrinas, y);
     y = drawNoEstructuralRow('Tanques de gas', data.volcar.tanquesGas, y);
+    y = drawNoEstructuralRow('Subdivisiones', data.volcar.subdivisiones, y);
     if (data.volcar.recomendaciones) {
       setNormal(7.5);
       doc.text(`Recomendaciones Volcar: ${data.volcar.recomendaciones.toUpperCase()}`, margin, y + 3.5);
