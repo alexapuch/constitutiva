@@ -759,12 +759,22 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
 
     y = drawExternoHeader(y);
     y = drawExternoRow('Tanques elevados de agua', data.riesgosExternos.entorno.tanquesElevados, y);
-    y = drawExternoRow('Postes o torres eléctricas mal estado / alta tensión', data.riesgosExternos.entorno.postesMalEstado || data.riesgosExternos.entorno.torresAltaTension, y);
+    y = drawExternoRow('Postes en mal estado', data.riesgosExternos.entorno.postesMalEstado, y);
+    y = drawExternoRow('Torres de alta tensión', data.riesgosExternos.entorno.torresAltaTension, y);
     y = drawExternoRow('Transformadores de energía eléctrica', data.riesgosExternos.entorno.transformadores, y);
+    y = drawExternoRow('Inmuebles dañados', data.riesgosExternos.entorno.inmueblesDanados, y);
+    y = drawExternoRow('Banquetas', data.riesgosExternos.entorno.banquetas, y);
+    y = drawExternoRow('Alcantarillas', data.riesgosExternos.entorno.alcantarillas, y);
     y = drawExternoRow('Árboles grandes que puedan caer', data.riesgosExternos.entorno.arboles, y);
     y = drawExternoRow('Calles muy transitadas', data.riesgosExternos.entorno.callesTransitadas, y);
-    y = drawExternoRow('Tanques de gas L.P. / Gasolineras / Gaseras', data.riesgosExternos.entorno.tanquesGasLp || data.riesgosExternos.entorno.gasolineras, y);
+    y = drawExternoRow('Fábricas de gas', data.riesgosExternos.entorno.fabricasGas, y);
+    y = drawExternoRow('Tanques de gas L.P.', data.riesgosExternos.entorno.tanquesGasLp, y);
+    y = drawExternoRow('Gasolineras', data.riesgosExternos.entorno.gasolineras, y);
+    y = drawExternoRow('Anuncios espectaculares', data.riesgosExternos.entorno.espectaculares, y);
+    y = drawExternoRow('Almacenes peligrosos', data.riesgosExternos.entorno.almacenesPeligrosos, y);
+    y = drawExternoRow('Fábricas', data.riesgosExternos.entorno.fabricas, y);
     y = drawExternoRow('Costas (Cercanía con el mar)', data.riesgosExternos.entorno.costas, y);
+    y = drawExternoRow('Taller de solventes', data.riesgosExternos.entorno.tallerSolventes, y);
 
     // --- PAGE 5: AGENTES PERTURBADORES ---
     doc.addPage();
