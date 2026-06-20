@@ -598,7 +598,15 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50 dark:bg-gray-900" style={{ overscrollBehavior: 'contain' }}>
+        <div 
+          className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50 dark:bg-gray-900" 
+          style={{ 
+            overscrollBehavior: 'contain',
+            WebkitOverflowScrolling: 'touch',
+            transform: 'translateZ(0)',
+            willChange: 'scroll-position'
+          }}
+        >
           {/* Top selection bar */}
           <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col md:flex-row flex-wrap gap-4 items-end">
             <div className="flex-[2] min-w-[240px] w-full">
