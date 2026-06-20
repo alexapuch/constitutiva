@@ -199,6 +199,15 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
       return { category: 'COMERCIO', subCategory: 'PLAZA_COMERCIAL' };
     }
     
+    // Venta de Productos en General
+    if (
+      text.includes('productos en general') || text.includes('artículos en general') ||
+      text.includes('articulos en general') || text.includes('venta de productos') ||
+      text.includes('comercio general') || text.includes('comercio en general')
+    ) {
+      return { category: 'COMERCIO', subCategory: 'VENTA_PRODUCTOS_GENERAL' };
+    }
+
     // Otro Comercio
     if (text.includes('boutique') || text.includes('ropa') || text.includes('tienda') || text.includes('comercio') || text.includes('venta') || text.includes('papeleria') || text.includes('jugueteria') || text.includes('ferreteria') || text.includes('merceria') || text.includes('boneteria') || text.includes('joyeria') || text.includes('optica')) {
       return { category: 'COMERCIO', subCategory: 'OTRO_COMERCIO' };
@@ -285,6 +294,13 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
           liqComb = m2 <= 100 ? 30 : m2 <= 500 ? 150 : 400;
           solidos = Math.round(m2 * 18);
           flotante = Math.ceil(m2 / 5);                    // Altísima afluencia
+          break;
+        case 'VENTA_PRODUCTOS_GENERAL':
+          gases = 0;
+          liqInf = m2 <= 50 ? 5 : m2 <= 120 ? 15 : 40;     // Aerosoles, desinfectantes, perfumes
+          liqComb = 0;
+          solidos = Math.round(m2 * 12);                   // Mercancía diversa, cartón, plástico
+          flotante = Math.ceil(m2 / 12);
           break;
         default: // OTRO_COMERCIO / general
           gases = 0;
@@ -634,6 +650,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                 >
                   <option value="ZAPATERIA">ZAPATERÍA</option>
                   <option value="ABARROTES">TIENDA DE ABARROTES</option>
+                  <option value="VENTA_PRODUCTOS_GENERAL">VENTA DE PRODUCTOS EN GENERAL</option>
                   <option value="FARMACIA">FARMACIA</option>
                   <option value="LAVANDERIA">LAVANDERÍA Y TINTORERÍA</option>
                   <option value="TIENDA_PINTURAS">TIENDA DE PINTURAS</option>

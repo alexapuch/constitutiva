@@ -525,6 +525,15 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
       return 'hotel';
     }
     
+    // Venta de Productos en General
+    if (
+      norm.includes('productos en general') || norm.includes('artículos en general') || 
+      norm.includes('articulos en general') || norm.includes('venta de productos') ||
+      norm.includes('comercio general') || norm.includes('comercio en general')
+    ) {
+      return 'venta_productos_general';
+    }
+
     // Comercio General
     if (
       norm.includes('tienda') || norm.includes('boutique') || norm.includes('comercio') || 
@@ -554,7 +563,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     const isFood = category === 'restaurante' || category === 'cafeteria' || category === 'bar' || category === 'panaderia' || category === 'tortilleria';
     const isSpecialGas = isFood || category === 'lavanderia' || category === 'spa' || category === 'hotel';
     const isOffice = category === 'oficina' || category === 'despacho' || category === 'consultorio_medico' || category === 'consultorio_dental' || category === 'escuela';
-    const isComercio = category === 'comercio' || category === 'tienda_pinturas' || category === 'farmacia' || category === 'zapateria' || category === 'minisuper' || category === 'estetica' || category === 'veterinaria';
+    const isComercio = category === 'comercio' || category === 'tienda_pinturas' || category === 'farmacia' || category === 'zapateria' || category === 'minisuper' || category === 'estetica' || category === 'veterinaria' || category === 'venta_productos_general';
     const isIndustrial = category === 'taller_mecanico' || category === 'bodega';
 
     if (activeTab === 'generales') {
@@ -990,6 +999,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-600 outline-none font-bold text-xs uppercase"
               >
                 <option value="comercio">Comercio General</option>
+                <option value="venta_productos_general">Venta de Productos en General</option>
                 <option value="oficina">Oficina Administrativa / Corporativo</option>
                 <option value="despacho">Despacho Jurídico / Contable</option>
                 <option value="consultorio_medico">Consultorio Médico / Clínica</option>
