@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Users, QrCode, X } from 'lucide-react';
 import { motion } from 'motion/react';
+import { APP_VERSION } from '../utils/version';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -91,7 +92,7 @@ export default function Home() {
 
           <div className="text-gray-400 text-xs mt-6 pt-6 border-t border-gray-100 flex flex-col items-center gap-1.5 w-full">
             <p className="font-semibold text-[#0B152A]/70">&copy; 2026 SEPRISA. Todos los derechos reservados.</p>
-            <p>v2.31</p>
+            <p>{APP_VERSION}</p>
           </div>
         </motion.div>
       </div>

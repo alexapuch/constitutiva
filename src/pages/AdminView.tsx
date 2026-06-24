@@ -38,8 +38,8 @@ const CroquisRiesgosModal = lazy(() => import('../components/admin/CroquisRiesgo
 const CroquisSeñaleticaModal = lazy(() => import('../components/admin/CroquisSeñaleticaModal'));
 import { generateDC3PDF } from '../utils/generateDC3PDF';
 import { Menu } from 'lucide-react';
+import { APP_VERSION } from '../utils/version';
 
-const APP_VERSION = 'v2.31';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 

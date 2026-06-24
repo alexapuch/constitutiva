@@ -1,3 +1,5 @@
+import { APP_VERSION } from './version';
+
 // Caches template images as JPEG base64 in memory so subsequent PDF generations are instant.
 const jpegCache = new Map<string, string>();
 const pendingCache = new Map<string, Promise<string>>();
@@ -7,7 +9,7 @@ export const getCachedJpeg = (url: string): Promise<string> => {
   if (jpegCache.has(cacheKey)) return Promise.resolve(jpegCache.get(cacheKey)!);
   if (pendingCache.has(cacheKey)) return pendingCache.get(cacheKey)!;
 
-  const fetchUrl = `${cacheKey}?t=${new Date().getTime()}`;
+  const fetchUrl = `${cacheKey}?v=${APP_VERSION}`;
 
   const promise = fetch(fetchUrl)
     .then(res => {
