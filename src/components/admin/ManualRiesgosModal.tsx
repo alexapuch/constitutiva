@@ -282,7 +282,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
       setCommercialName(doc.commercial_name || '');
       setGiro(doc.activity || '');
       setEstimationGiro(classifyGiro(doc.activity || ''));
-      if (doc.date) setFecha(doc.date);
+      setFecha(doc.date || '');
       setPoblacionFija(doc.usuarios ? String(doc.usuarios) : '1');
       setPoblacionFlotante(doc.visitantes ? String(doc.visitantes) : '3');
       setNiveles(String(doc.superiores || 1));

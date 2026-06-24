@@ -425,7 +425,7 @@ export const generateIncendioPDF = async (
     y += 26;
 
     setNormal(8.5);
-    doc.text(`ESTA DETERMINACIÓN FUE ELABORADA EL ${data.fecha.toUpperCase()}`, margin, y);
+    doc.text(`ESTA DETERMINACIÓN FUE ELABORADA CON LA FECHA: ${data.fecha.toUpperCase()}`, margin, y);
     y += 14;
 
     // ── FIRMA ─────────────────────────────────────────────────────────────────

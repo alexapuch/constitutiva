@@ -376,7 +376,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
       setCompanyName(doc.company_name || '');
       setCommercialName(doc.commercial_name || '');
       setGiro(doc.activity || '');
-      if (doc.date) setFecha(doc.date);
+      setFecha(doc.date || '');
       
       // Auto mapping fixed/floating populations and levels from database fields if they exist
       setPoblacionFija(doc.usuarios ? String(doc.usuarios) : '1');
