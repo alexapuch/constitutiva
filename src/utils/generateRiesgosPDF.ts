@@ -562,9 +562,11 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     }
     y += 4;
 
-    // --- PAGE 3: ELECTRICAS & ESPECIALES & NO ESTRUCTURALES ---
-    doc.addPage();
-    y = 15;
+    const electricaHeight = 35 + (data.instalaciones.electrica.dictamenTecnico ? 15 : 0) + (data.instalaciones.electrica.recomendaciones ? 8 : 0);
+    if (y + electricaHeight > 265) {
+      doc.addPage();
+      y = 15;
+    }
 
      // Eléctrica
     y = drawInstalacionesHeader('INSTALACIÓN ELÉCTRICA', y);
@@ -595,6 +597,11 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     }
     y += 4;
 
+    if (y + 35 > 265) {
+      doc.addPage();
+      y = 15;
+    }
+
     // Especiales
     y = drawInstalacionesHeader('INSTALACIONES ESPECIALES', y);
     y = drawInstalacionRow('Bombas de agua / Presurizadores', data.instalaciones.especiales.bombasAgua || data.instalaciones.especiales.presurizadores, '—', 'BUENO', y);
@@ -604,8 +611,10 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y += 6;
 
     // 2.5 RIESGOS POR ELEMENTOS NO ESTRUCTURALES
-    doc.addPage();
-    y = 15;
+    if (y + 85 > 265) {
+      doc.addPage();
+      y = 15;
+    }
     setBold(9.5);
     doc.setTextColor(18, 52, 86);
     doc.text('2.5 RIESGOS POR ELEMENTOS NO ESTRUCTURALES (OBJETOS A CAER, DESLIZARSE O VOLCAR)', margin, y);
@@ -669,6 +678,10 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
       y += 5;
     }
     y += 4;
+    if (y + 35 > 265) {
+      doc.addPage();
+      y = 15;
+    }
 
     y = drawNoEstructuralHeader('OBJETOS QUE PUEDEN DESLIZARSE', y);
     y = drawNoEstructuralRow('Escritorios', data.deslizarse.escritorios, y);
@@ -682,6 +695,10 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
       y += 5;
     }
     y += 4;
+    if (y + 55 > 265) {
+      doc.addPage();
+      y = 15;
+    }
 
     y = drawNoEstructuralHeader('EQUIPOS QUE PUEDEN VOLCAR', y);
     y = drawNoEstructuralRow('Equipo de cómputo', data.volcar.computo, y);
@@ -699,11 +716,11 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
       y += 5;
     }
 
-    // --- PAGE 4: ACABADOS & EQUIPOS DE EMERGENCIA & OTROS INTERNOS ---
-    doc.addPage();
-    y = 15;
-
     // 2.6 ACABADOS
+    if (y + 35 > 265) {
+      doc.addPage();
+      y = 15;
+    }
     setBold(9.5);
     doc.setTextColor(18, 52, 86);
     doc.text('2.6 RIESGOS POR ACABADOS EN EL INMUEBLE', margin, y);
@@ -716,6 +733,10 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y = drawChecklistRow('Pisos falsos', data.acabados.pisosFalsos, y, 140);
     y = drawChecklistRow('Losetas y azulejos', data.acabados.losetasAzulejos, y, 140);
     y += 5;
+    if (y + 80 > 265) {
+      doc.addPage();
+      y = 15;
+    }
 
     // 2.7 EQUIPOS Y SERVICIOS DE EMERGENCIA
     setBold(9.5);
@@ -741,8 +762,10 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y += 5;
 
     // 2.8 OTROS RIESGOS INTERNOS
-    doc.addPage();
-    y = 15;
+    if (y + 120 > 265) {
+      doc.addPage();
+      y = 15;
+    }
     setBold(9.5);
     doc.setTextColor(18, 52, 86);
     doc.text('2.8 OTROS RIESGOS INTERNOS COMO:', margin, y);
@@ -774,8 +797,10 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y += 6;
 
     // 3. RIESGOS EXTERNOS
-    doc.addPage();
-    y = 15;
+    if (y + 95 > 265) {
+      doc.addPage();
+      y = 15;
+    }
     setBold(10);
     doc.setTextColor(18, 52, 86);
     doc.text('3. RIESGOS EXTERNOS (ENTORNO Y AGENTES PERTURBADORES)', margin, y);
@@ -832,10 +857,11 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y = drawExternoRow('Fábricas', data.riesgosExternos.entorno.fabricas, y);
     y = drawExternoRow('Costas (Cercanía con el mar)', data.riesgosExternos.entorno.costas, y);
     y = drawExternoRow('Taller de solventes', data.riesgosExternos.entorno.tallerSolventes, y);
-
-    // --- PAGE 5: AGENTES PERTURBADORES ---
-    doc.addPage();
-    y = 15;
+    y += 4;
+    if (y + 40 > 265) {
+      doc.addPage();
+      y = 15;
+    }
 
     setBold(10);
     doc.setTextColor(18, 52, 86);
@@ -882,6 +908,10 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y = drawChecklistRow('Sismos / Fallas geológicas / Deslizamiento suelos', data.riesgosExternos.geologico.sismos || data.riesgosExternos.geologico.fallas, y, 140);
     y = drawChecklistRow('Incendios / Explosiones / Fugas químicas', data.riesgosExternos.quimico.incendios || data.riesgosExternos.quimico.explosiones, y, 140);
     y += 12;
+    if (y + 35 > 270) {
+      doc.addPage();
+      y = 15;
+    }
 
     // Signatures / Footer
     doc.addImage(FIRMA_JORGE_BASE64, 'PNG', margin + 10, y, 36, 17);
