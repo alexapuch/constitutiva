@@ -709,7 +709,7 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
               <Map
                 defaultCenter={center}
                 defaultZoom={18}
-                onClick={handleMapClick}
+                onClick={(e) => { if (e.detail.latLng) handleMapClick(e.detail.latLng.lat, e.detail.latLng.lng); }}
                 mapTypeId="hybrid"
                 gestureHandling="cooperative"
                 disableDefaultUI={true}

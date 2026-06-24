@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Home, BarChart3, ClipboardList, Calculator, FileSignature, ShieldCheck, Sun, Moon, LogOut, GitBranch, BookOpen, FilePen, Award } from 'lucide-react';
+import { X, Home, BarChart3, ClipboardList, Calculator, FileSignature, ShieldCheck, Sun, Moon, LogOut, GitBranch, BookOpen, FilePen, Award, Map } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 interface SideMenuProps {
@@ -20,6 +20,7 @@ interface SideMenuProps {
   onOpenIncendio: () => void;
   onOpenRiesgos: () => void;
   onOpenCroquisRiesgos: () => void;
+  onOpenCroquisSeñaletica: () => void;
   onLogout: () => void;
   onNavigateHome: () => void;
 }
@@ -27,7 +28,7 @@ interface SideMenuProps {
 export default function SideMenu({
   isOpen, onClose, quotesCount,
   onOpenQuoteHistory, onOpenNewQuote, onOpenManualConstancia, onOpenManualDC3, onOpenOrganigrama,
-  onOpenCaratulas, onOpenCartaResponsiva, onOpenConstanciasHistory, onOpenActaBlank, onOpenGeoRiesgos, onOpenIncendio, onOpenRiesgos, onOpenCroquisRiesgos, onLogout, onNavigateHome
+  onOpenCaratulas, onOpenCartaResponsiva, onOpenConstanciasHistory, onOpenActaBlank, onOpenGeoRiesgos, onOpenIncendio, onOpenRiesgos, onOpenCroquisRiesgos, onOpenCroquisSeñaletica, onLogout, onNavigateHome
 }: SideMenuProps) {
   const { theme, toggleTheme } = useTheme();
 
@@ -179,6 +180,14 @@ export default function SideMenu({
               >
                 <ShieldCheck className="w-5 h-5 text-purple-700" />
                 Croquis Riesgos Circundantes
+              </button>
+
+              <button
+                onClick={() => { onClose(); onOpenCroquisSeñaletica(); }}
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 dark:text-gray-300 dark:hover:bg-emerald-950/20 transition-colors font-medium text-left"
+              >
+                <Map className="w-5 h-5 text-emerald-600" />
+                Diseñador de Croquis (Señaletica)
               </button>
             </nav>
 

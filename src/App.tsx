@@ -7,8 +7,8 @@ import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import OfflineBanner from './components/OfflineBanner';
 import { ThemeProvider } from './context/ThemeContext';
+import Home from './pages/Home';
 
-const Home = lazy(() => import('./pages/Home'));
 const PublicView = lazy(() => import('./pages/PublicView'));
 const AdminView = lazy(() => import('./pages/AdminView'));
 const VerificarConstancia = lazy(() => import('./pages/VerificarConstancia'));
