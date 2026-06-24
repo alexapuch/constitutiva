@@ -35,10 +35,11 @@ const GeoRiesgosModal = lazy(() => import('../components/admin/GeoRiesgosModal')
 const ManualIncendioModal = lazy(() => import('../components/admin/ManualIncendioModal'));
 const ManualRiesgosModal = lazy(() => import('../components/admin/ManualRiesgosModal'));
 const CroquisRiesgosModal = lazy(() => import('../components/admin/CroquisRiesgosModal'));
+const CroquisSeñaleticaModal = lazy(() => import('../components/admin/CroquisSeñaleticaModal'));
 import { generateDC3PDF } from '../utils/generateDC3PDF';
 import { Menu } from 'lucide-react';
 
-const APP_VERSION = 'v2.30';
+const APP_VERSION = 'v2.31';
 const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
@@ -107,6 +108,7 @@ export default function AdminView() {
   const [showIncendioModal, setShowIncendioModal] = useState(false);
   const [showRiesgosModal, setShowRiesgosModal] = useState(false);
   const [showCroquisRiesgosModal, setShowCroquisRiesgosModal] = useState(false);
+  const [showCroquisSeñaleticaModal, setShowCroquisSeñaleticaModal] = useState(false);
   const [turnosSimulacro, setTurnosSimulacro] = useState<'M' | 'MV' | 'MVN'>('MV');
   const [editingEmpId, setEditingEmpId] = useState<number | null>(null);
   const [editingEmpName, setEditingEmpName] = useState('');
@@ -134,13 +136,13 @@ export default function AdminView() {
   }, [selectedDocId]);
 
   useEffect(() => {
-    if (showQuickModal || showDC3Modal || showOrganigramaModal || showCaratulasModal || showQuoteDrawer || showSideMenu || showCartaResponsiva || previewUrl || showGeoRiesgosModal || showIncendioModal || showRiesgosModal || showCroquisRiesgosModal) {
+    if (showQuickModal || showDC3Modal || showOrganigramaModal || showCaratulasModal || showQuoteDrawer || showSideMenu || showCartaResponsiva || previewUrl || showGeoRiesgosModal || showIncendioModal || showRiesgosModal || showCroquisRiesgosModal || showCroquisSeñaleticaModal) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
     return () => { document.body.style.overflow = ''; };
-  }, [showQuickModal, showDC3Modal, showOrganigramaModal, showCaratulasModal, showQuoteDrawer, showSideMenu, showCartaResponsiva, previewUrl, showGeoRiesgosModal, showIncendioModal, showRiesgosModal, showCroquisRiesgosModal]);
+  }, [showQuickModal, showDC3Modal, showOrganigramaModal, showCaratulasModal, showQuoteDrawer, showSideMenu, showCartaResponsiva, previewUrl, showGeoRiesgosModal, showIncendioModal, showRiesgosModal, showCroquisRiesgosModal, showCroquisSeñaleticaModal]);
 
   useEffect(() => {
     fetchDocuments();
@@ -532,6 +534,7 @@ export default function AdminView() {
         onOpenIncendio={() => setShowIncendioModal(true)}
         onOpenRiesgos={() => setShowRiesgosModal(true)}
         onOpenCroquisRiesgos={() => setShowCroquisRiesgosModal(true)}
+        onOpenCroquisSeñaletica={() => setShowCroquisSeñaleticaModal(true)}
         onLogout={async () => {
           await supabase.auth.signOut();
           setIsAuthenticated(false);
@@ -1462,6 +1465,11 @@ export default function AdminView() {
       <CroquisRiesgosModal
         isOpen={showCroquisRiesgosModal}
         onClose={() => setShowCroquisRiesgosModal(false)}
+      />
+
+      <CroquisSeñaleticaModal
+        isOpen={showCroquisSeñaleticaModal}
+        onClose={() => setShowCroquisSeñaleticaModal(false)}
       />
 
       <ManualIncendioModal
