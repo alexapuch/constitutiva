@@ -388,6 +388,19 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
 
   const classifyGiro = (giroText: string) => {
     const norm = (giroText || '').toLowerCase();
+
+    // Centros Recreativos / Juegos
+    if (
+      norm.includes('recreativo') || norm.includes('balneario') || norm.includes('parque') ||
+      norm.includes('club') || norm.includes('alberca') || norm.includes('piscina') ||
+      norm.includes('salon de fiestas') || norm.includes('salon de eventos') ||
+      norm.includes('campo deportivo') || norm.includes('recreacion') ||
+      norm.includes('juegos infantiles') || norm.includes('diversion') ||
+      norm.includes('parque de diversion') || norm.includes('juegos') ||
+      norm.includes('trampolines') || norm.includes('ludoteca') || norm.includes('inflables')
+    ) {
+      return 'centros_recreativos';
+    }
     
     // Alimentos / Restaurante
     if (
@@ -595,7 +608,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
       });
 
       const hasStairs = numNiveles > 1;
-      const hasEmergStairs = numNiveles >= 3 || (m2Val > 300 && numNiveles > 1) || (category === 'plaza_comercial' && numNiveles > 1) || (category === 'hotel' && numNiveles > 1);
+      const hasEmergStairs = numNiveles >= 3 || (m2Val > 300 && numNiveles > 1) || (category === 'plaza_comercial' && numNiveles > 1) || (category === 'hotel' && numNiveles > 1) || (category === 'centros_recreativos' && numNiveles > 1);
 
       setEscalerasServicio({
         homogeneas: hasStairs,
@@ -623,7 +636,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
       });
     } else if (activeTab === 'instalaciones') {
       setHidrosanitaria({
-        cisterna: m2Val > 80 || category === 'lavanderia' || category === 'plaza_comercial' || category === 'spa' || category === 'hotel' || category === 'gimnasio',
+        cisterna: m2Val > 80 || category === 'lavanderia' || category === 'plaza_comercial' || category === 'spa' || category === 'hotel' || category === 'gimnasio' || category === 'centros_recreativos',
         tinaco: true,
         danosTuberia: false,
         danosLlaves: false,
@@ -663,7 +676,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
 
       const isLarge = m2Val >= 250 || category === 'plaza_comercial';
       setElectrica({
-        subestacion: isLarge && (category === 'taller_mecanico' || category === 'plaza_comercial' || category === 'lavanderia' || category === 'hotel' || category === 'gimnasio'),
+        subestacion: isLarge && (category === 'taller_mecanico' || category === 'plaza_comercial' || category === 'lavanderia' || category === 'hotel' || category === 'gimnasio' || category === 'centros_recreativos'),
         tableros: true,
         cableado: true,
         contactos: true,
@@ -671,7 +684,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
         lamparas: true,
         lamparasEmergencia: true,
         plantaEmergencia: isLarge,
-        transformador: isLarge && (category === 'taller_mecanico' || category === 'plaza_comercial' || category === 'hotel' || category === 'gimnasio'),
+        transformador: isLarge && (category === 'taller_mecanico' || category === 'plaza_comercial' || category === 'hotel' || category === 'gimnasio' || category === 'centros_recreativos'),
         dictamenTecnico: true,
         recomendaciones: 'MANTENER TABLEROS SEÑALIZADOS, CON DIRECTORIO Y CON TAPA PROTECTORA.',
         estado: 'BUENO',
@@ -680,12 +693,12 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
       setElectricaDictamenVigencia('ENERO 2026 - ENERO 2027');
 
       setEspeciales({
-        bombasAgua: m2Val > 80 || category === 'lavanderia' || category === 'plaza_comercial' || category === 'spa' || category === 'hotel' || category === 'gimnasio',
+        bombasAgua: m2Val > 80 || category === 'lavanderia' || category === 'plaza_comercial' || category === 'spa' || category === 'hotel' || category === 'gimnasio' || category === 'centros_recreativos',
         ac: category !== 'bodega',
-        extractores: isFood || category === 'taller_mecanico' || category === 'lavanderia' || category === 'spa' || category === 'gimnasio',
+        extractores: isFood || category === 'taller_mecanico' || category === 'lavanderia' || category === 'spa' || category === 'gimnasio' || category === 'centros_recreativos',
         ventiladores: true,
         cercaElectrica: false,
-        alarmaGeneral: m2Val > 150 || category === 'plaza_comercial',
+        alarmaGeneral: m2Val > 150 || category === 'plaza_comercial' || category === 'centros_recreativos',
         presurizadores: false,
         recomendaciones: 'SE RECOMIENDA MANTENIMIENTO PREVENTIVO PERIÓDICO A LOS EQUIPOS DE AIRE ACONDICIONADO.',
       });
@@ -703,15 +716,15 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
       const cantScreens = category === 'plaza_comercial' ? 12 : Math.max(0, Math.round(m2Val / 40));
       const cantAC = Math.max(1, Math.round((m2Val / 35) * numNiveles));
 
-      const hasEvaporador = category === 'oficina' || category === 'despacho' || category === 'consultorio_medico' || category === 'consultorio_dental' || category === 'plaza_comercial' || category === 'hotel' || category === 'spa' || category === 'restaurante' || category === 'cafeteria' || category === 'veterinaria';
+      const hasEvaporador = category === 'oficina' || category === 'despacho' || category === 'consultorio_medico' || category === 'consultorio_dental' || category === 'plaza_comercial' || category === 'hotel' || category === 'spa' || category === 'restaurante' || category === 'cafeteria' || category === 'veterinaria' || category === 'centros_recreativos';
       const hasCristaleria = isFood || category === 'farmacia' || category === 'estetica';
       const hasCanceles = isComercio || isFood || category === 'plaza_comercial';
       const hasPlafones = isOffice || category === 'plaza_comercial';
       const hasRepisas = isOffice || isComercio || category === 'tienda_pinturas' || category === 'farmacia';
       const hasCuadros = isOffice;
-      const hasEspejos = category === 'gimnasio' || category === 'estetica' || category === 'spa';
-      const hasToxicos = category === 'tienda_pinturas' || category === 'taller_mecanico' || category === 'lavanderia' || category === 'estetica';
-      const hasInflamables = category === 'tienda_pinturas' || category === 'taller_mecanico' || isFood || category === 'spa';
+      const hasEspejos = category === 'gimnasio' || category === 'estetica' || category === 'spa' || category === 'centros_recreativos';
+      const hasToxicos = category === 'tienda_pinturas' || category === 'taller_mecanico' || category === 'lavanderia' || category === 'estetica' || category === 'centros_recreativos';
+      const hasInflamables = category === 'tienda_pinturas' || category === 'taller_mecanico' || isFood || category === 'spa' || category === 'centros_recreativos';
 
       setCaer({
         lamparas: { siNo: true, cantidad: cantLamps, estado: 'BUENO' },
@@ -745,9 +758,9 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
         computo: { siNo: isOffice || category === 'plaza_comercial' || category === 'escuela', cantidad: (isOffice || category === 'plaza_comercial' || category === 'escuela') ? fixedPop : 0, estado: 'BUENO' },
         libreros: { siNo: isOffice || category === 'escuela', cantidad: (isOffice || category === 'escuela') ? 3 : 0, estado: 'BUENO' },
         roperos: { siNo: false, cantidad: 0, estado: 'BUENO' },
-        lockers: { siNo: category === 'gimnasio' || category === 'escuela' || category === 'taller_mecanico', cantidad: (category === 'gimnasio' || category === 'escuela' || category === 'taller_mecanico') ? 2 : 0, estado: 'BUENO' },
+        lockers: { siNo: category === 'gimnasio' || category === 'escuela' || category === 'taller_mecanico' || category === 'centros_recreativos', cantidad: (category === 'gimnasio' || category === 'escuela' || category === 'taller_mecanico' || category === 'centros_recreativos') ? 2 : 0, estado: 'BUENO' },
         archiveros: { siNo: isOffice, cantidad: isOffice ? Math.max(1, Math.round(fixedPop / 2)) : 0, estado: 'BUENO' },
-        estantes: { siNo: isComercio || isFood || category === 'bodega' || category === 'farmacia', cantidad: (isComercio || isFood || category === 'bodega' || category === 'farmacia') ? (category === 'tienda_pinturas' ? 15 : (category === 'bodega' ? 20 : 8)) : 0, estado: 'BUENO' },
+        estantes: { siNo: isComercio || isFood || category === 'bodega' || category === 'farmacia' || category === 'centros_recreativos', cantidad: (isComercio || isFood || category === 'bodega' || category === 'farmacia' || category === 'centros_recreativos') ? (category === 'tienda_pinturas' ? 15 : (category === 'bodega' ? 20 : 8)) : 0, estado: 'BUENO' },
         vitrinas: { siNo: isComercio || category === 'farmacia', cantidad: (isComercio || category === 'farmacia') ? 3 : 0, estado: 'BUENO' },
         tanquesGas: { siNo: isFood, cantidad: isFood ? 2 : 0, estado: 'BUENO' },
         subdivisiones: { siNo: isOffice, cantidad: isOffice ? 4 : 0, estado: 'BUENO' },
@@ -775,8 +788,8 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
 
       setOtrosRiesgos({
         inflamar: {
-          combustibles: category === 'taller_mecanico' || category === 'tienda_pinturas' || isFood,
-          solventes: category === 'taller_mecanico' || category === 'tienda_pinturas',
+          combustibles: category === 'taller_mecanico' || category === 'tienda_pinturas' || isFood || category === 'centros_recreativos',
+          solventes: category === 'taller_mecanico' || category === 'tienda_pinturas' || category === 'centros_recreativos',
           papelCarton: isOffice || isComercio || category === 'bodega',
           recomendaciones: 'MANTENER EL CARTÓN Y PAPEL EN CONTENEDORES CERRADOS.'
         },
@@ -839,7 +852,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
           accidentes: { vehiculosParticulares: true, vehiculosPeligrosos: false, vehiculosPasajeros: true, aereos: false, otros: false },
           delictivo: { robo: true, roboViolencia: false, invasion: false, interrupcion: false, sabotajeServicios: false, sabotajePrivados: false, otros: false },
           disturbios: { marchas: false, plantones: false, vandalismo: false, otros: false },
-          lugaresPublicos: { bares: false, cantinas: false, antros: false, iglesias: false, restaurantesBares: false, salones: false, construcciones: false, hospitals: false, centrosNocturnos: false }
+          lugaresPublicos: { bares: false, cantinas: false, antros: false, iglesias: false, restaurantesBares: false, salones: false, construcciones: false, hospitales: false, centrosNocturnos: false }
         },
         geologico: { fallas: false, sismos: false, deslizamiento: false, hundimiento: false },
         quimico: { incendios: false, explosiones: false, fugas: false, radiaciones: false },
@@ -1014,6 +1027,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
               >
                 <option value="comercio">Comercio General</option>
                 <option value="venta_productos_general">Venta de Productos en General</option>
+                <option value="centros_recreativos">Centros Recreativos (Juegos Infantiles, de Diversión, Club)</option>
                 <option value="oficina">Oficina Administrativa / Corporativo</option>
                 <option value="despacho">Despacho Jurídico / Contable</option>
                 <option value="consultorio_medico">Consultorio Médico / Clínica</option>

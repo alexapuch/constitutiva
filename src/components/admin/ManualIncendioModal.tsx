@@ -98,6 +98,19 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
   // Local rule-based estimation logic (does not use AI)
   const detectCategoryFromGiro = (giroText: string): { category: string; subCategory?: string } => {
     const text = (giroText || '').toLowerCase();
+
+    // Centros Recreativos / Juegos
+    if (
+      text.includes('recreativo') || text.includes('balneario') || text.includes('parque') ||
+      text.includes('club') || text.includes('alberca') || text.includes('piscina') ||
+      text.includes('salon de fiestas') || text.includes('salon de eventos') ||
+      text.includes('campo deportivo') || text.includes('recreacion') ||
+      text.includes('juegos infantiles') || text.includes('diversion') ||
+      text.includes('parque de diversion') || text.includes('juegos') ||
+      text.includes('trampolines') || text.includes('ludoteca') || text.includes('inflables')
+    ) {
+      return { category: 'CENTROS_RECREATIVOS' };
+    }
     
     // Alimentos / Restaurante
     if (
@@ -230,6 +243,12 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
       liqComb = m2 <= 50 ? 5 : m2 <= 120 ? 10 : 20; // Aceite
       solidos = Math.round(m2 * 15);
       flotante = Math.ceil(m2 / 10);
+    } else if (category === 'CENTROS_RECREATIVOS') {
+      gases = 0; // Never add gas for recreational centers
+      liqInf = m2 <= 100 ? 10 : m2 <= 500 ? 50 : 150;
+      liqComb = m2 <= 100 ? 20 : m2 <= 500 ? 100 : 400;
+      solidos = Math.round(m2 * 25);
+      flotante = Math.ceil(m2 / 5);
     } else if (category === 'COMERCIO') {
       switch (subCat) {
         case 'HOTEL':
@@ -641,6 +660,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-red-600 outline-none font-bold"
               >
                 <option value="RESTAURANTE">RESTAURANTE</option>
+                <option value="CENTROS_RECREATIVOS">CENTROS RECREATIVOS (JUEGOS INFANTILES, ETC.)</option>
                 <option value="COMERCIO">COMERCIO (ZAPATERÍA, ETC.)</option>
                 <option value="OFICINA">OFICINA</option>
                 <option value="TALLER">TALLER / BODEGA</option>
