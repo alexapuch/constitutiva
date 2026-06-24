@@ -37,6 +37,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     if (loadingAi) {
       handleCancelAi();
     }
+    handleLimpiar();
     onClose();
   };
 
@@ -276,6 +277,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
       handleLimpiar();
       return;
     }
+    resetAllChecklists();
     const doc = documents.find(d => String(d.id) === docIdStr);
     if (doc) {
       setCompanyName(doc.company_name || '');
@@ -877,6 +879,205 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     }
   };
 
+  const resetAllChecklists = () => {
+    setCroquis({
+      norteGeografico: false,
+      riesgosInternos: false,
+      zonasAltoRiesgo: false,
+      equiposEmergencia: false,
+      rutasEvacuacion: false,
+      zonaConteo: false,
+    });
+    setEstructural({
+      inclinacion: false,
+      separacion: false,
+      deformacion: false,
+      grietasMuros: false,
+      hundimiento: false,
+      grietasPiso: false,
+      filtracion: false,
+      danosEscaleras: false,
+    });
+    setEscalerasServicio({
+      homogeneas: false,
+      barandal: false,
+      pasamanos: false,
+      cinta: false,
+      iluminacion: false,
+      estado: 'BUENO',
+    });
+    setEscalerasEmergencia({
+      homogeneas: false,
+      barandal: false,
+      pasamanos: false,
+      cinta: false,
+      iluminacion: false,
+      estado: 'BUENO',
+    });
+    setHidrosanitaria({
+      cisterna: false,
+      tinaco: false,
+      danosTuberia: false,
+      danosLlaves: false,
+      dictamenTecnico: false,
+    });
+    setGas({
+      tanqueEstacionario: false,
+      tanqueMovil: false,
+      calentadorAgAgua: false, // wait, let's look at line 111 of ManualRiesgosModal.tsx: it was calentadorAgua, not calentadorAgAgua. Let's make sure it is calentadorAgua!
+      dictamenTecnico: false,
+      capacidad: '',
+      fugas: false,
+      estado: 'BUENO',
+      recomendaciones: '',
+    } as any); // wait! In ManualRiesgosModal, the state 'gas' has properties: tanqueEstacionario, tanqueMovil, calentadorAgua, dictamenTecnico, capacidad, fugas, estado, recomendaciones. Let's write them correctly!
+    setGas({
+      tanqueEstacionario: false,
+      tanqueMovil: false,
+      calentadorAgua: false,
+      dictamenTecnico: false,
+      capacidad: '',
+      fugas: false,
+      estado: 'BUENO',
+      recomendaciones: '',
+    });
+    setGasDictamenVigencia('');
+    setGasDictamenFecha('');
+    setElectrica({
+      subestacion: false,
+      tableros: false,
+      cableado: false,
+      contactos: false,
+      interruptores: false,
+      lamparas: false,
+      lamparasEmergencia: false,
+      plantaEmergencia: false,
+      transformador: false,
+      dictamenTecnico: false,
+      recomendaciones: '',
+      estado: 'BUENO',
+    });
+    setElectricaDictamenVigencia('');
+    setElectricaDictamenFecha('');
+    setEspeciales({
+      bombasAgua: false,
+      ac: false,
+      extractores: false,
+      ventiladores: false,
+      cercaElectrica: false,
+      alarmaGeneral: false,
+      presurizadores: false,
+      recomendaciones: '',
+    });
+    setCaer({
+      lamparas: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      ventiladores: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      pantallas: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      evaporador: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      cristaleria: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      canceles: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      techos: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      plafones: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      repisas: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      cuadros: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      espejos: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      liquidosToxicos: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      liquidosInflamables: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      liquidosCorrosivos: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      otros: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      recomendaciones: '',
+    });
+    setDeslizarse({
+      escritorios: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      mesas: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      sillas: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      refrigeradores: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      ruedas: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      recomendaciones: '',
+    });
+    setVolcar({
+      computo: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      libreros: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      roperos: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      lockers: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      archiveros: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      estantes: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      vitrinas: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      tanquesGas: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      subdivisiones: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      recomendaciones: '',
+    });
+    setAcabados({
+      lambrinesIncombustibles: false,
+      lambrinesCombustibles: false,
+      pisosDesniveles: false,
+      pisosFalsos: false,
+      losetasAzulejos: false,
+      cantidadM2: 0,
+      estado: 'BUENO',
+      recomendaciones: '',
+    });
+    setEquiposEmergencia({
+      alarmas: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      detectoresHumo: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      extintores: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      trajeBombero: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      casco: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      herramienta: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      manta: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      rutaEvacuacion: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      salidaEmergencia: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      puntoReunion: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      senalizacion: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      brigadas: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      comunicacion: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      zonasSeguridad: { siNo: false, cantidad: 0, estado: 'BUENO' },
+    });
+    setOtrosRiesgos({
+      inflamar: { combustibles: false, solventes: false, papelCarton: false, recomendaciones: '' },
+      propiciar: { cigarros: false, colillas: false, velas: false, instalacionGas: false, cafeteras: false, contactos: false, apagadores: false, cablesMalEstado: false, microondas: false, recomendaciones: '' },
+      obstaculizar: { tapetes: false, macetas: false, archiveros: false, pizarrones: false, muebles: false, equiposLimpieza: false, herramientas: false, puertasCerradas: false, lavadoras: false, bombeo: false, recomendaciones: '' }
+    });
+    setRiesgosExternos({
+      entorno: {
+        tanquesElevados: { siNo: false, distancia: '' },
+        postesMalEstado: { siNo: false, distancia: '' },
+        torresAltaTension: { siNo: false, distancia: '' },
+        transformadores: { siNo: false, distancia: '' },
+        inmueblesDanados: { siNo: false, distancia: '' },
+        banquetas: { siNo: false, distancia: '' },
+        alcantarillas: { siNo: false, distancia: '' },
+        arboles: { siNo: false, distancia: '' },
+        callesTransitadas: { siNo: false, distancia: '' },
+        fabricasGas: { siNo: false, distancia: '' },
+        tanquesGasLp: { siNo: false, distancia: '' },
+        gasolineras: { siNo: false, distancia: '' },
+        espectaculares: { siNo: false, distancia: '' },
+        almacenesPeligrosos: { siNo: false, distancia: '' },
+        fabricas: { siNo: false, distancia: '' },
+        costas: { siNo: false, distancia: '' },
+        tallerSolventes: { siNo: false, distancia: '' },
+      },
+      socioOrganizativo: {
+        accidentes: { vehiculosParticulares: false, vehiculosPeligrosos: false, vehiculosPasajeros: false, aereos: false, otros: false },
+        delictivo: { robo: false, roboViolencia: false, invasion: false, interrupcion: false, sabotajeServicios: false, sabotajePrivados: false, otros: false },
+        disturbios: { marchas: false, plantones: false, vandalismo: false, otros: false },
+        lugaresPublicos: { bares: false, cantinas: false, antros: false, iglesias: false, restaurantesBares: false, salones: false, construcciones: false, hospitales: false, centrosNocturnos: false }
+      },
+      geologico: { fallas: false, sismos: false, deslizamiento: false, hundimiento: false },
+      quimico: { incendios: false, explosiones: false, fugas: false, radiaciones: false },
+      hidrometeorologico: {
+        inundacion: { rio: false, lago: false, lluvia: false, mar: false },
+        otros: { vientosFuertes: false, huracan: false, mareaTormenta: false, tormentaElectrica: false, lluviaTorrencial: false, tromba: false, tornado: false, granizo: false, sequia: false }
+      },
+      sanitario: {
+        epidemia: { siNo: false, vulnerableA: '' },
+        plaga: { siNo: false, vulnerableA: '' },
+        envenenamiento: { siNo: false, vulnerableA: '' }
+      }
+    });
+  };
+
   const handleLimpiar = () => {
     setSelectedDocId('');
     setCompanyName('');
@@ -890,6 +1091,8 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     setPoblacionFija('1');
     setPoblacionFlotante('3');
     setTelefono('');
+    setFecha('');
+    resetAllChecklists();
   };
 
   const getPDFData = (): RiesgosPDFData => ({
