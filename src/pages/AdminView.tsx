@@ -87,6 +87,8 @@ export default function AdminView() {
 
   const [activeTab, setActiveTab] = useState<'documents'>('documents');
   const { data: documentsData, mutate: mutateDocuments, isLoading: loadingDocs } = useSWR('/api/documents', fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
     onSuccess: (data) => {
       if (data && data.length > 0) {
         setSelectedDocId(currentId => currentId || data[0].id);
