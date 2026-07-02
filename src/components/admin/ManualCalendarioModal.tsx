@@ -144,6 +144,8 @@ export default function ManualCalendarioModal({
                       </div>
                     </th>
                   ))}
+                  <th className="px-4 py-3 font-bold border-r border-slate-400 text-center">RESPONSABLE</th>
+                  <th className="px-4 py-3 font-bold text-center">EVIDENCIA<br/>DOCUMENTAL</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-300 dark:divide-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">
@@ -167,6 +169,14 @@ export default function ManualCalendarioModal({
                         </div>
                       </td>
                     ))}
+                    <td className="border-r border-slate-300 dark:border-slate-700"></td>
+                    <td className="px-2 py-2 text-center font-bold text-[10px] uppercase">
+                      {(() => {
+                        if (rIdx === 2) return "EVIDENCIA FOTOGRÁFICA";
+                        if (rIdx >= 12 && rIdx <= 14) return "CONSTANCIAS";
+                        return "REPORTE";
+                      })()}
+                    </td>
                   </tr>
                 ))}
               </tbody>

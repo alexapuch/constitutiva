@@ -56,12 +56,17 @@ export const generateCalendarioPDF = async (
   doc.text(data.commercialName, pageWidth / 2, 22, { align: 'center' });
 
   // Tabla
-  const head = [['ACTIVIDAD', ...MONTHS_LIST]];
+  const head = [['ACTIVIDAD', ...MONTHS_LIST, 'RESPONSABLE', 'EVIDENCIA\nDOCUMENTAL']];
   
   const body = ACTIVITIES_LIST.map((activity, rIdx) => {
+    let evidencia = "REPORTE";
+    if (rIdx === 2) evidencia = "EVIDENCIA FOTOGRÁFICA";
+    if (rIdx >= 12 && rIdx <= 14) evidencia = "CONSTANCIAS";
     return [
       activity,
-      ...MONTHS_LIST.map((_, cIdx) => data.grid[rIdx][cIdx] ? 'X' : '')
+      ...MONTHS_LIST.map((_, cIdx) => data.grid[rIdx][cIdx] ? 'X' : ''),
+      '',
+      evidencia
     ];
   });
 
@@ -88,7 +93,9 @@ export const generateCalendarioPDF = async (
       lineWidth: 0.3
     },
     columnStyles: {
-      0: { cellWidth: 140, halign: 'left', fillColor: [240, 248, 255] }, // Activity col slightly blueish white
+      0: { cellWidth: 90, halign: 'left', fillColor: [240, 248, 255] }, // Activity col
+      13: { cellWidth: 28, halign: 'center' }, // Responsable
+      14: { cellWidth: 25, halign: 'center' } // Evidencia
     },
     styles: {
       lineColor: [0, 0, 0],
@@ -96,24 +103,33 @@ export const generateCalendarioPDF = async (
       cellPadding: 1.2,
     },
     didParseCell: function (data) {
-      if (data.section === 'head' && data.column.index > 0) {
+      if (data.section === 'head' && data.column.index > 0 && data.column.index <= 12) {
         data.cell.text = []; // Clear header text, we draw it manually rotated
       }
-      if (data.section === 'body' && data.column.index > 0) {
+      if (data.section === 'head' && data.column.index >= 13) {
         data.cell.styles.halign = 'center';
         data.cell.styles.valign = 'middle';
-        
-        // If it's an 'X', we fill the cell and remove the 'X' text
-        if (data.cell.raw === 'X') {
-          data.cell.styles.fillColor = [153, 194, 230]; // Light blue from image
-          data.cell.text = []; // Clear the text so it's just a colored block
-        } else {
+      }
+      if (data.section === 'body') {
+        if (data.column.index > 0 && data.column.index <= 12) {
+          data.cell.styles.halign = 'center';
+          data.cell.styles.valign = 'middle';
+          // If it's an 'X', we fill the cell and remove the 'X' text
+          if (data.cell.raw === 'X') {
+            data.cell.styles.fillColor = [153, 194, 230]; // Light blue from image
+            data.cell.text = []; // Clear the text so it's just a colored block
+          } else {
+            data.cell.styles.fillColor = [255, 255, 255];
+          }
+        } else if (data.column.index >= 13) {
+          data.cell.styles.halign = 'center';
+          data.cell.styles.valign = 'middle';
           data.cell.styles.fillColor = [255, 255, 255];
         }
       }
     },
     didDrawCell: function (data) {
-      if (data.section === 'head' && data.column.index > 0) {
+      if (data.section === 'head' && data.column.index > 0 && data.column.index <= 12) {
         // Draw vertical text
         const text = MONTHS_LIST[data.column.index - 1];
         doc.setTextColor(255, 255, 255);
