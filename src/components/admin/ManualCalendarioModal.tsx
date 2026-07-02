@@ -28,10 +28,15 @@ export default function ManualCalendarioModal({
       let docMonth = 0; // Default January
       let docYear = new Date().getFullYear().toString();
       if (document.date && document.date !== 'UNKNOWN') {
-        const parts = document.date.split('-');
-        if (parts.length === 3) {
-          docYear = parts[0];
-          docMonth = parseInt(parts[1], 10) - 1; // 0-indexed
+        const dateUpper = document.date.toUpperCase();
+        const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+        const foundIndex = meses.findIndex(m => dateUpper.includes(m));
+        if (foundIndex !== -1) {
+          docMonth = foundIndex;
+        }
+        const matchYear = dateUpper.match(/20\d{2}/);
+        if (matchYear) {
+          docYear = matchYear[0];
         }
       }
       setYear(docYear);
