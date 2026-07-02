@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Download, Trash2, Plus, RefreshCw, Layers, Move, Grid, HelpCircle } from 'lucide-react';
+import { X, Save, Download, Trash2, Plus, RefreshCw, Layers, Move, Grid, HelpCircle, Upload } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 type SignType = 'extintor' | 'ruta_evacuacion' | 'salida_emergencia' | 'botiquin' | 'riesgo_electrico' | 'detector_humo' | 'valvula_gas';
@@ -581,9 +581,11 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
   const [activePlacementTool, setActivePlacementTool] = useState<SignType | null>(null);
   const [showGrid, setShowGrid] = useState<boolean>(true);
   const [base64Images, setBase64Images] = useState<Record<string, string>>({});
+  const [bgImage, setBgImage] = useState<string | null>(null);
   
   const svgRef = useRef<SVGSVGElement>(null);
   const dragInfoRef = useRef<{ id: string; startX: number; startY: number } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Pre-load images as Base64 to enable tainted-free canvas PNG download
   useEffect(() => {
@@ -632,6 +634,62 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
       }
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (!isOpen) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.indexOf('image') === 0) {
+          const file = item.getAsFile();
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              if (ev.target?.result) {
+                setBgImage(ev.target.result as string);
+                Swal.fire({
+                  toast: true,
+                  position: 'bottom-end',
+                  icon: 'success',
+                  title: 'Imagen pegada con éxito',
+                  showConfirmButton: false,
+                  timer: 2000
+                });
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+          break;
+        }
+      }
+    };
+
+    if (isOpen) {
+      window.addEventListener('paste', handlePaste);
+    }
+    return () => {
+      window.removeEventListener('paste', handlePaste);
+    };
+  }, [isOpen]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      Swal.fire('Error', 'Por favor, sube un archivo de imagen (PNG, JPG, JPEG).', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (ev.target?.result) {
+        setBgImage(ev.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Reset canvas and counters when changing Giro or layout variation
   useEffect(() => {
@@ -1275,6 +1333,40 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
 
             <div className="border-t border-slate-850 my-1" />
 
+            {/* Custom Background Upload */}
+            <div className="space-y-2">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Fondo Personalizado</span>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/jpg"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                {!bgImage ? (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-lg text-xs font-semibold border border-slate-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" /> Subir Imagen de Plano
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setBgImage(null)}
+                    className="w-full bg-red-900/30 hover:bg-red-900/50 text-red-400 py-2 rounded-lg text-xs font-semibold border border-red-900/50 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" /> Quitar Imagen
+                  </button>
+                )}
+                <p className="text-[9px] text-slate-500 leading-tight text-center">
+                  O presiona <kbd className="bg-slate-800 px-1 rounded">Ctrl</kbd> + <kbd className="bg-slate-800 px-1 rounded">V</kbd> para pegar.
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-850 my-1" />
+
             {/* Counts selection */}
             <div className="space-y-3">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">2. Cantidades de Señalética</span>
@@ -1423,10 +1515,15 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
                   </pattern>
                 </defs>
 
-                {/* Grid Background */}
-                {showGrid && <rect width="800" height="600" fill="url(#grid)" />}
+                {/* Background Image (User Uploaded) or Default Architectural Canvas */}
+                {bgImage ? (
+                  <image href={bgImage} x="0" y="0" width="800" height="600" preserveAspectRatio="xMidYMid meet" />
+                ) : (
+                  <>
+                    {/* Grid Background */}
+                    {showGrid && <rect width="800" height="600" fill="url(#grid)" />}
 
-                {/* Outer Wall Boundary */}
+                    {/* Outer Wall Boundary */}
                 <rect
                   x="40"
                   y="40"
@@ -1589,10 +1686,10 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
                   <line x1="100" y1="0" x2="100" y2="8" stroke="#475569" strokeWidth="1.5" />
                   <text x="50" y="-5" textAnchor="middle" fontSize="8" fontWeight="bold" fill="#475569">Escala: 5m</text>
                 </g>
+              </>
+            )}
 
-
-
-                {/* Render Placed Sign Icons */}
+            {/* Render Placed Sign Icons */}
                 {placedSigns.map((sign) => {
                   const meta = SIGN_METADATA[sign.type];
                   const hasImage = !!base64Images[sign.type];
