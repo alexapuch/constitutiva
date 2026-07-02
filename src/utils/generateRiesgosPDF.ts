@@ -349,6 +349,7 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y = drawInfoField('DOMICILIO:', data.direccion, y, 22);
     y = drawInfoField('MUNICIPIO:', data.municipio, y, 22);
     y = drawInfoField('ACTIVIDAD O GIRO:', data.giro, y, 35);
+    y = drawInfoField('FECHA DE VISITA:', data.fecha, y, 35);
 
     // Levels, Area, Population (Compact Grid)
     setNormal(8.5);
@@ -907,8 +908,8 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y = drawChecklistHeader(y, 140);
     y = drawChecklistRow('Sismos / Fallas geológicas / Deslizamiento suelos', data.riesgosExternos.geologico.sismos || data.riesgosExternos.geologico.fallas, y, 140);
     y = drawChecklistRow('Incendios / Explosiones / Fugas químicas', data.riesgosExternos.quimico.incendios || data.riesgosExternos.quimico.explosiones, y, 140);
-    y += 12;
-    if (y + 35 > 270) {
+    y += 6;
+    if (y + 25 > 265) {
       doc.addPage();
       y = 15;
     }

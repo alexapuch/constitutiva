@@ -1321,6 +1321,10 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
                       <option value="CANCÚN">CANCÚN</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha de la Visita *</label>
+                    <input type="text" value={fecha} onChange={e => setFecha(e.target.value)} className="w-full border rounded p-2 text-sm uppercase bg-white dark:bg-gray-750 dark:text-white" />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 border-t pt-4">
