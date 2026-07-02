@@ -21,6 +21,7 @@ interface SideMenuProps {
   onOpenRiesgos: () => void;
   onOpenCroquisRiesgos: () => void;
   onOpenCroquisSeñaletica: () => void;
+  onOpenCalendario: () => void;
   onLogout: () => void;
   onNavigateHome: () => void;
 }
@@ -28,7 +29,7 @@ interface SideMenuProps {
 export default function SideMenu({
   isOpen, onClose, quotesCount,
   onOpenQuoteHistory, onOpenNewQuote, onOpenManualConstancia, onOpenManualDC3, onOpenOrganigrama,
-  onOpenCaratulas, onOpenCartaResponsiva, onOpenConstanciasHistory, onOpenActaBlank, onOpenGeoRiesgos, onOpenIncendio, onOpenRiesgos, onOpenCroquisRiesgos, onOpenCroquisSeñaletica, onLogout, onNavigateHome
+  onOpenCaratulas, onOpenCartaResponsiva, onOpenConstanciasHistory, onOpenActaBlank, onOpenGeoRiesgos, onOpenIncendio, onOpenRiesgos, onOpenCroquisRiesgos, onOpenCroquisSeñaletica, onOpenCalendario, onLogout, onNavigateHome
 }: SideMenuProps) {
   const { theme, toggleTheme } = useTheme();
 
@@ -188,6 +189,13 @@ export default function SideMenu({
               >
                 <Map className="w-5 h-5 text-emerald-600" />
                 Diseñador de Croquis (Señaletica)
+              </button>
+              <button
+                onClick={() => { onClose(); onOpenCalendario(); }}
+                className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-700 dark:text-gray-300 dark:hover:bg-orange-950/20 transition-colors font-medium text-left"
+              >
+                <ClipboardList className="w-5 h-5 text-orange-600" />
+                Calendario de Actividades
               </button>
             </nav>
 

@@ -39,7 +39,9 @@ const ManualIncendioModal = lazy(() => import('../components/admin/ManualIncendi
 const ManualRiesgosModal = lazy(() => import('../components/admin/ManualRiesgosModal'));
 const CroquisRiesgosModal = lazy(() => import('../components/admin/CroquisRiesgosModal'));
 const CroquisSeñaleticaModal = lazy(() => import('../components/admin/CroquisSeñaleticaModal'));
+const ManualCalendarioModal = lazy(() => import('../components/admin/ManualCalendarioModal'));
 import { generateDC3PDF } from '../utils/generateDC3PDF';
+import { generateCalendarioPDF } from '../utils/generateCalendarioPDF';
 import { Menu } from 'lucide-react';
 import { APP_VERSION } from '../utils/version';
 
@@ -120,6 +122,7 @@ export default function AdminView() {
   const [showRiesgosModal, setShowRiesgosModal] = useState(false);
   const [showCroquisRiesgosModal, setShowCroquisRiesgosModal] = useState(false);
   const [showCroquisSeñaleticaModal, setShowCroquisSeñaleticaModal] = useState(false);
+  const [showCalendarioModal, setShowCalendarioModal] = useState(false);
   const [turnosSimulacro, setTurnosSimulacro] = useState<'M' | 'MV' | 'MVN'>('MV');
   const [editingEmpId, setEditingEmpId] = useState<number | null>(null);
   const [editingEmpName, setEditingEmpName] = useState('');
@@ -538,6 +541,7 @@ export default function AdminView() {
         onOpenRiesgos={() => setShowRiesgosModal(true)}
         onOpenCroquisRiesgos={() => setShowCroquisRiesgosModal(true)}
         onOpenCroquisSeñaletica={() => setShowCroquisSeñaleticaModal(true)}
+        onOpenCalendario={() => setShowCalendarioModal(true)}
         onLogout={async () => {
           await supabase.auth.signOut();
           setIsAuthenticated(false);
@@ -1492,6 +1496,18 @@ export default function AdminView() {
         onClose={() => setShowRiesgosModal(false)}
         documents={documents}
         onPreview={(url, name) => { setPreviewUrl(url); setPreviewName(name); setPreviewType('Identificación de Riesgos'); }}
+      />
+
+      <ManualCalendarioModal
+        isOpen={showCalendarioModal}
+        onClose={() => setShowCalendarioModal(false)}
+        document={docInfo}
+        onGenerate={async (data) => {
+          await generateCalendarioPDF(data, false);
+        }}
+        onPreview={async (data) => {
+          await handlePreview(() => generateCalendarioPDF(data, true), 'Calendario de Actividades', generatePdfName('CALENDARIO', data.commercialName, data.year));
+        }}
       />
 
       <PdfPreviewModal
