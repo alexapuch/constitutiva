@@ -519,8 +519,23 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
       } else {
         doc.text('X', margin + 114, currentY + 3.8);
       }
-      doc.text(capacidad, margin + 127, currentY + 3.8);
-      doc.text(estadoFugas, margin + 154, currentY + 3.8);
+      
+      let finalCapacidad = capacidad;
+      let finalEstado = estadoFugas;
+      
+      if (label === 'Daños en tuberías / Llaves') {
+        finalEstado = siNo ? 'CON DAÑOS' : 'SIN DAÑOS';
+      } else {
+        if (!siNo) {
+          finalCapacidad = 'N/A';
+          finalEstado = 'N/A';
+        } else {
+          if (finalEstado === 'N/A') finalEstado = 'BUENO';
+        }
+      }
+
+      doc.text(finalCapacidad, margin + 127, currentY + 3.8);
+      doc.text(finalEstado, margin + 154, currentY + 3.8);
       doc.line(margin + 95, currentY, margin + 95, currentY + 5);
       doc.line(margin + 110, currentY, margin + 110, currentY + 5);
       doc.line(margin + 125, currentY, margin + 125, currentY + 5);

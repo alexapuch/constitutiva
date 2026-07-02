@@ -31,7 +31,13 @@
       "Bash(ls -lh \"c:/Users/alexa/OneDrive/Escritorio/constitutiva/public/\"*.png \"c:/Users/alexa/OneDrive/Escritorio/constitutiva/public/\"*.jpg)",
       "Bash(curl -s http://localhost:5173)",
       "Bash(node -e \"require\\('xlsx'\\); console.log\\('installed'\\)\")",
-      "Bash(node -e \"require\\('xlsx'\\); console.log\\('ok'\\)\")"
+      "Bash(node -e \"require\\('xlsx'\\); console.log\\('ok'\\)\")",
+      "Bash(node test-endpoint.js)",
+      "Bash(node -e ' *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(node -e \"const p = require\\('./node_modules/@google/genai/package.json'\\); console.log\\('SDK version:', p.version\\);\")"
     ]
   }
 }

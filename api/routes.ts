@@ -59,7 +59,6 @@ const cleanupDeletedDocs = async () => {
 
 // GET all documents
 router.get('/documents', async (req, res) => {
-    cleanupDeletedDocs(); // Run asynchronously without awaiting
     const { activeOnly } = req.query;
     let query = supabase.from('document_info').select('*').order('id', { ascending: false });
     if (activeOnly === 'true') {
@@ -135,6 +134,7 @@ router.patch('/documents/:id/regenerate-code', async (req, res) => {
 
 // DELETE document (soft or hard)
 router.delete('/documents/:id', async (req, res) => {
+    cleanupDeletedDocs(); // Trigger cleanup in the background when documents are deleted
     const id = req.params.id;
     const { permanent } = req.query;
 

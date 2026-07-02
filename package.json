@@ -14,11 +14,10 @@
   "dependencies": {
     "@fontsource/montserrat": "^5.2.8",
     "@google/genai": "^1.29.0",
-    "@vis.gl/react-google-maps": "^1.8.3",
-
     "@supabase/supabase-js": "^2.49.1",
     "@tailwindcss/vite": "^4.1.14",
     "@types/qrcode": "^1.5.6",
+    "@vis.gl/react-google-maps": "^1.8.3",
     "@vitejs/plugin-react": "^5.0.4",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
@@ -34,6 +33,7 @@
     "react-router-dom": "^7.13.0",
     "react-signature-canvas": "^1.1.0-alpha.2",
     "sweetalert2": "^11.26.21",
+    "swr": "^2.4.2",
     "vite": "^6.2.0",
     "xlsx": "^0.18.5"
   },

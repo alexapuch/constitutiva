@@ -17,6 +17,9 @@ import AdminLoginForm from '../components/AdminLoginForm';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../utils/supabaseClient';
 import { CONSTANCIA_TYPES, CONSTANCIA_PDF_PREFIX } from '../utils/constanciaConstants';
+import useSWR from 'swr';
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 // Nuevos componentes extraidos (Cargados perezosamente / Lazy loading)
 const SideMenu = lazy(() => import('../components/admin/SideMenu'));
@@ -81,7 +84,14 @@ export default function AdminView() {
   }, []);
 
   const [activeTab, setActiveTab] = useState<'documents'>('documents');
-  const [documents, setDocuments] = useState<DocumentInfo[]>([]);
+  const { data: documentsData, mutate: mutateDocuments, isLoading: loadingDocs } = useSWR('/api/documents', fetcher, {
+    onSuccess: (data) => {
+      if (data && data.length > 0) {
+        setSelectedDocId(currentId => currentId || data[0].id);
+      }
+    }
+  });
+  const documents: DocumentInfo[] = documentsData || [];
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -93,7 +103,8 @@ export default function AdminView() {
   const [showOrganigramaModal, setShowOrganigramaModal] = useState(false);
   const [showCaratulasModal, setShowCaratulasModal] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
-  const [quotes, setQuotes] = useState<any[]>([]);
+  const { data: quotesData, mutate: mutateQuotes } = useSWR('/api/quotes', fetcher);
+  const quotes: any[] = quotesData || [];
   const [quoteSearchTerm, setQuoteSearchTerm] = useState('');
   const [quoteToEdit, setQuoteToEdit] = useState<any | null>(null);
   const [showQuoteDrawer, setShowQuoteDrawer] = useState(false);
@@ -120,20 +131,7 @@ export default function AdminView() {
   const [docSearchTerm, setDocSearchTerm] = useState('');
 
 
-  const fetchDocuments = useCallback(async () => {
-    try {
-      const res = await fetch('/api/documents');
-      const data = await res.json();
-      if (res.ok && data) {
-        setDocuments(data);
-        if (data.length > 0 && !selectedDocId) {
-          setSelectedDocId(data[0].id);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching documents:', error);
-    }
-  }, [selectedDocId]);
+
 
   useEffect(() => {
     if (showQuickModal || showDC3Modal || showOrganigramaModal || showCaratulasModal || showQuoteDrawer || showSideMenu || showCartaResponsiva || previewUrl || showGeoRiesgosModal || showIncendioModal || showRiesgosModal || showCroquisRiesgosModal || showCroquisSeñaleticaModal) {
@@ -144,10 +142,7 @@ export default function AdminView() {
     return () => { document.body.style.overflow = ''; };
   }, [showQuickModal, showDC3Modal, showOrganigramaModal, showCaratulasModal, showQuoteDrawer, showSideMenu, showCartaResponsiva, previewUrl, showGeoRiesgosModal, showIncendioModal, showRiesgosModal, showCroquisRiesgosModal, showCroquisSeñaleticaModal]);
 
-  useEffect(() => {
-    fetchDocuments();
-    fetchQuotes();
-  }, [fetchDocuments]);
+
 
 
 
@@ -165,13 +160,7 @@ export default function AdminView() {
     else setEmployees([]);
   }, [selectedDocId]);
 
-  const fetchQuotes = async () => {
-    try {
-      const res = await fetch('/api/quotes');
-      const data = await res.json();
-      if (res.ok && data) setQuotes(data);
-    } catch (error) { console.error('Error fetching quotes:', error); }
-  };
+
 
   const fetchEmployees = async (docId: number) => {
     try {
@@ -206,7 +195,7 @@ export default function AdminView() {
       })
     });
     setIsSaving(false);
-    fetchDocuments();
+    mutateDocuments();
   };
 
   const handleCopyInstructions = async (doc: DocumentInfo) => {
@@ -234,21 +223,29 @@ export default function AdminView() {
 
   const handleToggleDone = async (docId: number, currentActive: number) => {
     const newActive = currentActive === 1 ? 0 : 1;
+    mutateDocuments((prev: DocumentInfo[] = []) => 
+      prev.map(d => d.id === docId ? { ...d, is_active: newActive } : d),
+      { revalidate: false }
+    );
     await fetch(`/api/documents/${docId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_active: newActive })
     });
-    fetchDocuments();
+    mutateDocuments();
   };
 
   const handleRestoreDocument = async (docId: number) => {
+    mutateDocuments((prev: DocumentInfo[] = []) => 
+      prev.map(d => d.id === docId ? { ...d, is_active: 0, deleted_at: null } : d),
+      { revalidate: false }
+    );
     await fetch(`/api/documents/${docId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_active: 0 }) // Restaurar a Terminadas
     });
-    fetchDocuments();
+    mutateDocuments();
   };
 
   const promptCaratulaColor = async (): Promise<[number, number, number] | null> => {
@@ -343,7 +340,7 @@ export default function AdminView() {
         confirmButtonColor: '#722F37'
       });
     } else if (result) {
-      setDocuments(prevDocs => [result, ...prevDocs]);
+      mutateDocuments((prevDocs: DocumentInfo[] = []) => [result, ...prevDocs], { revalidate: false });
       setSelectedDocId(result.id);
     }
   };
@@ -354,7 +351,7 @@ export default function AdminView() {
       const res = await fetch(`/api/documents/${selectedDocId}/regenerate-code`, { method: 'PATCH' });
       const data = await res.json();
       if (res.ok && data.access_code) {
-        setDocuments(docs => docs.map(d => d.id === selectedDocId ? { ...d, access_code: data.access_code } : d));
+        mutateDocuments((docs: DocumentInfo[] = []) => docs.map(d => d.id === selectedDocId ? { ...d, access_code: data.access_code } : d), { revalidate: false });
       }
     } catch (err) {
       console.error('Error regenerating code:', err);
@@ -380,11 +377,16 @@ export default function AdminView() {
     
     if (!result.isConfirmed) return;
     
+    mutateDocuments((prev: DocumentInfo[] = []) => {
+      if (isDeleted) return prev.filter(d => d.id !== id);
+      return prev.map(d => d.id === id ? { ...d, is_active: -1, deleted_at: new Date().toISOString() } : d);
+    }, { revalidate: false });
+
     const endpoint = `/api/documents/${id}${isDeleted ? '?permanent=true' : ''}`;
     await fetch(endpoint, { method: 'DELETE' });
     
     if (selectedDocId === id && isDeleted) setSelectedDocId(null);
-    fetchDocuments();
+    mutateDocuments();
   };
 
   const handleDeleteQuote = async (id: string) => {
@@ -400,8 +402,9 @@ export default function AdminView() {
     });
 
     if (result.isConfirmed) {
+      mutateQuotes((prev: any[] = []) => prev.filter(q => q.id !== id), { revalidate: false });
       await fetch(`/api/quotes/${id}`, { method: 'DELETE' });
-      fetchQuotes();
+      mutateQuotes();
       Swal.fire('Eliminado', 'La cotización ha sido eliminada del historial.', 'success');
     }
   };
@@ -432,7 +435,7 @@ export default function AdminView() {
   };
 
   const updateSelectedDoc = (field: keyof DocumentInfo, value: any) => {
-    setDocuments(docs => docs.map(d => d.id === selectedDocId ? { ...d, [field]: value } : d));
+    mutateDocuments((docs: DocumentInfo[] = []) => docs.map(d => d.id === selectedDocId ? { ...d, [field]: value } : d), { revalidate: false });
   };
 
   const handleUppercaseChange = (
@@ -661,7 +664,12 @@ export default function AdminView() {
                   </motion.div>
                 ))}
               </AnimatePresence>
-              {documents.filter(d => d.is_active === 1 && (d.commercial_name || '').toLowerCase().includes(docSearchTerm.toLowerCase())).length === 0 && (
+              {loadingDocs ? (
+                <div className="px-6 py-12 text-center bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm mt-2">
+                  <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                  <p className="text-gray-500 font-medium">Cargando actas...</p>
+                </div>
+              ) : documents.filter(d => d.is_active === 1 && (d.commercial_name || '').toLowerCase().includes(docSearchTerm.toLowerCase())).length === 0 && (
                 <div className="px-6 py-12 text-center bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm mt-2">
                   <FileText className="w-12 h-12 text-blue-200 mx-auto mb-3" />
                   <p className="text-gray-500 font-medium">No hay actas pendientes.</p>
@@ -1310,7 +1318,7 @@ export default function AdminView() {
         isOpen={showQuoteModal}
         onClose={() => { setShowQuoteModal(false); setQuoteToEdit(null); }}
         quoteToEdit={quoteToEdit}
-        onQuoteSaved={fetchQuotes}
+        onQuoteSaved={() => mutateQuotes()}
       />
 
       <QuoteHistoryDrawer
