@@ -202,36 +202,30 @@ export const generateConstanciaPDF = async (docInfo: DocumentInfo, emp: Employee
         // 6. QR Code de verificación — en preview folio ficticio, en descarga real crea el registro
         const folio = await folioPromise;
         const verifyUrl = `https://seprisa.app/v/${folioToSlug(folio)}`;
-        const qrMatrix = QRCode.create(verifyUrl, { errorCorrectionLevel: 'L' });
+        
         const qrSize = 25.0;
         const qrPad = 1.5;
         const qrX = 231.75;
         const qrY = 151.5;
+        
         // Marco blanco con borde rojo redondeado
         doc.setFillColor(255, 255, 255);
         doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'F');
         doc.setDrawColor(220, 20, 20);
         doc.setLineWidth(1.2);
         doc.roundedRect(qrX - qrPad, qrY - qrPad, qrSize + qrPad * 2, qrSize + qrPad * 2, 2.5, 2.5, 'S');
-        // Dibujar módulos del QR (sin gap para asegurar lectura en Android)
-        const modules = qrMatrix.modules;
-        const modCount = modules.size;
-        const cellSize = qrSize / modCount;
-        doc.setFillColor(15, 23, 42);
-        for (let row = 0; row < modCount; row++) {
-            for (let col = 0; col < modCount; col++) {
-                if (modules.data[row * modCount + col]) {
-                    // Añadir +0.1 al tamaño para evitar que se vean líneas minúsculas de separación en renderizado PDF
-                    doc.rect(
-                        qrX + col * cellSize,
-                        qrY + row * cellSize,
-                        cellSize + 0.1,
-                        cellSize + 0.1,
-                        'F'
-                    );
-                }
+        
+        // Dibujar QR como imagen para evitar miles de paths lentos en lote
+        const qrBase64 = await QRCode.toDataURL(verifyUrl, {
+            errorCorrectionLevel: 'L',
+            margin: 0,
+            width: 300,
+            color: {
+                dark: '#0f172a',
+                light: '#ffffff'
             }
-        }
+        });
+        doc.addImage(qrBase64, 'PNG', qrX, qrY, qrSize, qrSize, `qr_${folio}`, 'FAST');
 
         // Preview mode: return blob URL
         if (preview) {
