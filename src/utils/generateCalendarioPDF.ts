@@ -66,7 +66,7 @@ export const generateCalendarioPDF = async (
   });
 
   autoTable(doc, {
-    startY: 30,
+    startY: 28,
     head: head,
     body: body,
     theme: 'grid',
@@ -77,8 +77,8 @@ export const generateCalendarioPDF = async (
       halign: 'center',
       valign: 'bottom',
       minCellHeight: 25,
-      fontSize: 8,
-      cellPadding: 2,
+      fontSize: 7,
+      cellPadding: 1,
     },
     bodyStyles: {
       fontSize: 8,
@@ -93,7 +93,7 @@ export const generateCalendarioPDF = async (
     styles: {
       lineColor: [0, 0, 0],
       lineWidth: 0.3,
-      cellPadding: 2,
+      cellPadding: 1.2,
     },
     didParseCell: function (data) {
       if (data.section === 'head' && data.column.index > 0) {
@@ -127,7 +127,7 @@ export const generateCalendarioPDF = async (
         doc.text(text, x, y, { angle: 90 });
       }
     },
-    margin: { top: 30, left: 10, right: 10 },
+    margin: { top: 25, bottom: 10, left: 10, right: 10 },
   });
 
   const pdfName = generatePdfName('CALENDARIO', data.commercialName, data.year);
