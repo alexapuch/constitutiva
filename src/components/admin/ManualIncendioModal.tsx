@@ -184,10 +184,10 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
     
     // Escuela / Colegio / Educación
     if (
-      text.includes('escuela') || text.includes('educacion') || text.includes('guarderia') || 
+      text.includes('escuela') || text.includes('educacion') || text.includes('educativ') || text.includes('guarderia') || 
       text.includes('colegio') || text.includes('academia') || text.includes('universidad') || 
       text.includes('kinder') || text.includes('preescolar') || text.includes('primaria') || 
-      text.includes('secundaria') || text.includes('preparatoria') || text.includes('instituto')
+      text.includes('secundaria') || text.includes('preparatoria') || text.includes('institu') || text.includes('intitu')
     ) {
       return { category: 'COMERCIO', subCategory: 'ESCUELA' };
     }
@@ -203,7 +203,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
     }
     
     // Abarrotes
-    if (text.includes('abarrotes') || text.includes('super') || text.includes('tiendita') || text.includes('minisuper') || text.includes('miscelanea')) {
+    if (text.includes('abarrotes') || /\bsuper\b/.test(text) || text.includes('tiendita') || text.includes('minisuper') || text.includes('miscelanea')) {
       return { category: 'COMERCIO', subCategory: 'ABARROTES' };
     }
     

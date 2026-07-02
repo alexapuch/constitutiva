@@ -512,10 +512,10 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     
     // Escuela / Educación
     if (
-      norm.includes('escuela') || norm.includes('educacion') || norm.includes('guarderia') || 
+      norm.includes('escuela') || norm.includes('educacion') || norm.includes('educativ') || norm.includes('guarderia') || 
       norm.includes('colegio') || norm.includes('academia') || norm.includes('universidad') || 
       norm.includes('kinder') || norm.includes('preescolar') || norm.includes('primaria') || 
-      norm.includes('secundaria') || norm.includes('preparatoria') || norm.includes('instituto')
+      norm.includes('secundaria') || norm.includes('preparatoria') || norm.includes('institu') || norm.includes('intitu')
     ) {
       return 'escuela';
     }
@@ -531,7 +531,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     }
 
     // Minisuper / Abarrotes
-    if (norm.includes('minisuper') || norm.includes('abarrotes') || norm.includes('tiendita') || norm.includes('super')) {
+    if (norm.includes('minisuper') || norm.includes('abarrotes') || norm.includes('tiendita') || /\bsuper\b/.test(norm)) {
       return 'minisuper';
     }
 
