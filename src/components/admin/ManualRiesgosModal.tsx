@@ -391,6 +391,19 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
   const classifyGiro = (giroText: string) => {
     const norm = (giroText || '').toLowerCase();
 
+    // Renta de Vehículos / Alquiler de Grúas y Maquinaria
+    if (
+      norm.includes('grua') || norm.includes('grúa') || 
+      norm.includes('renta de auto') || norm.includes('renta de coche') || 
+      norm.includes('alquiler de auto') || norm.includes('alquiler de coche') || 
+      norm.includes('alquiler de grua') || norm.includes('alquiler de grúa') || 
+      norm.includes('renta de vehiculo') || norm.includes('renta de vehículo') || 
+      norm.includes('arrendamiento de veh') || norm.includes('renta de maquinaria') ||
+      norm.includes('alquiler de maquinaria')
+    ) {
+      return 'renta_vehiculos';
+    }
+
     // Centros Recreativos / Juegos
     if (
       norm.includes('recreativo') || norm.includes('balneario') || norm.includes('parque') ||
@@ -578,7 +591,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     const isFood = category === 'restaurante' || category === 'cafeteria' || category === 'bar' || category === 'panaderia' || category === 'tortilleria';
     const isSpecialGas = isFood || category === 'lavanderia' || category === 'spa' || category === 'hotel';
     const isOffice = category === 'oficina' || category === 'despacho' || category === 'consultorio_medico' || category === 'consultorio_dental' || category === 'escuela';
-    const isComercio = category === 'comercio' || category === 'tienda_pinturas' || category === 'farmacia' || category === 'zapateria' || category === 'minisuper' || category === 'estetica' || category === 'veterinaria' || category === 'venta_productos_general';
+    const isComercio = category === 'comercio' || category === 'tienda_pinturas' || category === 'farmacia' || category === 'zapateria' || category === 'minisuper' || category === 'estetica' || category === 'veterinaria' || category === 'venta_productos_general' || category === 'renta_vehiculos';
     const isIndustrial = category === 'taller_mecanico' || category === 'bodega';
 
     if (activeTab === 'generales') {
@@ -725,8 +738,8 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
       const hasRepisas = isOffice || isComercio || category === 'tienda_pinturas' || category === 'farmacia';
       const hasCuadros = isOffice;
       const hasEspejos = category === 'gimnasio' || category === 'estetica' || category === 'spa' || category === 'centros_recreativos';
-      const hasToxicos = category === 'tienda_pinturas' || category === 'taller_mecanico' || category === 'lavanderia' || category === 'estetica' || category === 'centros_recreativos';
-      const hasInflamables = category === 'tienda_pinturas' || category === 'taller_mecanico' || isFood || category === 'spa' || category === 'centros_recreativos';
+      const hasToxicos = category === 'tienda_pinturas' || category === 'taller_mecanico' || category === 'lavanderia' || category === 'estetica' || category === 'centros_recreativos' || category === 'renta_vehiculos';
+      const hasInflamables = category === 'tienda_pinturas' || category === 'taller_mecanico' || isFood || category === 'spa' || category === 'centros_recreativos' || category === 'renta_vehiculos';
 
       setCaer({
         lamparas: { siNo: true, cantidad: cantLamps, estado: 'BUENO' },
@@ -790,8 +803,8 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
 
       setOtrosRiesgos({
         inflamar: {
-          combustibles: category === 'taller_mecanico' || category === 'tienda_pinturas' || isFood || category === 'centros_recreativos',
-          solventes: category === 'taller_mecanico' || category === 'tienda_pinturas' || category === 'centros_recreativos',
+          combustibles: category === 'taller_mecanico' || category === 'tienda_pinturas' || isFood || category === 'centros_recreativos' || category === 'renta_vehiculos',
+          solventes: category === 'taller_mecanico' || category === 'tienda_pinturas' || category === 'centros_recreativos' || category === 'renta_vehiculos',
           papelCarton: isOffice || isComercio || category === 'bodega',
           recomendaciones: 'MANTENER EL CARTÓN Y PAPEL EN CONTENEDORES CERRADOS.'
         },
@@ -848,7 +861,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
           almacenesPeligrosos: { siNo: false, distancia: '' },
           fabricas: { siNo: false, distancia: '' },
           costas: { siNo: false, distancia: '' },
-          tallerSolventes: { siNo: category === 'tienda_pinturas' || category === 'taller_mecanico', distancia: (category === 'tienda_pinturas' || category === 'taller_mecanico') ? '10 MTS' : '' },
+          tallerSolventes: { siNo: category === 'tienda_pinturas' || category === 'taller_mecanico' || category === 'renta_vehiculos', distancia: (category === 'tienda_pinturas' || category === 'taller_mecanico' || category === 'renta_vehiculos') ? '10 MTS' : '' },
         },
         socioOrganizativo: {
           accidentes: { vehiculosParticulares: true, vehiculosPeligrosos: false, vehiculosPasajeros: true, aereos: false, otros: false },
@@ -1253,6 +1266,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
                 <option value="panaderia">Panadería</option>
                 <option value="minisuper">Minisuper / Abarrotes</option>
                 <option value="veterinaria">Veterinaria / Estética Canina</option>
+                <option value="renta_vehiculos">Renta de Vehículos / Alquiler de Grúas</option>
                 <option value="hotel">Hotel / Hospedaje</option>
               </select>
             </div>

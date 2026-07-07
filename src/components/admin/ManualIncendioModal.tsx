@@ -129,6 +129,19 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
       return { category: 'RESTAURANTE' };
     }
     
+    // Renta de Vehículos / Alquiler de Grúas y Maquinaria
+    if (
+      text.includes('grua') || text.includes('grúa') || 
+      text.includes('renta de auto') || text.includes('renta de coche') || 
+      text.includes('alquiler de auto') || text.includes('alquiler de coche') || 
+      text.includes('alquiler de grua') || text.includes('alquiler de grúa') || 
+      text.includes('renta de vehiculo') || text.includes('renta de vehículo') || 
+      text.includes('arrendamiento de veh') || text.includes('renta de maquinaria') ||
+      text.includes('alquiler de maquinaria')
+    ) {
+      return { category: 'COMERCIO', subCategory: 'RENTA_VEHICULOS' };
+    }
+
     // Oficina / Consultorio / Despacho / Bufete
     if (
       text.includes('oficina') || text.includes('consultorio') || text.includes('despacho') || 
@@ -320,6 +333,13 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
           liqComb = 0;
           solidos = Math.round(m2 * 12);                   // Mercancía diversa, cartón, plástico
           flotante = Math.ceil(m2 / 12);
+          break;
+        case 'RENTA_VEHICULOS':
+          gases = 0;
+          liqInf = m2 <= 100 ? 50 : m2 <= 500 ? 200 : 500;   // Gasolinas
+          liqComb = m2 <= 100 ? 100 : m2 <= 500 ? 400 : 1000; // Aceites, diesel
+          solidos = Math.round(m2 * 10);
+          flotante = Math.ceil(m2 / 20);
           break;
         default: // OTRO_COMERCIO / general
           gases = 0;
@@ -692,6 +712,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                   <option value="ESCUELA">ESCUELA / COLEGIO</option>
                   <option value="GIMNASIO">GIMNASIO / ESTÉTICA</option>
                   <option value="PLAZA_COMERCIAL">PLAZA COMERCIAL</option>
+                  <option value="RENTA_VEHICULOS">RENTA DE VEHÍCULOS / ALQUILER DE GRÚAS</option>
                   <option value="OTRO_COMERCIO">OTRO COMERCIO</option>
                 </select>
               </div>
