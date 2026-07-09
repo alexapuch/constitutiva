@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Save, Download, Trash2, Plus, RefreshCw, Layers, Move, Grid, HelpCircle, Upload } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { generateCroquis, CROQUIS_GIROS, type DoorSide } from '../../utils/croquisGenerator';
 
 type SignType = 'extintor' | 'ruta_evacuacion' | 'salida_emergencia' | 'botiquin' | 'riesgo_electrico' | 'detector_humo' | 'valvula_gas';
 
@@ -18,494 +19,6 @@ interface CroquisSeñaleticaModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-interface GiroConfig {
-  id: string;
-  name: string;
-  rooms: { name: string; x: number; y: number; w: number; h: number }[];
-  walls: { x1: number; y1: number; x2: number; y2: number }[];
-  doors: { x: number; y: number; r: number; startAngle: number; endAngle: number; dx: number; dy: number }[];
-  anchors: { id: string; name: string; x: number; y: number; allowedTypes: SignType[]; rotation?: number }[];
-}
-
-const GIROS_VARIATIONS: Record<string, GiroConfig[]> = {
-  restaurante: [
-    {
-      id: 'restaurante',
-      name: 'Restaurante (Estilo A)',
-      rooms: [
-        { name: 'Cocina', x: 480, y: 50, w: 270, h: 200 },
-        { name: 'Almacén', x: 50, y: 50, w: 200, h: 160 },
-        { name: 'Baños', x: 50, y: 210, w: 200, h: 160 },
-        { name: 'Caja', x: 480, y: 450, w: 120, h: 100 },
-        { name: 'Comedor Principal', x: 260, y: 250, w: 490, h: 200 }
-      ],
-      walls: [
-        { x1: 480, y1: 50, x2: 480, y2: 250 },
-        { x1: 480, y1: 250, x2: 750, y2: 250 },
-        { x1: 50, y1: 210, x2: 250, y2: 210 },
-        { x1: 250, y1: 50, x2: 250, y2: 370 },
-        { x1: 50, y1: 370, x2: 250, y2: 370 },
-        { x1: 480, y1: 450, x2: 480, y2: 550 },
-        { x1: 480, y1: 450, x2: 600, y2: 450 }
-      ],
-      doors: [
-        { x: 480, y: 200, r: 40, startAngle: 180, endAngle: 270, dx: -40, dy: 0 },
-        { x: 250, y: 150, r: 40, startAngle: 270, endAngle: 360, dx: 0, dy: -40 },
-        { x: 250, y: 310, r: 40, startAngle: 0, endAngle: 90, dx: 0, dy: 40 },
-        { x: 350, y: 550, r: 60, startAngle: 180, endAngle: 270, dx: -60, dy: 0 }
-      ],
-      anchors: [
-        { id: 'acceso_principal', name: 'Acceso Principal', x: 350, y: 540, allowedTypes: ['salida_emergencia', 'ruta_evacuacion', 'extintor'], rotation: 180 },
-        { id: 'salida_emergencia', name: 'Salida de Emergencia', x: 400, y: 55, allowedTypes: ['salida_emergencia', 'ruta_evacuacion'], rotation: 270 },
-        { id: 'cocina_gas', name: 'Cocina (Gas)', x: 650, y: 55, allowedTypes: ['valvula_gas', 'extintor', 'detector_humo'], rotation: 270 },
-        { id: 'cocina_general', name: 'Cocina (General)', x: 495, y: 180, allowedTypes: ['extintor', 'detector_humo'], rotation: 180 },
-        { id: 'caja_recepcion', name: 'Caja / Recepción', x: 540, y: 445, allowedTypes: ['botiquin', 'extintor', 'ruta_evacuacion'], rotation: 270 },
-        { id: 'comedor_centro', name: 'Comedor (Centro)', x: 465, y: 320, allowedTypes: ['detector_humo'], rotation: 90 },
-        { id: 'comedor_izq', name: 'Comedor (Izquierda)', x: 265, y: 320, allowedTypes: ['ruta_evacuacion', 'botiquin'], rotation: 90 },
-        { id: 'almacen', name: 'Almacén', x: 55, y: 100, allowedTypes: ['extintor', 'detector_humo'], rotation: 90 },
-        { id: 'baños', name: 'Baños', x: 55, y: 280, allowedTypes: ['ruta_evacuacion'], rotation: 90 },
-        { id: 'tablero_electrico', name: 'Tablero Eléctrico', x: 745, y: 300, allowedTypes: ['riesgo_electrico', 'extintor', 'ruta_evacuacion'], rotation: 90 }
-      ]
-    },
-    {
-      id: 'restaurante',
-      name: 'Restaurante (Estilo B)',
-      rooms: [
-        { name: 'Comedor Principal', x: 50, y: 50, w: 430, h: 500 },
-        { name: 'Cocina', x: 480, y: 300, w: 270, h: 250 },
-        { name: 'Baño Hombres', x: 480, y: 50, w: 130, h: 120 },
-        { name: 'Baño Mujeres', x: 610, y: 50, w: 140, h: 120 },
-        { name: 'Almacén', x: 480, y: 170, w: 270, h: 130 }
-      ],
-      walls: [
-        { x1: 480, y1: 50, x2: 480, y2: 550 },
-        { x1: 480, y1: 170, x2: 750, y2: 170 },
-        { x1: 610, y1: 50, x2: 610, y2: 170 },
-        { x1: 480, y1: 300, x2: 750, y2: 300 }
-      ],
-      doors: [
-        { x: 480, y: 400, r: 35, startAngle: 270, endAngle: 360, dx: -35, dy: 0 },
-        { x: 480, y: 225, r: 35, startAngle: 180, endAngle: 270, dx: 35, dy: 0 },
-        { x: 540, y: 170, r: 30, startAngle: 0, endAngle: 90, dx: 0, dy: -30 },
-        { x: 670, y: 170, r: 30, startAngle: 0, endAngle: 90, dx: 0, dy: -30 },
-        { x: 260, y: 550, r: 60, startAngle: 180, endAngle: 270, dx: -60, dy: 0 }
-      ],
-      anchors: [
-        { id: 'acceso_principal', name: 'Acceso Principal', x: 260, y: 540, allowedTypes: ['salida_emergencia', 'ruta_evacuacion', 'extintor'], rotation: 180 },
-        { id: 'salida_emergencia', name: 'Salida de Emergencia', x: 400, y: 55, allowedTypes: ['salida_emergencia', 'ruta_evacuacion'], rotation: 270 },
-        { id: 'cocina_gas', name: 'Cocina (Gas)', x: 650, y: 310, allowedTypes: ['valvula_gas', 'extintor', 'detector_humo'], rotation: 270 },
-        { id: 'cocina_general', name: 'Cocina (General)', x: 495, y: 480, allowedTypes: ['extintor', 'detector_humo'], rotation: 180 },
-        { id: 'almacen', name: 'Almacén', x: 495, y: 200, allowedTypes: ['extintor', 'detector_humo'], rotation: 180 },
-        { id: 'comedor_centro', name: 'Comedor (Centro)', x: 250, y: 250, allowedTypes: ['detector_humo'], rotation: 90 },
-        { id: 'comedor_izq', name: 'Comedor (Izquierda)', x: 55, y: 250, allowedTypes: ['ruta_evacuacion', 'botiquin'], rotation: 90 },
-        { id: 'baños', name: 'Baños', x: 745, y: 100, allowedTypes: ['ruta_evacuacion'], rotation: 180 }
-      ]
-    }
-  ],
-  oficina: [
-    {
-      id: 'oficina',
-      name: 'Oficina Administrativa (Estilo A)',
-      rooms: [
-        { name: 'Recepción', x: 260, y: 380, w: 280, h: 170 },
-        { name: 'Sala de Juntas', x: 480, y: 50, w: 270, h: 220 },
-        { name: 'Oficina A', x: 50, y: 50, w: 200, h: 160 },
-        { name: 'Oficina B', x: 260, y: 50, w: 210, h: 160 },
-        { name: 'Site / Tablero', x: 50, y: 210, w: 200, h: 160 },
-        { name: 'Baño', x: 50, y: 380, w: 200, h: 170 },
-        { name: 'Pasillo Principal', x: 260, y: 220, w: 490, h: 150 }
-      ],
-      walls: [
-        { x1: 260, y1: 50, x2: 260, y2: 370 },
-        { x1: 470, y1: 50, x2: 470, y2: 270 },
-        { x1: 50, y1: 210, x2: 260, y2: 210 },
-        { x1: 50, y1: 370, x2: 260, y2: 370 },
-        { x1: 260, y1: 370, x2: 750, y2: 370 },
-        { x1: 470, y1: 270, x2: 750, y2: 270 }
-      ],
-      doors: [
-        { x: 260, y: 130, r: 35, startAngle: 270, endAngle: 360, dx: 0, dy: -35 },
-        { x: 260, y: 310, r: 35, startAngle: 0, endAngle: 90, dx: 0, dy: 35 },
-        { x: 260, y: 440, r: 35, startAngle: 0, endAngle: 90, dx: 0, dy: 35 },
-        { x: 470, y: 180, r: 40, startAngle: 180, endAngle: 270, dx: -40, dy: 0 },
-        { x: 450, y: 370, r: 35, startAngle: 0, endAngle: 90, dx: 35, dy: 0 },
-        { x: 380, y: 550, r: 50, startAngle: 180, endAngle: 270, dx: -50, dy: 0 }
-      ],
-      anchors: [
-        { id: 'acceso_principal', name: 'Acceso Principal', x: 380, y: 540, allowedTypes: ['salida_emergencia', 'ruta_evacuacion', 'extintor'], rotation: 180 },
-        { id: 'recepcion', name: 'Recepción', x: 275, y: 440, allowedTypes: ['botiquin', 'extintor'], rotation: 90 },
-        { id: 'sala_juntas', name: 'Sala de Juntas', x: 745, y: 120, allowedTypes: ['detector_humo', 'ruta_evacuacion'], rotation: 180 },
-        { id: 'oficina_a', name: 'Oficina A', x: 55, y: 100, allowedTypes: ['detector_humo', 'extintor'], rotation: 90 },
-        { id: 'oficina_b', name: 'Oficina B', x: 455, y: 100, allowedTypes: ['detector_humo'], rotation: 90 },
-        { id: 'site_servidores', name: 'Site / Servidores', x: 55, y: 280, allowedTypes: ['riesgo_electrico', 'extintor', 'detector_humo'], rotation: 90 },
-        { id: 'pasillo_comun', name: 'Pasillo Principal', x: 500, y: 355, allowedTypes: ['ruta_evacuacion', 'extintor'], rotation: 180 },
-        { id: 'baño', name: 'Baño', x: 55, y: 450, allowedTypes: ['ruta_evacuacion'], rotation: 90 }
-      ]
-    },
-    {
-      id: 'oficina',
-      name: 'Oficina Administrativa (Estilo B)',
-      rooms: [
-        { name: 'Recepción', x: 280, y: 380, w: 240, h: 170 },
-        { name: 'Pasillo Central', x: 280, y: 50, w: 240, h: 330 },
-        { name: 'Oficina Gerencia', x: 50, y: 50, w: 230, h: 160 },
-        { name: 'Oficina Ventas', x: 520, y: 50, w: 230, h: 160 },
-        { name: 'Oficina Operativa', x: 50, y: 210, w: 230, h: 170 },
-        { name: 'Baño', x: 520, y: 210, w: 230, h: 170 },
-        { name: 'Site / Archivo', x: 50, y: 380, w: 230, h: 170 },
-        { name: 'Sala de Juntas', x: 520, y: 380, w: 230, h: 170 }
-      ],
-      walls: [
-        { x1: 280, y1: 50, x2: 280, y2: 550 },
-        { x1: 520, y1: 50, x2: 520, y2: 550 },
-        { x1: 50, y1: 210, x2: 280, y2: 210 },
-        { x1: 50, y1: 380, x2: 280, y2: 380 },
-        { x1: 520, y1: 210, x2: 750, y2: 210 },
-        { x1: 520, y1: 380, x2: 750, y2: 380 }
-      ],
-      doors: [
-        { x: 280, y: 130, r: 35, startAngle: 270, endAngle: 360, dx: -35, dy: 0 },
-        { x: 520, y: 130, r: 35, startAngle: 180, endAngle: 270, dx: 35, dy: 0 },
-        { x: 280, y: 290, r: 35, startAngle: 270, endAngle: 360, dx: -35, dy: 0 },
-        { x: 520, y: 290, r: 35, startAngle: 180, endAngle: 270, dx: 35, dy: 0 },
-        { x: 280, y: 460, r: 35, startAngle: 270, endAngle: 360, dx: -35, dy: 0 },
-        { x: 520, y: 460, r: 35, startAngle: 180, endAngle: 270, dx: 35, dy: 0 },
-        { x: 400, y: 550, r: 50, startAngle: 180, endAngle: 270, dx: -50, dy: 0 }
-      ],
-      anchors: [
-        { id: 'acceso_principal', name: 'Acceso Principal', x: 400, y: 540, allowedTypes: ['salida_emergencia', 'ruta_evacuacion', 'extintor'], rotation: 180 },
-        { id: 'recepcion', name: 'Recepción', x: 350, y: 440, allowedTypes: ['botiquin', 'extintor'], rotation: 90 },
-        { id: 'pasillo_central', name: 'Pasillo Central', x: 400, y: 200, allowedTypes: ['ruta_evacuacion', 'extintor'], rotation: 180 },
-        { id: 'oficina_gerencia', name: 'Oficina Gerencia', x: 55, y: 100, allowedTypes: ['detector_humo', 'extintor'], rotation: 90 },
-        { id: 'oficina_ventas', name: 'Oficina Ventas', x: 745, y: 100, allowedTypes: ['detector_humo'], rotation: 180 },
-        { id: 'oficina_operativa', name: 'Oficina Operativa', x: 55, y: 280, allowedTypes: ['detector_humo'], rotation: 90 },
-        { id: 'baño', name: 'Baño', x: 745, y: 280, allowedTypes: ['ruta_evacuacion'], rotation: 180 },
-        { id: 'site_archivo', name: 'Site / Archivo', x: 55, y: 450, allowedTypes: ['riesgo_electrico', 'extintor'], rotation: 90 },
-        { id: 'sala_juntas', name: 'Sala de Juntas', x: 745, y: 450, allowedTypes: ['detector_humo', 'ruta_evacuacion'], rotation: 180 }
-      ]
-    },
-    {
-      id: 'oficina',
-      name: 'Oficina Administrativa (Estilo C)',
-      rooms: [
-        { name: 'Recepción y Espera', x: 50, y: 320, w: 260, h: 230 },
-        { name: 'Área de Coworking', x: 310, y: 200, w: 440, h: 350 },
-        { name: 'Sala de Juntas', x: 50, y: 50, w: 260, h: 270 },
-        { name: 'Privado A', x: 310, y: 50, w: 220, h: 150 },
-        { name: 'Privado B', x: 530, y: 50, w: 220, h: 150 },
-        { name: 'Cocineta / Cafetería', x: 310, y: 430, w: 220, h: 120 },
-        { name: 'Baño', x: 530, y: 430, w: 220, h: 120 }
-      ],
-      walls: [
-        { x1: 50, y1: 320, x2: 310, y2: 320 },
-        { x1: 310, y1: 50, x2: 310, y2: 550 },
-        { x1: 310, y1: 200, x2: 750, y2: 200 },
-        { x1: 530, y1: 50, x2: 530, y2: 200 },
-        { x1: 310, y1: 430, x2: 750, y2: 430 },
-        { x1: 530, y1: 430, x2: 530, y2: 550 }
-      ],
-      doors: [
-        { x: 310, y: 220, r: 35, startAngle: 270, endAngle: 360, dx: -35, dy: 0 },
-        { x: 310, y: 400, r: 35, startAngle: 180, endAngle: 270, dx: 35, dy: 0 },
-        { x: 420, y: 200, r: 35, startAngle: 0, endAngle: 90, dx: 0, dy: -35 },
-        { x: 640, y: 200, r: 35, startAngle: 0, endAngle: 90, dx: 0, dy: -35 },
-        { x: 640, y: 430, r: 35, startAngle: 0, endAngle: 90, dx: 0, dy: 35 },
-        { x: 180, y: 550, r: 50, startAngle: 180, endAngle: 270, dx: -50, dy: 0 }
-      ],
-      anchors: [
-        { id: 'acceso_principal', name: 'Acceso Principal', x: 180, y: 540, allowedTypes: ['salida_emergencia', 'ruta_evacuacion', 'extintor'], rotation: 180 },
-        { id: 'recepcion', name: 'Recepción', x: 100, y: 400, allowedTypes: ['botiquin', 'extintor'], rotation: 90 },
-        { id: 'sala_juntas', name: 'Sala de Juntas', x: 55, y: 150, allowedTypes: ['detector_humo', 'extintor'], rotation: 90 },
-        { id: 'coworking', name: 'Área de Coworking', x: 745, y: 300, allowedTypes: ['ruta_evacuacion', 'extintor', 'detector_humo'], rotation: 180 },
-        { id: 'privado_a', name: 'Privado A', x: 350, y: 100, allowedTypes: ['detector_humo'], rotation: 90 },
-        { id: 'privado_b', name: 'Privado B', x: 700, y: 100, allowedTypes: ['detector_humo'], rotation: 180 },
-        { id: 'baño', name: 'Baño', x: 700, y: 480, allowedTypes: ['ruta_evacuacion'], rotation: 180 }
-      ]
-    },
-    {
-      id: 'oficina',
-      name: 'Oficina Administrativa (Estilo D)',
-      rooms: [
-        { name: 'Recepción y Espera', x: 50, y: 380, w: 260, h: 170 },
-        { name: 'Pasillo L', x: 310, y: 220, w: 440, h: 330 },
-        { name: 'Oficina Gerencia', x: 50, y: 50, w: 260, h: 170 },
-        { name: 'Oficina Ventas', x: 310, y: 50, w: 220, h: 170 },
-        { name: 'Sala de Juntas', x: 530, y: 50, w: 220, h: 170 },
-        { name: 'Baño', x: 50, y: 220, w: 260, h: 160 },
-        { name: 'Site / Sistemas', x: 580, y: 380, w: 170, h: 170 }
-      ],
-      walls: [
-        { x1: 50, y1: 220, x2: 750, y2: 220 },
-        { x1: 310, y1: 50, x2: 310, y2: 220 },
-        { x1: 530, y1: 50, x2: 530, y2: 220 },
-        { x1: 310, y1: 220, x2: 310, y2: 550 },
-        { x1: 50, y1: 380, x2: 310, y2: 380 },
-        { x1: 580, y1: 380, x2: 580, y2: 550 },
-        { x1: 580, y1: 380, x2: 750, y2: 380 }
-      ],
-      doors: [
-        { x: 180, y: 220, r: 35, startAngle: 0, endAngle: 90, dx: 0, dy: 35 },
-        { x: 310, y: 400, r: 35, startAngle: 180, endAngle: 270, dx: 35, dy: 0 },
-        { x: 180, y: 220, r: 35, startAngle: 0, endAngle: 90, dx: 0, dy: -35 },
-        { x: 420, y: 220, r: 35, startAngle: 0, endAngle: 90, dx: 0, dy: -35 },
-        { x: 640, y: 220, r: 35, startAngle: 0, endAngle: 90, dx: 0, dy: -35 },
-        { x: 580, y: 450, r: 35, startAngle: 180, endAngle: 270, dx: 35, dy: 0 },
-        { x: 180, y: 550, r: 50, startAngle: 180, endAngle: 270, dx: -50, dy: 0 }
-      ],
-      anchors: [
-        { id: 'acceso_principal', name: 'Acceso Principal', x: 180, y: 540, allowedTypes: ['salida_emergencia', 'ruta_evacuacion', 'extintor'], rotation: 180 },
-        { id: 'recepcion', name: 'Recepción', x: 100, y: 440, allowedTypes: ['botiquin', 'extintor'], rotation: 90 },
-        { id: 'baño', name: 'Baño', x: 55, y: 280, allowedTypes: ['ruta_evacuacion'], rotation: 90 },
-        { id: 'gerencia', name: 'Oficina Gerencia', x: 55, y: 100, allowedTypes: ['detector_humo', 'extintor'], rotation: 90 },
-        { id: 'ventas', name: 'Oficina Ventas', x: 350, y: 100, allowedTypes: ['detector_humo'], rotation: 90 },
-        { id: 'juntas', name: 'Sala de Juntas', x: 745, y: 100, allowedTypes: ['detector_humo', 'ruta_evacuacion'], rotation: 180 },
-        { id: 'pasillo', name: 'Pasillo L', x: 450, y: 350, allowedTypes: ['ruta_evacuacion', 'extintor'], rotation: 270 },
-        { id: 'site', name: 'Site / Sistemas', x: 745, y: 450, allowedTypes: ['riesgo_electrico', 'extintor'], rotation: 180 }
-      ]
-    },
-    {
-      id: 'oficina',
-      name: 'Oficina Administrativa (Estilo E)',
-      rooms: [
-        { name: 'Lobby / Recepción', x: 260, y: 210, w: 280, h: 170 },
-        { name: 'Pasillo Norte', x: 50, y: 210, w: 210, h: 50 },
-        { name: 'Pasillo Sur', x: 540, y: 330, w: 210, h: 50 },
-        { name: 'Oficina Gerente', x: 50, y: 50, w: 210, h: 160 },
-        { name: 'Oficina Juntas', x: 540, y: 50, w: 210, h: 160 },
-        { name: 'Oficina Común', x: 260, y: 50, w: 280, h: 160 },
-        { name: 'Baño', x: 50, y: 380, w: 210, h: 170 },
-        { name: 'Site / Redes', x: 540, y: 380, w: 210, h: 170 },
-        { name: 'Área Operativa', x: 260, y: 380, w: 280, h: 170 }
-      ],
-      walls: [
-        { x1: 260, y1: 50, x2: 260, y2: 550 },
-        { x1: 540, y1: 50, x2: 540, y2: 550 },
-        { x1: 50, y1: 210, x2: 750, y2: 210 },
-        { x1: 50, y1: 380, x2: 750, y2: 380 }
-      ],
-      doors: [
-        { x: 260, y: 130, r: 35, startAngle: 270, endAngle: 360, dx: -35, dy: 0 },
-        { x: 540, y: 130, r: 35, startAngle: 180, endAngle: 270, dx: 35, dy: 0 },
-        { x: 400, y: 210, r: 35, startAngle: 0, endAngle: 90, dx: 0, dy: -35 },
-        { x: 260, y: 460, r: 35, startAngle: 270, endAngle: 360, dx: -35, dy: 0 },
-        { x: 540, y: 460, r: 35, startAngle: 180, endAngle: 270, dx: 35, dy: 0 },
-        { x: 400, y: 380, r: 35, startAngle: 0, endAngle: 90, dx: 0, dy: 35 },
-        { x: 400, y: 550, r: 50, startAngle: 180, endAngle: 270, dx: -50, dy: 0 }
-      ],
-      anchors: [
-        { id: 'acceso_principal', name: 'Acceso Principal', x: 400, y: 540, allowedTypes: ['salida_emergencia', 'ruta_evacuacion', 'extintor'], rotation: 180 },
-        { id: 'recepcion', name: 'Recepción', x: 400, y: 290, allowedTypes: ['botiquin', 'extintor'], rotation: 270 },
-        { id: 'gerente', name: 'Oficina Gerente', x: 55, y: 100, allowedTypes: ['detector_humo', 'extintor'], rotation: 90 },
-        { id: 'juntas', name: 'Sala de Juntas', x: 745, y: 100, allowedTypes: ['detector_humo'], rotation: 180 },
-        { id: 'baño', name: 'Baño', x: 55, y: 450, allowedTypes: ['ruta_evacuacion'], rotation: 90 },
-        { id: 'site', name: 'Site / Redes', x: 745, y: 450, allowedTypes: ['riesgo_electrico', 'extintor'], rotation: 180 },
-        { id: 'comun', name: 'Oficina Común', x: 350, y: 100, allowedTypes: ['detector_humo'], rotation: 90 },
-        { id: 'operativa', name: 'Área Operativa', x: 350, y: 450, allowedTypes: ['detector_humo', 'ruta_evacuacion'], rotation: 270 }
-      ]
-    }
-  ],
-  consultorio: [
-    {
-      id: 'consultorio',
-      name: 'Consultorio Médico / Clínica (Estilo A)',
-      rooms: [
-        { name: 'Recepción y Espera', x: 50, y: 350, w: 700, h: 200 },
-        { name: 'Pasillo Central', x: 330, y: 200, w: 140, h: 150 },
-        { name: 'Consultorio A', x: 50, y: 50, w: 280, h: 150 },
-        { name: 'Consultorio B', x: 470, y: 50, w: 280, h: 150 },
-        { name: 'Consultorio C', x: 50, y: 200, w: 280, h: 150 },
-        { name: 'Baño', x: 470, y: 200, w: 280, h: 150 }
-      ],
-      walls: [
-        { x1: 330, y1: 50, x2: 330, y2: 350 },
-        { x1: 470, y1: 50, x2: 470, y2: 350 },
-        { x1: 50, y1: 200, x2: 330, y2: 200 },
-        { x1: 470, y1: 200, x2: 750, y2: 200 },
-        { x1: 50, y1: 350, x2: 330, y2: 350 },
-        { x1: 470, y1: 350, x2: 750, y2: 350 },
-        { x1: 400, y1: 50, x2: 400, y2: 200 }
-      ],
-      doors: [
-        { x: 330, y: 120, r: 35, startAngle: 270, endAngle: 360, dx: -35, dy: 0 },
-        { x: 470, y: 120, r: 35, startAngle: 180, endAngle: 270, dx: 35, dy: 0 },
-        { x: 330, y: 280, r: 35, startAngle: 270, endAngle: 360, dx: -35, dy: 0 },
-        { x: 470, y: 280, r: 35, startAngle: 180, endAngle: 270, dx: 35, dy: 0 },
-        { x: 400, y: 550, r: 50, startAngle: 180, endAngle: 270, dx: -50, dy: 0 }
-      ],
-      anchors: [
-        { id: 'acceso_principal', name: 'Acceso Principal', x: 400, y: 540, allowedTypes: ['salida_emergencia', 'ruta_evacuacion', 'extintor'], rotation: 180 },
-        { id: 'sala_espera', name: 'Sala de Espera', x: 200, y: 450, allowedTypes: ['detector_humo', 'extintor', 'botiquin', 'ruta_evacuacion'], rotation: 90 },
-        { id: 'recepcion_desk', name: 'Recepción', x: 600, y: 450, allowedTypes: ['botiquin', 'extintor'], rotation: 270 },
-        { id: 'consultorio_1', name: 'Consultorio A', x: 55, y: 120, allowedTypes: ['detector_humo', 'extintor', 'ruta_evacuacion'], rotation: 90 },
-        { id: 'consultorio_2', name: 'Consultorio B', x: 745, y: 120, allowedTypes: ['detector_humo'], rotation: 180 },
-        { id: 'baño', name: 'Baño', x: 745, y: 280, allowedTypes: ['ruta_evacuacion'], rotation: 180 }
-      ]
-    },
-    {
-      id: 'consultorio',
-      name: 'Consultorio Médico / Clínica (Estilo B)',
-      rooms: [
-        { name: 'Recepción y Espera', x: 50, y: 380, w: 700, h: 170 },
-        { name: 'Pasillo Horizontal', x: 50, y: 240, w: 700, h: 140 },
-        { name: 'Consultorio A', x: 50, y: 50, w: 220, h: 190 },
-        { name: 'Consultorio B', x: 270, y: 50, w: 220, h: 190 },
-        { name: 'Baño', x: 490, y: 50, w: 100, h: 190 },
-        { name: 'Laboratorio', x: 590, y: 50, w: 160, h: 190 }
-      ],
-      walls: [
-        { x1: 50, y1: 240, x2: 750, y2: 240 },
-        { x1: 50, y1: 380, x2: 350, y2: 380 },
-        { x1: 450, y1: 380, x2: 750, y2: 380 },
-        { x1: 270, y1: 50, x2: 270, y2: 240 },
-        { x1: 490, y1: 50, x2: 490, y2: 240 },
-        { x1: 590, y1: 50, x2: 590, y2: 240 }
-      ],
-      doors: [
-        { x: 160, y: 240, r: 35, startAngle: 0, endAngle: 90, dx: 0, dy: -35 },
-        { x: 380, y: 240, r: 35, startAngle: 0, endAngle: 90, dx: 0, dy: -35 },
-        { x: 540, y: 240, r: 30, startAngle: 0, endAngle: 90, dx: 0, dy: -30 },
-        { x: 670, y: 240, r: 35, startAngle: 0, endAngle: 90, dx: 0, dy: -35 },
-        { x: 400, y: 550, r: 50, startAngle: 180, endAngle: 270, dx: -50, dy: 0 }
-      ],
-      anchors: [
-        { id: 'acceso_principal', name: 'Acceso Principal', x: 400, y: 540, allowedTypes: ['salida_emergencia', 'ruta_evacuacion', 'extintor'], rotation: 180 },
-        { id: 'sala_espera', name: 'Sala de Espera', x: 200, y: 460, allowedTypes: ['detector_humo', 'extintor', 'botiquin', 'ruta_evacuacion'], rotation: 90 },
-        { id: 'recepcion_desk', name: 'Recepción', x: 600, y: 460, allowedTypes: ['botiquin', 'extintor'], rotation: 270 },
-        { id: 'consultorio_1', name: 'Consultorio A', x: 55, y: 120, allowedTypes: ['detector_humo', 'extintor', 'ruta_evacuacion'], rotation: 90 },
-        { id: 'consultorio_2', name: 'Consultorio B', x: 380, y: 120, allowedTypes: ['detector_humo'], rotation: 90 },
-        { id: 'baño', name: 'Baño', x: 540, y: 120, allowedTypes: ['ruta_evacuacion'], rotation: 90 },
-        { id: 'laboratorio', name: 'Laboratorio', x: 745, y: 120, allowedTypes: ['detector_humo', 'extintor', 'ruta_evacuacion'], rotation: 180 }
-      ]
-    }
-  ],
-  bodega: [
-    {
-      id: 'bodega',
-      name: 'Bodega / Almacén (Estilo A)',
-      rooms: [
-        { name: 'Área de Almacenamiento', x: 50, y: 160, w: 700, h: 390 },
-        { name: 'Oficina Adm.', x: 50, y: 50, w: 260, h: 110 },
-        { name: 'Baño', x: 310, y: 50, w: 160, h: 110 }
-      ],
-      walls: [
-        { x1: 50, y1: 160, x2: 750, y2: 160 },
-        { x1: 310, y1: 50, x2: 310, y2: 160 },
-        { x1: 470, y1: 50, x2: 470, y2: 160 }
-      ],
-      doors: [
-        { x: 180, y: 160, r: 35, startAngle: 180, endAngle: 270, dx: -35, dy: 0 },
-        { x: 380, y: 160, r: 30, startAngle: 0, endAngle: 90, dx: 0, dy: 30 },
-        { x: 350, y: 550, r: 60, startAngle: 180, endAngle: 270, dx: -60, dy: 0 }
-      ],
-      anchors: [
-        { id: 'acceso_principal', name: 'Acceso Portón', x: 350, y: 540, allowedTypes: ['salida_emergencia', 'ruta_evacuacion', 'extintor'], rotation: 180 },
-        { id: 'salida_emergencia', name: 'Salida Emergencia', x: 710, y: 55, allowedTypes: ['salida_emergencia', 'ruta_evacuacion'], rotation: 270 },
-        { id: 'oficina_adm', name: 'Oficina Adm.', x: 55, y: 90, allowedTypes: ['botiquin', 'extintor', 'detector_humo'], rotation: 90 },
-        { id: 'tablero_electrico', name: 'Tablero Eléctrico', x: 745, y: 90, allowedTypes: ['riesgo_electrico', 'extintor'], rotation: 180 },
-        { id: 'bodega_centro_1', name: 'Almacén Central A', x: 55, y: 350, allowedTypes: ['detector_humo', 'ruta_evacuacion'], rotation: 90 },
-        { id: 'bodega_centro_2', name: 'Almacén Central B', x: 745, y: 350, allowedTypes: ['detector_humo', 'ruta_evacuacion'], rotation: 90 },
-        { id: 'bodega_pared_der', name: 'Muro Lateral Derecho', x: 745, y: 480, allowedTypes: ['extintor', 'ruta_evacuacion'], rotation: 90 },
-        { id: 'baño', name: 'Baño', x: 455, y: 90, allowedTypes: ['ruta_evacuacion'], rotation: 180 }
-      ]
-    },
-    {
-      id: 'bodega',
-      name: 'Bodega / Almacén (Estilo B)',
-      rooms: [
-        { name: 'Área de Carga/Descarga', x: 50, y: 380, w: 700, h: 170 },
-        { name: 'Almacenaje Racks A', x: 50, y: 160, w: 340, h: 220 },
-        { name: 'Almacenaje Racks B', x: 410, y: 160, w: 340, h: 220 },
-        { name: 'Oficina Control', x: 50, y: 50, w: 400, h: 110 },
-        { name: 'Baño Personal', x: 450, y: 50, w: 300, h: 110 }
-      ],
-      walls: [
-        { x1: 50, y1: 160, x2: 750, y2: 160 },
-        { x1: 50, y1: 380, x2: 750, y2: 380 },
-        { x1: 450, y1: 50, x2: 450, y2: 160 },
-        { x1: 390, y1: 160, x2: 390, y2: 380 }
-      ],
-      doors: [
-        { x: 200, y: 160, r: 35, startAngle: 180, endAngle: 270, dx: -35, dy: 0 },
-        { x: 550, y: 160, r: 30, startAngle: 0, endAngle: 90, dx: 0, dy: 30 },
-        { x: 400, y: 550, r: 60, startAngle: 180, endAngle: 270, dx: -60, dy: 0 }
-      ],
-      anchors: [
-        { id: 'acceso_principal', name: 'Acceso Portón', x: 400, y: 540, allowedTypes: ['salida_emergencia', 'ruta_evacuacion', 'extintor'], rotation: 180 },
-        { id: 'salida_emergencia', name: 'Salida Emergencia', x: 745, y: 390, allowedTypes: ['salida_emergencia', 'ruta_evacuacion'], rotation: 180 },
-        { id: 'oficina_adm', name: 'Oficina Adm.', x: 55, y: 90, allowedTypes: ['botiquin', 'extintor', 'detector_humo'], rotation: 90 },
-        { id: 'tablero_electrico', name: 'Tablero Eléctrico', x: 745, y: 90, allowedTypes: ['riesgo_electrico', 'extintor'], rotation: 180 },
-        { id: 'bodega_centro_1', name: 'Almacén Central A', x: 55, y: 280, allowedTypes: ['detector_humo', 'ruta_evacuacion'], rotation: 90 },
-        { id: 'bodega_centro_2', name: 'Almacén Central B', x: 745, y: 280, allowedTypes: ['detector_humo', 'ruta_evacuacion'], rotation: 90 },
-        { id: 'baño', name: 'Baño', x: 465, y: 90, allowedTypes: ['ruta_evacuacion'], rotation: 90 }
-      ]
-    }
-  ],
-  comercio: [
-    {
-      id: 'comercio',
-      name: 'Comercio General / Local (Estilo A)',
-      rooms: [
-        { name: 'Área de Exhibición y Ventas', x: 50, y: 220, w: 700, h: 330 },
-        { name: 'Bodega de Mercancía', x: 50, y: 50, w: 420, h: 170 },
-        { name: 'Baño / Servicio', x: 470, y: 50, w: 280, h: 170 }
-      ],
-      walls: [
-        { x1: 50, y1: 220, x2: 750, y2: 220 },
-        { x1: 470, y1: 50, x2: 470, y2: 220 }
-      ],
-      doors: [
-        { x: 260, y: 220, r: 40, startAngle: 180, endAngle: 270, dx: -40, dy: 0 },
-        { x: 580, y: 220, r: 35, startAngle: 0, endAngle: 90, dx: 0, dy: 35 },
-        { x: 380, y: 550, r: 50, startAngle: 180, endAngle: 270, dx: -50, dy: 0 }
-      ],
-      anchors: [
-        { id: 'acceso_principal', name: 'Acceso Local', x: 380, y: 540, allowedTypes: ['salida_emergencia', 'ruta_evacuacion', 'extintor'], rotation: 180 },
-        { id: 'caja_counter', name: 'Caja', x: 485, y: 440, allowedTypes: ['botiquin', 'extintor', 'ruta_evacuacion'], rotation: 90 },
-        { id: 'area_ventas', name: 'Área de Ventas', x: 55, y: 350, allowedTypes: ['detector_humo', 'ruta_evacuacion'], rotation: 90 },
-        { id: 'almacen_back', name: 'Bodega Almacén', x: 55, y: 130, allowedTypes: ['extintor', 'detector_humo'], rotation: 90 },
-        { id: 'baño', name: 'Baño', x: 745, y: 130, allowedTypes: ['ruta_evacuacion'], rotation: 180 },
-        { id: 'tablero_comercio', name: 'Tablero Eléctrico', x: 745, y: 300, allowedTypes: ['riesgo_electrico', 'extintor'], rotation: 90 }
-      ]
-    },
-    {
-      id: 'comercio',
-      name: 'Comercio General / Local (Estilo B)',
-      rooms: [
-        { name: 'Piso de Ventas', x: 50, y: 180, w: 700, h: 370 },
-        { name: 'Probadores / Bodega', x: 480, y: 50, w: 270, h: 130 },
-        { name: 'Caja', x: 50, y: 50, w: 200, h: 130 },
-        { name: 'Oficina', x: 250, y: 50, w: 230, h: 130 }
-      ],
-      walls: [
-        { x1: 50, y1: 180, x2: 750, y2: 180 },
-        { x1: 250, y1: 50, x2: 250, y2: 180 },
-        { x1: 480, y1: 50, x2: 480, y2: 180 }
-      ],
-      doors: [
-        { x: 150, y: 180, r: 35, startAngle: 180, endAngle: 270, dx: -35, dy: 0 },
-        { x: 350, y: 180, r: 35, startAngle: 180, endAngle: 270, dx: -35, dy: 0 },
-        { x: 600, y: 180, r: 35, startAngle: 0, endAngle: 90, dx: 0, dy: 35 },
-        { x: 400, y: 550, r: 50, startAngle: 180, endAngle: 270, dx: -50, dy: 0 }
-      ],
-      anchors: [
-        { id: 'acceso_principal', name: 'Acceso Local', x: 400, y: 540, allowedTypes: ['salida_emergencia', 'ruta_evacuacion', 'extintor'], rotation: 180 },
-        { id: 'caja_counter', name: 'Caja', x: 55, y: 100, allowedTypes: ['botiquin', 'extintor', 'ruta_evacuacion'], rotation: 90 },
-        { id: 'area_ventas', name: 'Área de Ventas', x: 745, y: 350, allowedTypes: ['detector_humo', 'ruta_evacuacion'], rotation: 180 },
-        { id: 'almacen_back', name: 'Bodega Almacén', x: 745, y: 100, allowedTypes: ['extintor', 'detector_humo'], rotation: 180 },
-        { id: 'tablero_comercio', name: 'Tablero Eléctrico', x: 55, y: 300, allowedTypes: ['riesgo_electrico', 'extintor'], rotation: 90 }
-      ]
-    }
-  ]
-};
-
-const GIROS_METADATA = [
-  { id: 'restaurante', name: 'Restaurante' },
-  { id: 'oficina', name: 'Oficina Administrativa' },
-  { id: 'consultorio', name: 'Consultorio Médico / Clínica' },
-  { id: 'bodega', name: 'Bodega / Almacén' },
-  { id: 'comercio', name: 'Comercio General / Local' }
-];
 
 const SIGN_METADATA: Record<SignType, { label: string; color: string; fallbackText: string }> = {
   extintor: { label: 'Extintor', color: '#dc2626', fallbackText: '🧯' },
@@ -561,7 +74,7 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
   const [commercialName, setCommercialName] = useState('MI ESTABLECIMIENTO');
   const [razonSocial, setRazonSocial] = useState('RAZON SOCIAL S.A. DE C.V.');
   const [selectedGiro, setSelectedGiro] = useState<string>('restaurante');
-  const [activeVariationIndex, setActiveVariationIndex] = useState<number>(0);
+  const [planSeed, setPlanSeed] = useState<number>(() => Math.floor(Math.random() * 1e9));
   const [widthMeters, setWidthMeters] = useState<number | string>(10);
   const [lengthMeters, setLengthMeters] = useState<number | string>(15);
   const [doorOrientation, setDoorOrientation] = useState<'N' | 'S' | 'E' | 'W'>('S');
@@ -586,6 +99,18 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
   const svgRef = useRef<SVGSVGElement>(null);
   const dragInfoRef = useRef<{ id: string; startX: number; startY: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Plano base generado proceduralmente (distribución predeterminada + medidas aleatorias)
+  const generated = useMemo(
+    () => generateCroquis(selectedGiro, planSeed, (doorOrientation === 'E' ? 'E' : 'S') as DoorSide),
+    [selectedGiro, planSeed, doorOrientation]
+  );
+
+  // Refleja las medidas reales del plano generado en los campos informativos
+  useEffect(() => {
+    setWidthMeters(Math.round(generated.widthM));
+    setLengthMeters(Math.round(generated.heightM));
+  }, [generated]);
 
   // Pre-load images as Base64 to enable tainted-free canvas PNG download
   useEffect(() => {
@@ -627,11 +152,8 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
         valvula_gas: 0
       });
       setSelectedSignId(null);
-      // Pick random variation on open
-      const vars = GIROS_VARIATIONS[selectedGiro] || [];
-      if (vars.length > 0) {
-        setActiveVariationIndex(Math.floor(Math.random() * vars.length));
-      }
+      // Nueva variación aleatoria al abrir
+      setPlanSeed(Math.floor(Math.random() * 1e9));
     }
   }, [isOpen]);
 
@@ -706,7 +228,7 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
       });
       setSelectedSignId(null);
     }
-  }, [selectedGiro, activeVariationIndex, isOpen]);
+  }, [selectedGiro, planSeed, isOpen]);
 
   // Re-align evacuation routes and shift entrance signs when doorOrientation changes
   useEffect(() => {
@@ -746,20 +268,9 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
       // User clicked "+": add a sign of this type
       setCounts(prev => ({ ...prev, [type]: prev[type] + 1 }));
       
-      const config = GIROS_VARIATIONS[selectedGiro]?.[activeVariationIndex] || GIROS_VARIATIONS[selectedGiro]?.[0];
-      if (config) {
-        // Use dynamic anchors to get correct acceso_principal coordinates
-        const dynamicAnchors = config.anchors.map(anchor => {
-          if (anchor.id === 'acceso_principal') {
-            return {
-              ...anchor,
-              x: doorOrientation === 'S' ? 400 : 740,
-              y: doorOrientation === 'S' ? 540 : 300,
-              rotation: doorOrientation === 'S' ? 180 : 90
-            };
-          }
-          return anchor;
-        });
+      {
+        // Anclas del plano generado (ya reflejan la orientación de la puerta)
+        const dynamicAnchors = generated.anchors;
 
         const compatibleAnchors = dynamicAnchors.filter(a => a.allowedTypes.includes(type));
         
@@ -829,21 +340,8 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
   };
 
   const handleAutoPlace = () => {
-    const config = GIROS_VARIATIONS[selectedGiro]?.[activeVariationIndex] || GIROS_VARIATIONS[selectedGiro]?.[0];
-    if (!config) return;
-
-    // Create dynamic anchors based on doorOrientation
-    const dynamicAnchors = config.anchors.map(anchor => {
-      if (anchor.id === 'acceso_principal') {
-        return {
-          ...anchor,
-          x: doorOrientation === 'S' ? 400 : 740,
-          y: doorOrientation === 'S' ? 540 : 300,
-          rotation: doorOrientation === 'S' ? 180 : 90
-        };
-      }
-      return anchor;
-    });
+    // Anclas del plano generado (ya reflejan la orientación de la puerta)
+    const dynamicAnchors = generated.anchors;
 
     const newPlaced: PlacedSign[] = [];
     const anchorAssignments: Record<string, SignType[]> = {};
@@ -1190,8 +688,6 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
 
   if (!isOpen) return null;
 
-  const currentGiroConfig = GIROS_VARIATIONS[selectedGiro]?.[activeVariationIndex] || GIROS_VARIATIONS.restaurante[0];
-
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-2 sm:p-4 z-50 animate-fadeIn overflow-y-auto">
       <div className="bg-slate-900 text-slate-100 shadow-2xl w-full max-w-6xl rounded-2xl border border-slate-700 overflow-hidden flex flex-col my-auto max-h-[96vh]">
@@ -1244,29 +740,19 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
                   <select
                     value={selectedGiro}
                     onChange={e => {
-                      const giro = e.target.value;
-                      setSelectedGiro(giro);
-                      const vars = GIROS_VARIATIONS[giro] || [];
-                      const randIdx = Math.floor(Math.random() * vars.length);
-                      setActiveVariationIndex(randIdx);
+                      setSelectedGiro(e.target.value);
+                      setPlanSeed(Math.floor(Math.random() * 1e9));
                     }}
                     className="flex-1 bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-white outline-none font-semibold cursor-pointer"
                   >
-                    {GIROS_METADATA.map(g => (
+                    {CROQUIS_GIROS.map(g => (
                       <option key={g.id} value={g.id}>{g.name}</option>
                     ))}
                   </select>
                   <button
                     type="button"
                     onClick={() => {
-                      const vars = GIROS_VARIATIONS[selectedGiro] || [];
-                      if (vars.length > 1) {
-                        let nextIndex = activeVariationIndex;
-                        while (nextIndex === activeVariationIndex) {
-                          nextIndex = Math.floor(Math.random() * vars.length);
-                        }
-                        setActiveVariationIndex(nextIndex);
-                      }
+                      setPlanSeed(Math.floor(Math.random() * 1e9));
                     }}
                     className="bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 border border-slate-750 px-2 rounded-lg transition-colors flex items-center justify-center h-[32px] cursor-pointer"
                     title="Variar distribución del plano"
@@ -1523,169 +1009,9 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
                     {/* Grid Background */}
                     {showGrid && <rect width="800" height="600" fill="url(#grid)" />}
 
-                    {/* Outer Wall Boundary */}
-                <rect
-                  x="40"
-                  y="40"
-                  width="720"
-                  height="520"
-                  rx="6"
-                  fill="none"
-                  stroke="#0f172a"
-                  strokeWidth="5"
-                  strokeLinecap="round"
-                />
-
-                {/* Interior Rooms Layout */}
-                {currentGiroConfig.rooms.map((room, idx) => (
-                  <g key={`room-${idx}`} className="opacity-90">
-                    {/* Room boundary fill for visual separation */}
-                    <rect
-                      x={room.x}
-                      y={room.y}
-                      width={room.w}
-                      height={room.h}
-                      fill="#f8fafc"
-                      fillOpacity="0.8"
-                    />
-                    
-                    {/* Room Label Pill Container */}
-                    <rect
-                      x={room.x + room.w / 2 - 70}
-                      y={room.y + room.h / 2 - 12}
-                      width="140"
-                      height="24"
-                      rx="12"
-                      fill="#ffffff"
-                      stroke="#cbd5e1"
-                      strokeWidth="1"
-                    />
-                    
-                    {/* Room text */}
-                    <text
-                      x={room.x + room.w / 2}
-                      y={room.y + room.h / 2 + 4}
-                      fill="#334155"
-                      fontSize="10"
-                      fontWeight="bold"
-                      fontFamily="system-ui, sans-serif"
-                      textAnchor="middle"
-                      className="uppercase tracking-wider select-none"
-                    >
-                      {room.name}
-                    </text>
-                  </g>
-                ))}
-
-                {/* Room divider walls */}
-                {currentGiroConfig.walls.map((wall, idx) => (
-                  <line
-                    key={`wall-${idx}`}
-                    x1={wall.x1}
-                    y1={wall.y1}
-                    x2={wall.x2}
-                    y2={wall.y2}
-                    stroke="#0f172a"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                  />
-                ))}
-
-                {/* Swing Doors representation (Blueprint style) */}
-                {currentGiroConfig.doors.filter(door => door.y < 500).map((door, idx) => (
-                  <g key={`door-${idx}`}>
-                    {/* Swing arc */}
-                    <path
-                      d={`M ${door.x} ${door.y} A ${door.r} ${door.r} 0 0 1 ${door.x + door.dx} ${door.y + door.dy}`}
-                      fill="none"
-                      stroke="#94a3b8"
-                      strokeWidth="1.5"
-                      strokeDasharray="2,3"
-                    />
-                    {/* Door Slab */}
-                    <line
-                      x1={door.x}
-                      y1={door.y}
-                      x2={door.x + (door.dx !== 0 ? 0 : door.r * (door.dy < 0 ? -1 : 1))}
-                      y2={door.y + (door.dy !== 0 ? 0 : door.r * (door.dx < 0 ? 1 : -1))}
-                      stroke="#0f172a"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                    />
-                  </g>
-                ))}
-
-                {/* Dynamic, High-Visibility Main Entrance Door (South or East) */}
-                {doorOrientation === 'S' ? (
-                  <g>
-                    {/* White cutout to erase the black outer wall */}
-                    <rect x="373" y="556" width="54" height="8" fill="white" />
-                    
-                    {/* Hinge vertical end-posts */}
-                    <line x1="375" y1="556" x2="375" y2="564" stroke="#0f172a" strokeWidth="3" />
-                    <line x1="425" y1="556" x2="425" y2="564" stroke="#0f172a" strokeWidth="3" />
-                    
-                    {/* Swing dashed arc */}
-                    <path
-                      d="M 375 560 A 50 50 0 0 1 425 510"
-                      fill="none"
-                      stroke="#94a3b8"
-                      strokeWidth="1.5"
-                      strokeDasharray="2,3"
-                    />
-                    
-                    {/* Door slab (open inwards) */}
-                    <line x1="425" y1="560" x2="425" y2="510" stroke="#0f172a" strokeWidth="3.5" strokeLinecap="round" />
-                  </g>
-                ) : (
-                  <g>
-                    {/* White cutout to erase the right outer wall */}
-                    <rect x="756" y="273" width="8" height="54" fill="white" />
-                    
-                    {/* Hinge horizontal end-posts */}
-                    <line x1="756" y1="275" x2="764" y2="275" stroke="#0f172a" strokeWidth="3" />
-                    <line x1="756" y1="325" x2="764" y2="325" stroke="#0f172a" strokeWidth="3" />
-                    
-                    {/* Swing dashed arc */}
-                    <path
-                      d="M 760 275 A 50 50 0 0 0 710 325"
-                      fill="none"
-                      stroke="#94a3b8"
-                      strokeWidth="1.5"
-                      strokeDasharray="2,3"
-                    />
-                    
-                    {/* Door slab (open inwards) */}
-                    <line x1="760" y1="325" x2="710" y2="325" stroke="#0f172a" strokeWidth="3.5" strokeLinecap="round" />
-                  </g>
-                )}
-
-                {/* Warehouse Racks Outlines if Bodega selected */}
-                {selectedGiro === 'bodega' && (
-                  <g opacity="0.4">
-                    {/* Rack outlines to populate empty warehouse floor */}
-                    <path d="M 80 180 h 80 v 100 h -80 z M 80 300 h 80 v 100 h -80 z M 80 420 h 80 v 100 h -80 z" fill="none" stroke="#cbd5e1" strokeWidth="2" />
-                    <path d="M 240 180 h 80 v 100 h -80 z M 240 300 h 80 v 100 h -80 z M 240 420 h 80 v 100 h -80 z" fill="none" stroke="#cbd5e1" strokeWidth="2" />
-                    <path d="M 400 180 h 80 v 100 h -80 z M 400 300 h 80 v 100 h -80 z M 400 420 h 80 v 100 h -80 z" fill="none" stroke="#cbd5e1" strokeWidth="2" />
-                    <path d="M 560 180 h 80 v 100 h -80 z M 560 300 h 80 v 100 h -80 z M 560 420 h 80 v 100 h -80 z" fill="none" stroke="#cbd5e1" strokeWidth="2" />
-                  </g>
-                )}
-
-                {/* North arrow coordinate display */}
-                <g transform="translate(735, 75)" opacity="0.8">
-                  <circle r="20" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1.5" />
-                  <path d="M 0 -13 L 5 -3 L 2 -3 L 2 12 L -2 12 L -2 -3 L -5 -3 Z" fill="#0f172a" />
-                  <text x="0" y="-15" textAnchor="middle" fontSize="9" fontWeight="black" fill="#0f172a">N</text>
-                </g>
-
-                {/* Scale reference bar */}
-                <g transform="translate(620, 535)">
-                  <rect width="100" height="4" fill="#475569" />
-                  <line x1="0" y1="0" x2="0" y2="8" stroke="#475569" strokeWidth="1.5" />
-                  <line x1="50" y1="0" x2="50" y2="8" stroke="#475569" strokeWidth="1.5" />
-                  <line x1="100" y1="0" x2="100" y2="8" stroke="#475569" strokeWidth="1.5" />
-                  <text x="50" y="-5" textAnchor="middle" fontSize="8" fontWeight="bold" fill="#475569">Escala: 5m</text>
-                </g>
+                    {/* Plano base generado proceduralmente:
+                        muros, puertas con abatimiento, mobiliario, cotas, norte y escala */}
+                    <g dangerouslySetInnerHTML={{ __html: generated.baseSVG }} />
               </>
             )}
 
