@@ -1588,52 +1588,87 @@ function buildAnchors(plan: Plan, toPx: (x: number, y: number) => [number, numbe
     return id;
   };
 
-  /* acceso principal en la pared al lado de la puerta de entrada real (evita obstruir paso) */
+  /* acceso principal en la pared al lado de la puerta y al centro para el cartel de Salida */
   const entrance = plan.doors.find(d => d.entrance);
   if (entrance) {
     const isHorizontal = entrance.dir === 'h';
-    // Pared a la izquierda o arriba de la puerta
+    
+    // 1. Acceso Principal Centro (Directo arriba de la puerta, exclusivo para cartel 'salida_emergencia')
+    const ecx = isHorizontal ? entrance.x + entrance.len / 2 : entrance.x;
+    const ecy = isHorizontal ? entrance.y : entrance.y + entrance.len / 2;
+    const [pcx, pcy] = toPx(ecx, ecy);
+    anchors.push({
+      id: 'acceso_principal_centro', name: 'Acceso Principal (Centro Puerta)',
+      x: pcx, y: pcy,
+      allowedTypes: ['salida_emergencia'],
+      rotation: doorSide === 'S' ? 180 : 90,
+      role: 'acceso_principal_centro',
+    });
+    usedIds.add('acceso_principal_centro');
+
+    // 2. Acceso Principal Izquierda (Pared al lado, para extintores y flechas)
     const elx = isHorizontal ? entrance.x - 0.45 : entrance.x;
     const ely = isHorizontal ? entrance.y : entrance.y - 0.45;
     const [plx, ply] = toPx(elx, ely);
     anchors.push({
       id: 'acceso_principal_izq', name: 'Acceso Principal (Izquierda)',
       x: plx, y: ply,
-      allowedTypes: ['salida_emergencia', 'ruta_evacuacion', 'extintor'],
+      allowedTypes: ['ruta_evacuacion', 'extintor'],
       rotation: doorSide === 'S' ? 180 : 90,
       role: 'acceso_principal_izq',
     });
     usedIds.add('acceso_principal_izq');
 
-    // Pared a la derecha o abajo de la puerta
+    // 3. Acceso Principal Derecha (Pared al lado, para flechas)
     const erx = isHorizontal ? entrance.x + entrance.len + 0.45 : entrance.x;
     const ery = isHorizontal ? entrance.y : entrance.y + entrance.len + 0.45;
     const [prx, pry] = toPx(erx, ery);
     anchors.push({
       id: 'acceso_principal_der', name: 'Acceso Principal (Derecha)',
       x: prx, y: pry,
-      allowedTypes: ['salida_emergencia', 'ruta_evacuacion'],
+      allowedTypes: ['ruta_evacuacion'],
       rotation: doorSide === 'S' ? 180 : 90,
       role: 'acceso_principal_der',
     });
     usedIds.add('acceso_principal_der');
   }
 
-  /* salida de emergencia secundaria en la pared al lado de la puerta (evita obstruir paso) */
+  /* salida de emergencia secundaria */
   const exit = plan.doors.find(d => d.exteriorExit);
   if (exit) {
     const isHorizontal = exit.dir === 'h';
+    
+    // 1. Salida de Emergencia Centro (Directo arriba de la puerta, exclusivo para cartel 'salida_emergencia')
+    const ecx = isHorizontal ? exit.x + exit.len / 2 : exit.x;
+    const ecy = isHorizontal ? exit.y : exit.y + exit.len / 2;
+    const [pcx, pcy] = toPx(ecx, ecy);
+    anchors.push({
+      id: 'salida_emergencia_centro', name: 'Salida de Emergencia (Centro Puerta)',
+      x: pcx, y: pcy,
+      allowedTypes: ['salida_emergencia'],
+      role: 'salida_emergencia_centro',
+    });
+    usedIds.add('salida_emergencia_centro');
+
+    // 2. Salida de Emergencia Pared (Al lado de la puerta, para flechas)
     const elx = isHorizontal ? exit.x - 0.45 : exit.x;
     const ely = isHorizontal ? exit.y : exit.y - 0.45;
     const [px, py] = toPx(elx, ely);
     anchors.push({
-      id: 'salida_emergencia', name: 'Salida de Emergencia',
+      id: 'salida_emergencia', name: 'Salida de Emergencia (Pared)',
       x: px, y: py,
-      allowedTypes: ['salida_emergencia', 'ruta_evacuacion'],
+      allowedTypes: ['ruta_evacuacion'],
       role: 'salida_emergencia',
     });
   } else {
-    const [px, py] = toPx(plan.w * 0.5, 0.3);
+    // Find the main public/open room to place the emergency exit sign at its back wall (avoid private offices)
+    const publicRoles = ['operativa', 'comedor', 'ventas', 'tallerZona', 'almacenRacks', 'pasillo', 'barra'];
+    const mainRoom = plan.rooms.find(r => publicRoles.includes(r.role)) || plan.rooms[0];
+    
+    // Place at the top-middle of this main room
+    const mx = mainRoom.x + mainRoom.w * 0.5;
+    const my = mainRoom.y + 0.35;
+    const [px, py] = toPx(mx, my);
     anchors.push({
       id: 'salida_emergencia', name: 'Salida de Emergencia (Fondo)',
       x: px, y: py,

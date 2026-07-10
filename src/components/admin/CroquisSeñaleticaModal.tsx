@@ -117,9 +117,11 @@ const getAnchorPriority = (anchor: CroquisAnchor, type: SignType): number => {
       return 20;
 
     case 'salida_emergencia':
-      if (id === 'acceso_principal_der') return 100;
-      if (id === 'acceso_principal_izq') return 50;
-      if (id === 'salida_emergencia') return 95;
+      if (id === 'acceso_principal_centro' || role === 'acceso_principal_centro') return 100;
+      if (id === 'salida_emergencia_centro' || role === 'salida_emergencia_centro') return 95;
+      if (id === 'salida_emergencia' || role === 'salida_emergencia') return 90;
+      if (id === 'acceso_principal_der') return 50;
+      if (id === 'acceso_principal_izq') return 40;
       if (role === 'pasillo' || id.includes('pasillo')) return 70;
       return 10;
 
@@ -370,7 +372,10 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
         let offsetY = 0;
 
         if (chosenAnchor) {
-          if (chosenAnchor.id.includes('acceso_principal') || chosenAnchor.id === 'salida_emergencia') {
+          if (chosenAnchor.id.includes('centro')) {
+            offsetX = 0;
+            offsetY = 0;
+          } else if (chosenAnchor.id.includes('acceso_principal') || chosenAnchor.id === 'salida_emergencia') {
             offsetX = (offsetIndex - 0.5) * spacing;
             offsetY = chosenAnchor.id.includes('acceso_principal_izq') ? -15 : 15;
           } else if (chosenAnchor.id.includes('wall') || chosenAnchor.id === 'tablero_electrico' || chosenAnchor.id === 'bodega_pared_der') {
@@ -428,8 +433,8 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
     });
 
     // Map door orientation
-    let entranceAnchorId = 'acceso_principal_der';
-    let emergencyAnchorId = 'salida_emergencia';
+    let entranceAnchorId = 'acceso_principal_centro';
+    let emergencyAnchorId = 'salida_emergencia_centro';
 
     // Distribute signs to compatible anchors
     const signTypesOrdered: SignType[] = [
@@ -504,7 +509,11 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
         let offsetY = 0;
 
         // If the anchor is near walls or entrances, we shift horizontally or vertically
-        if (anchor.id.includes('acceso_principal') || anchor.id === 'salida_emergencia') {
+        if (anchor.id.includes('centro')) {
+          // Centered directly on/above the doorway
+          offsetX = 0;
+          offsetY = 0;
+        } else if (anchor.id.includes('acceso_principal') || anchor.id === 'salida_emergencia') {
           // Horizontal alignment
           offsetX = (index - (N - 1) / 2) * spacing;
           offsetY = anchor.id.includes('acceso_principal_izq') ? -15 : 15;
