@@ -1546,6 +1546,38 @@ const ROLE_ANCHOR_TYPES: Record<string, CroquisSignType[]> = {
   anden: ['extintor', 'ruta_evacuacion'],
 };
 
+function getRoomExitRotation(r: Room, doors: Door[]): number {
+  const margin = 0.15; // margin in meters
+  const door = doors.find(d => {
+    if (d.dir === 'v') {
+      const matchesLeft = Math.abs(d.x - r.x) < margin;
+      const matchesRight = Math.abs(d.x - (r.x + r.w)) < margin;
+      if (matchesLeft || matchesRight) {
+        return d.y >= r.y - margin && d.y <= r.y + r.h + margin;
+      }
+    } else {
+      const matchesTop = Math.abs(d.y - r.y) < margin;
+      const matchesBottom = Math.abs(d.y - (r.y + r.h)) < margin;
+      if (matchesTop || matchesBottom) {
+        return d.x >= r.x - margin && d.x <= r.x + r.w + margin;
+      }
+    }
+    return false;
+  });
+
+  if (door) {
+    if (door.dir === 'v') {
+      if (Math.abs(door.x - r.x) < margin) return 180; // Left door -> exit left (180)
+      return 0; // Right door -> exit right (0)
+    } else {
+      if (Math.abs(door.y - r.y) < margin) return 270; // Top door -> exit up (270)
+      return 90; // Bottom door -> exit down (90)
+    }
+  }
+
+  return r.x > 4 ? 180 : 0;
+}
+
 function buildAnchors(plan: Plan, toPx: (x: number, y: number) => [number, number], doorSide: DoorSide): CroquisAnchor[] {
   const anchors: CroquisAnchor[] = [];
   const usedIds = new Set<string>();
@@ -1556,28 +1588,44 @@ function buildAnchors(plan: Plan, toPx: (x: number, y: number) => [number, numbe
     return id;
   };
 
-  /* acceso principal en la puerta de entrada real */
+  /* acceso principal en la pared al lado de la puerta de entrada real (evita obstruir paso) */
   const entrance = plan.doors.find(d => d.entrance);
   if (entrance) {
-    const ex = entrance.dir === 'h' ? entrance.x + entrance.len / 2 : entrance.x;
-    const ey = entrance.dir === 'h' ? entrance.y : entrance.y + entrance.len / 2;
-    const [px, py] = toPx(ex, ey);
+    const isHorizontal = entrance.dir === 'h';
+    // Pared a la izquierda o arriba de la puerta
+    const elx = isHorizontal ? entrance.x - 0.45 : entrance.x;
+    const ely = isHorizontal ? entrance.y : entrance.y - 0.45;
+    const [plx, ply] = toPx(elx, ely);
     anchors.push({
-      id: 'acceso_principal', name: 'Acceso Principal',
-      x: px, y: py,
+      id: 'acceso_principal_izq', name: 'Acceso Principal (Izquierda)',
+      x: plx, y: ply,
       allowedTypes: ['salida_emergencia', 'ruta_evacuacion', 'extintor'],
       rotation: doorSide === 'S' ? 180 : 90,
-      role: 'acceso_principal',
+      role: 'acceso_principal_izq',
     });
-    usedIds.add('acceso_principal');
+    usedIds.add('acceso_principal_izq');
+
+    // Pared a la derecha o abajo de la puerta
+    const erx = isHorizontal ? entrance.x + entrance.len + 0.45 : entrance.x;
+    const ery = isHorizontal ? entrance.y : entrance.y + entrance.len + 0.45;
+    const [prx, pry] = toPx(erx, ery);
+    anchors.push({
+      id: 'acceso_principal_der', name: 'Acceso Principal (Derecha)',
+      x: prx, y: pry,
+      allowedTypes: ['salida_emergencia', 'ruta_evacuacion'],
+      rotation: doorSide === 'S' ? 180 : 90,
+      role: 'acceso_principal_der',
+    });
+    usedIds.add('acceso_principal_der');
   }
 
-  /* salida de emergencia secundaria: puerta exterior de servicio o muro trasero */
+  /* salida de emergencia secundaria en la pared al lado de la puerta (evita obstruir paso) */
   const exit = plan.doors.find(d => d.exteriorExit);
   if (exit) {
-    const ex = exit.dir === 'h' ? exit.x + exit.len / 2 : exit.x;
-    const ey = exit.dir === 'h' ? exit.y : exit.y + exit.len / 2;
-    const [px, py] = toPx(ex, ey);
+    const isHorizontal = exit.dir === 'h';
+    const elx = isHorizontal ? exit.x - 0.45 : exit.x;
+    const ely = isHorizontal ? exit.y : exit.y - 0.45;
+    const [px, py] = toPx(elx, ely);
     anchors.push({
       id: 'salida_emergencia', name: 'Salida de Emergencia',
       x: px, y: py,
@@ -1662,6 +1710,7 @@ function buildAnchors(plan: Plan, toPx: (x: number, y: number) => [number, numbe
         x: px, y: py,
         allowedTypes: ['ruta_evacuacion'],
         role: r.role,
+        rotation: getRoomExitRotation(r, plan.doors),
       });
     }
 

@@ -79,7 +79,8 @@ const getAnchorPriority = (anchor: CroquisAnchor, type: SignType): number => {
       if (id === 'tablero_electrico' || role === 'tablero_electrico') return 100;
       if (id === 'cocina_gas' || role === 'cocina_gas') return 90;
       if (role === 'cocina' || role === 'cocineta') return 85;
-      if (id === 'acceso_principal' || role === 'acceso_principal') return 80;
+      if (id === 'acceso_principal_izq' || role === 'acceso_principal_izq') return 80;
+      if (id === 'acceso_principal_der' || role === 'acceso_principal_der') return 40;
       if (id === 'salida_emergencia' || role === 'salida_emergencia') return 75;
       if (role === 'pasillo' || id.includes('pasillo')) return 70;
       if (['tallerZona', 'almacenRacks', 'operativa', 'laboratorio', 'refacciones'].includes(role)) return 60;
@@ -90,7 +91,7 @@ const getAnchorPriority = (anchor: CroquisAnchor, type: SignType): number => {
 
     case 'ruta_evacuacion':
       if (role === 'pasillo' || id.includes('pasillo')) return 100;
-      if (id === 'acceso_principal' || role === 'acceso_principal') return 90;
+      if (id === 'acceso_principal_izq' || id === 'acceso_principal_der' || role === 'acceso_principal_izq' || role === 'acceso_principal_der') return 90;
       if (id === 'salida_emergencia' || role === 'salida_emergencia') return 85;
       if (['recepcion', 'mostrador', 'ventas', 'comedor', 'barra', 'cajas', 'atencion', 'anden'].includes(role)) return 70;
       if (['tallerZona', 'almacenRacks', 'operativa'].includes(role)) return 60;
@@ -116,7 +117,8 @@ const getAnchorPriority = (anchor: CroquisAnchor, type: SignType): number => {
       return 20;
 
     case 'salida_emergencia':
-      if (id === 'acceso_principal') return 100;
+      if (id === 'acceso_principal_der') return 100;
+      if (id === 'acceso_principal_izq') return 50;
       if (id === 'salida_emergencia') return 95;
       if (role === 'pasillo' || id.includes('pasillo')) return 70;
       return 10;
@@ -368,9 +370,9 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
         let offsetY = 0;
 
         if (chosenAnchor) {
-          if (chosenAnchor.id === 'acceso_principal' || chosenAnchor.id === 'salida_emergencia') {
+          if (chosenAnchor.id.includes('acceso_principal') || chosenAnchor.id === 'salida_emergencia') {
             offsetX = (offsetIndex - 0.5) * spacing;
-            offsetY = chosenAnchor.id === 'acceso_principal' ? -15 : 15;
+            offsetY = chosenAnchor.id.includes('acceso_principal_izq') ? -15 : 15;
           } else if (chosenAnchor.id.includes('wall') || chosenAnchor.id === 'tablero_electrico' || chosenAnchor.id === 'bodega_pared_der') {
             offsetY = (offsetIndex - 0.5) * spacing;
             offsetX = -12;
@@ -383,7 +385,9 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
             type,
             x: Math.max(20, Math.min(780, chosenAnchor.x + offsetX)),
             y: Math.max(20, Math.min(580, chosenAnchor.y + offsetY)),
-            rotation: type === 'ruta_evacuacion' ? getEvacuationRouteRotation(chosenAnchor.x + offsetX, chosenAnchor.y + offsetY, doorOrientation) : 0
+            rotation: type === 'ruta_evacuacion'
+              ? (chosenAnchor.rotation !== undefined ? chosenAnchor.rotation : getEvacuationRouteRotation(chosenAnchor.x + offsetX, chosenAnchor.y + offsetY, doorOrientation))
+              : 0
           };
           setPlacedSigns(prev => [...prev, newSign]);
         } else {
@@ -424,7 +428,7 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
     });
 
     // Map door orientation
-    let entranceAnchorId = 'acceso_principal';
+    let entranceAnchorId = 'acceso_principal_der';
     let emergencyAnchorId = 'salida_emergencia';
 
     // Distribute signs to compatible anchors
@@ -500,10 +504,10 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
         let offsetY = 0;
 
         // If the anchor is near walls or entrances, we shift horizontally or vertically
-        if (anchor.id === 'acceso_principal' || anchor.id === 'salida_emergencia') {
+        if (anchor.id.includes('acceso_principal') || anchor.id === 'salida_emergencia') {
           // Horizontal alignment
           offsetX = (index - (N - 1) / 2) * spacing;
-          offsetY = anchor.id === 'acceso_principal' ? -15 : 15;
+          offsetY = anchor.id.includes('acceso_principal_izq') ? -15 : 15;
         } else if (anchor.id.includes('wall') || anchor.id === 'tablero_electrico' || anchor.id === 'bodega_pared_der') {
           // Vertical stack next to the wall
           offsetY = (index - (N - 1) / 2) * spacing;
@@ -518,7 +522,9 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
           type,
           x: Math.max(20, Math.min(780, anchor.x + offsetX)),
           y: Math.max(20, Math.min(580, anchor.y + offsetY)),
-          rotation: type === 'ruta_evacuacion' ? getEvacuationRouteRotation(anchor.x + offsetX, anchor.y + offsetY, doorOrientation) : 0
+          rotation: type === 'ruta_evacuacion'
+            ? (anchor.rotation !== undefined ? anchor.rotation : getEvacuationRouteRotation(anchor.x + offsetX, anchor.y + offsetY, doorOrientation))
+            : 0
         });
       });
     });
