@@ -1541,6 +1541,7 @@ const ROLE_ANCHOR_TYPES: Record<string, CroquisSignType[]> = {
   refacciones: ['extintor', 'detector_humo'],
   bodega: ['extintor', 'detector_humo'],
   cocineta: ['extintor', 'detector_humo'],
+  cocina: ['extintor', 'detector_humo'],
   cajas: ['botiquin', 'extintor'],
   anden: ['extintor', 'ruta_evacuacion'],
 };
@@ -1608,21 +1609,73 @@ function buildAnchors(plan: Plan, toPx: (x: number, y: number) => [number, numbe
     usedIds.add('tablero_electrico');
   }
 
-  /* un ancla por cuarto según su rol */
+  /* un ancla por cuarto según su rol, distribuidas físicamente por tipo */
   plan.rooms.forEach(r => {
     const types = ROLE_ANCHOR_TYPES[r.role];
     if (!types) return;
     const slug = r.label.split('\n')[0].toLowerCase()
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-    const [px, py] = toPx(r.x + r.w / 2, r.y + r.h * 0.5);
-    anchors.push({
-      id: uid(slug || r.role),
-      name: r.label.replace('\n', ' '),
-      x: px, y: py,
-      allowedTypes: [...types],
-      role: r.role,
-    });
+
+    // 1. Detector de humo - Centro del cuarto
+    if (types.includes('detector_humo')) {
+      const [px, py] = toPx(r.x + r.w / 2, r.y + r.h / 2);
+      anchors.push({
+        id: uid(`${slug}_humo`),
+        name: `${r.label.replace('\n', ' ')} (Humo)`,
+        x: px, y: py,
+        allowedTypes: ['detector_humo'],
+        role: r.role,
+      });
+    }
+
+    // 2. Extintor - Muro izquierdo del cuarto
+    if (types.includes('extintor')) {
+      const [px, py] = toPx(r.x + 0.35, r.y + r.h * 0.6);
+      anchors.push({
+        id: uid(`${slug}_extintor`),
+        name: `${r.label.replace('\n', ' ')} (Extintor)`,
+        x: px, y: py,
+        allowedTypes: ['extintor'],
+        role: r.role,
+      });
+    }
+
+    // 3. Botiquín - Muro derecho del cuarto
+    if (types.includes('botiquin')) {
+      const [px, py] = toPx(r.x + r.w - 0.35, r.y + r.h * 0.4);
+      anchors.push({
+        id: uid(`${slug}_botiquin`),
+        name: `${r.label.replace('\n', ' ')} (Botiquín)`,
+        x: px, y: py,
+        allowedTypes: ['botiquin'],
+        role: r.role,
+      });
+    }
+
+    // 4. Ruta de evacuación - Salida o muro inferior
+    if (types.includes('ruta_evacuacion')) {
+      const [px, py] = toPx(r.x + r.w / 2, r.y + r.h - 0.4);
+      anchors.push({
+        id: uid(`${slug}_ruta`),
+        name: `${r.label.replace('\n', ' ')} (Ruta)`,
+        x: px, y: py,
+        allowedTypes: ['ruta_evacuacion'],
+        role: r.role,
+      });
+    }
+
+    // 5. Salida de emergencia interna (si aplica)
+    if (types.includes('salida_emergencia')) {
+      const [px, py] = toPx(r.x + r.w / 2, r.y + r.h - 0.2);
+      anchors.push({
+        id: uid(`${slug}_salida`),
+        name: `${r.label.replace('\n', ' ')} (Salida)`,
+        x: px, y: py,
+        allowedTypes: ['salida_emergencia'],
+        role: r.role,
+      });
+    }
 
     /* la cocina además lleva un ancla de gas junto a la estufa */
     if (r.role === 'cocina') {
@@ -1630,7 +1683,7 @@ function buildAnchors(plan: Plan, toPx: (x: number, y: number) => [number, numbe
       anchors.push({
         id: uid('cocina_gas'), name: 'Cocina (Gas)',
         x: gx, y: gy,
-        allowedTypes: ['valvula_gas', 'extintor', 'detector_humo'],
+        allowedTypes: ['valvula_gas'],
         role: 'cocina_gas',
       });
     }
