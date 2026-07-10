@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Save, Download, Trash2, Plus, RefreshCw, Layers, Move, Grid, HelpCircle, Upload } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { generateCroquis, CROQUIS_GIROS, type DoorSide } from '../../utils/croquisGenerator';
+import { generateCroquis, CROQUIS_GIROS, type DoorSide, type CroquisAnchor } from '../../utils/croquisGenerator';
 
 type SignType = 'extintor' | 'ruta_evacuacion' | 'salida_emergencia' | 'botiquin' | 'riesgo_electrico' | 'detector_humo' | 'valvula_gas';
 
@@ -67,6 +67,73 @@ const getEvacuationRouteRotation = (x: number, y: number, doorOrientation: 'S' |
     return dx > 0 ? 0 : 180;
   } else {
     return dy > 0 ? 90 : 270;
+  }
+};
+
+const getAnchorPriority = (anchor: CroquisAnchor, type: SignType): number => {
+  const role = anchor.role || '';
+  const id = anchor.id;
+
+  switch (type) {
+    case 'extintor':
+      if (id === 'tablero_electrico' || role === 'tablero_electrico') return 100;
+      if (id === 'cocina_gas' || role === 'cocina_gas') return 90;
+      if (role === 'cocina' || role === 'cocineta') return 85;
+      if (id === 'acceso_principal' || role === 'acceso_principal') return 80;
+      if (id === 'salida_emergencia' || role === 'salida_emergencia') return 75;
+      if (role === 'pasillo' || id.includes('pasillo')) return 70;
+      if (['tallerZona', 'almacenRacks', 'operativa', 'laboratorio', 'refacciones'].includes(role)) return 60;
+      if (['recepcion', 'mostrador', 'ventas', 'comedor', 'barra', 'cajas', 'atencion'].includes(role)) return 55;
+      if (['oficina', 'consultorio', 'juntas'].includes(role)) return 40;
+      if (['limpieza', 'recepProductos', 'bodega'].includes(role)) return 30;
+      return 10;
+
+    case 'ruta_evacuacion':
+      if (role === 'pasillo' || id.includes('pasillo')) return 100;
+      if (id === 'acceso_principal' || role === 'acceso_principal') return 90;
+      if (id === 'salida_emergencia' || role === 'salida_emergencia') return 85;
+      if (['recepcion', 'mostrador', 'ventas', 'comedor', 'barra', 'cajas', 'atencion', 'anden'].includes(role)) return 70;
+      if (['tallerZona', 'almacenRacks', 'operativa'].includes(role)) return 60;
+      if (['oficina', 'consultorio', 'juntas', 'relax'].includes(role)) return 40;
+      if (role === 'bano' || id.includes('bano')) return 10;
+      return 20;
+
+    case 'botiquin':
+      if (['recepcion', 'mostrador', 'cajas', 'atencion'].includes(role)) return 100;
+      if (['operativa', 'tallerZona', 'almacenRacks', 'laboratorio'].includes(role)) return 80;
+      if (role === 'cocina' || role === 'cocineta' || role === 'comedor') return 70;
+      if (['oficina', 'consultorio', 'juntas'].includes(role)) return 60;
+      if (role === 'pasillo' || id.includes('pasillo')) return 40;
+      return 10;
+
+    case 'detector_humo':
+      if (id === 'cocina_gas' || role === 'cocina_gas' || role === 'cocina' || role === 'cocineta') return 100;
+      if (['bodega', 'almacenRacks', 'refacciones', 'archivo'].includes(role)) return 90;
+      if (id === 'tablero_electrico' || role === 'tablero_electrico' || role === 'site_servidores') return 85;
+      if (['laboratorio', 'tallerZona', 'operativa'].includes(role)) return 80;
+      if (['recepcion', 'mostrador', 'ventas', 'oficina', 'juntas', 'comedor', 'atencion'].includes(role)) return 60;
+      if (role === 'pasillo' || id.includes('pasillo')) return 50;
+      return 20;
+
+    case 'salida_emergencia':
+      if (id === 'acceso_principal') return 100;
+      if (id === 'salida_emergencia') return 95;
+      if (role === 'pasillo' || id.includes('pasillo')) return 70;
+      return 10;
+
+    case 'valvula_gas':
+      if (id === 'cocina_gas') return 100;
+      if (role === 'cocina' || role === 'cocineta') return 90;
+      return 10;
+
+    case 'riesgo_electrico':
+      if (id === 'tablero_electrico') return 100;
+      if (role === 'site_servidores') return 90;
+      if (['tallerZona', 'operativa', 'laboratorio'].includes(role)) return 70;
+      return 10;
+
+    default:
+      return 0;
   }
 };
 
@@ -274,10 +341,15 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
 
         const compatibleAnchors = dynamicAnchors.filter(a => a.allowedTypes.includes(type));
         
-        let chosenAnchor = compatibleAnchors[0];
+        // Sort compatible anchors by logical priority (highest first)
+        const sortedCompatible = [...compatibleAnchors].sort((a, b) => {
+          return getAnchorPriority(b, type) - getAnchorPriority(a, type);
+        });
+        
+        let chosenAnchor = sortedCompatible[0];
         let minOccupied = Infinity;
         
-        compatibleAnchors.forEach(anchor => {
+        sortedCompatible.forEach(anchor => {
           const occupiedCount = placedSigns.filter(s => {
             const dx = s.x - anchor.x;
             const dy = s.y - anchor.y;
@@ -399,10 +471,15 @@ export default function CroquisSeñaleticaModal({ isOpen, onClose }: CroquisSeñ
         countToPlace--;
       }
 
-      // Distribute remaining counts round-robin style over compatible anchors
+      // Sort compatible anchors by priority (highest first)
+      const sortedAnchors = [...compatibleAnchors].sort((a, b) => {
+        return getAnchorPriority(b, type) - getAnchorPriority(a, type);
+      });
+
+      // Distribute remaining counts round-robin style over sorted compatible anchors
       let anchorIndex = 0;
       while (countToPlace > 0) {
-        const targetAnchor = compatibleAnchors[anchorIndex % compatibleAnchors.length];
+        const targetAnchor = sortedAnchors[anchorIndex % sortedAnchors.length];
         anchorAssignments[targetAnchor.id].push(type);
         countToPlace--;
         anchorIndex++;

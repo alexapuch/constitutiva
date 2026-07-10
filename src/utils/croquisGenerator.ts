@@ -25,6 +25,7 @@ export interface CroquisAnchor {
   y: number;
   allowedTypes: CroquisSignType[];
   rotation?: number;
+  role?: string;
 }
 
 export interface GeneratedCroquis {
@@ -1565,6 +1566,7 @@ function buildAnchors(plan: Plan, toPx: (x: number, y: number) => [number, numbe
       x: px, y: py,
       allowedTypes: ['salida_emergencia', 'ruta_evacuacion', 'extintor'],
       rotation: doorSide === 'S' ? 180 : 90,
+      role: 'acceso_principal',
     });
     usedIds.add('acceso_principal');
   }
@@ -1579,6 +1581,7 @@ function buildAnchors(plan: Plan, toPx: (x: number, y: number) => [number, numbe
       id: 'salida_emergencia', name: 'Salida de Emergencia',
       x: px, y: py,
       allowedTypes: ['salida_emergencia', 'ruta_evacuacion'],
+      role: 'salida_emergencia',
     });
   } else {
     const [px, py] = toPx(plan.w * 0.5, 0.3);
@@ -1587,6 +1590,7 @@ function buildAnchors(plan: Plan, toPx: (x: number, y: number) => [number, numbe
       x: px, y: py,
       allowedTypes: ['salida_emergencia', 'ruta_evacuacion'],
       rotation: 270,
+      role: 'salida_emergencia',
     });
   }
   usedIds.add('salida_emergencia');
@@ -1599,6 +1603,7 @@ function buildAnchors(plan: Plan, toPx: (x: number, y: number) => [number, numbe
       x: px, y: py,
       allowedTypes: ['riesgo_electrico', 'extintor'],
       rotation: 90,
+      role: 'tablero_electrico',
     });
     usedIds.add('tablero_electrico');
   }
@@ -1611,7 +1616,13 @@ function buildAnchors(plan: Plan, toPx: (x: number, y: number) => [number, numbe
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
     const [px, py] = toPx(r.x + r.w / 2, r.y + r.h * 0.5);
-    anchors.push({ id: uid(slug || r.role), name: r.label.replace('\n', ' '), x: px, y: py, allowedTypes: [...types] });
+    anchors.push({
+      id: uid(slug || r.role),
+      name: r.label.replace('\n', ' '),
+      x: px, y: py,
+      allowedTypes: [...types],
+      role: r.role,
+    });
 
     /* la cocina además lleva un ancla de gas junto a la estufa */
     if (r.role === 'cocina') {
@@ -1620,6 +1631,7 @@ function buildAnchors(plan: Plan, toPx: (x: number, y: number) => [number, numbe
         id: uid('cocina_gas'), name: 'Cocina (Gas)',
         x: gx, y: gy,
         allowedTypes: ['valvula_gas', 'extintor', 'detector_humo'],
+        role: 'cocina_gas',
       });
     }
   });
