@@ -338,10 +338,17 @@ export default function GeoRiesgosModal({ isOpen, onClose }: GeoRiesgosModalProp
   return (
     <>
       {/* Background Overlay */}
-      <div className="fixed inset-0 bg-black/50 z-[9998]" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/50 z-[9998]" onMouseDown={onClose} />
 
       {/* Modal Box */}
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+      <div 
+        className="fixed inset-0 z-[9999] flex items-center justify-center p-4" 
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        }}
+      >
         <div 
           className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-700"
           onClick={(e) => e.stopPropagation()}

@@ -611,7 +611,11 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
   return (
     <div 
       className="fixed inset-0 bg-black/60 flex items-center justify-center md:p-4 z-50 animate-fadeIn"
-      onClick={handleClose}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
     >
       <div 
         className="bg-white dark:bg-gray-800 shadow-2xl w-full h-full md:h-auto md:max-h-[95vh] md:max-w-4xl md:rounded-2xl overflow-hidden flex flex-col"

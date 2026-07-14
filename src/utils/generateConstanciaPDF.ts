@@ -33,6 +33,12 @@ export function resolveAddressLayout(doc: jsPDF, addressText: string, pdcText: s
   for (let fontSize = 12; fontSize >= 6; fontSize--) {
     doc.setFontSize(fontSize);
     const rendered: string[] = doc.splitTextToSize(fullAddress, maxWidth);
+    
+    // If it takes 3 or more lines, and we are still above font size 8, keep decreasing font size to try to make it fit in 2 lines.
+    if (rendered.length >= 3 && fontSize > 8) {
+      continue;
+    }
+
     const lineHeightMm = fontSize * 0.352778 * lineHeightFactor;
     const bottomY = startY + (rendered.length - 1) * lineHeightMm;
     if (bottomY <= qrTopY) return { finalAddress: fullAddress, fontSize };

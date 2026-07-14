@@ -804,10 +804,17 @@ export default function CroquisRiesgosModal({ isOpen, onClose }: CroquisRiesgosM
   return (
     <>
       {/* Background Blur Overlay */}
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998]" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998]" onMouseDown={onClose} />
 
       {/* Modal Container */}
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+      <div 
+        className="fixed inset-0 z-[9999] flex items-center justify-center p-4" 
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        }}
+      >
         <div 
           className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-[1300px] flex flex-col h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-800"
           onClick={(e) => e.stopPropagation()}
