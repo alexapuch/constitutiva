@@ -53,8 +53,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
 
   // UI state
   const [loadingAi, setLoadingAi] = useState(false);
-  const [businessCategory, setBusinessCategory] = useState<string>('OTRO');
-  const [subCategory, setSubCategory] = useState<string>('OTRO_COMERCIO');
+  const [businessCategory, setBusinessCategory] = useState<string>('comercio');
   const [numNiveles, setNumNiveles] = useState('1');
 
   const handleNivelesChange = (val: string) => {
@@ -67,10 +66,8 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
 
   const handlePreFillLocal = () => {
     // Detect category from giro
-    const detected = detectCategoryFromGiro(giro);
-    setBusinessCategory(detected.category);
-    const sub = detected.subCategory || 'OTRO_COMERCIO';
-    setSubCategory(sub);
+    const cat = detectCategoryFromGiro(giro);
+    setBusinessCategory(cat);
     
     // Set level states based on numNiveles
     const n = parseInt(numNiveles) || 1;
@@ -83,7 +80,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
     setNivel2M2(n >= 2 ? m2Construccion : '');
     setNivel3M2(n >= 3 ? m2Construccion : '');
 
-    applyLocalEstimates(detected.category, sub, m2Construccion);
+    applyLocalEstimates(cat, m2Construccion);
 
     Swal.fire({
       icon: 'success',
@@ -96,153 +93,195 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
 
   // Local rule-based estimation logic (does not use AI)
   // Local rule-based estimation logic (does not use AI)
-  const detectCategoryFromGiro = (giroText: string): { category: string; subCategory?: string } => {
-    const text = (giroText || '').toLowerCase();
+  const detectCategoryFromGiro = (giroText: string): string => {
+    const norm = (giroText || '').toLowerCase();
+
+    // Renta de Vehículos / Alquiler de Grúas y Maquinaria
+    if (
+      norm.includes('grua') || norm.includes('grúa') || 
+      norm.includes('renta de auto') || norm.includes('renta de coche') || 
+      norm.includes('alquiler de auto') || norm.includes('alquiler de coche') || 
+      norm.includes('alquiler de grua') || norm.includes('alquiler de grúa') || 
+      norm.includes('renta de vehiculo') || norm.includes('renta de vehículo') || 
+      norm.includes('arrendamiento de veh') || norm.includes('renta de maquinaria') ||
+      norm.includes('alquiler de maquinaria')
+    ) {
+      return 'renta_vehiculos';
+    }
 
     // Centros Recreativos / Juegos
     if (
-      text.includes('recreativo') || text.includes('balneario') || text.includes('parque') ||
-      text.includes('club') || text.includes('alberca') || text.includes('piscina') ||
-      text.includes('salon de fiestas') || text.includes('salon de eventos') ||
-      text.includes('campo deportivo') || text.includes('recreacion') ||
-      text.includes('juegos infantiles') || text.includes('diversion') ||
-      text.includes('parque de diversion') || text.includes('juegos') ||
-      text.includes('trampolines') || text.includes('ludoteca') || text.includes('inflables')
+      norm.includes('recreativo') || norm.includes('balneario') || norm.includes('parque') ||
+      norm.includes('club') || norm.includes('alberca') || norm.includes('piscina') ||
+      norm.includes('salon de fiestas') || norm.includes('salon de eventos') ||
+      norm.includes('campo deportivo') || norm.includes('recreacion') ||
+      norm.includes('juegos infantiles') || norm.includes('diversion') ||
+      norm.includes('parque de diversion') || norm.includes('juegos') ||
+      norm.includes('trampolines') || norm.includes('ludoteca') || norm.includes('inflables')
     ) {
-      return { category: 'CENTROS_RECREATIVOS' };
+      return 'centros_recreativos';
     }
     
     // Alimentos / Restaurante
     if (
-      text.includes('restaurante') || text.includes('cocina') || text.includes('alimento') || 
-      text.includes('comida') || text.includes('cafetera') || /\bbar(es)?\b/i.test(text) || 
-      text.includes('panaderia') || text.includes('pasteleria') || text.includes('bistro') || 
-      text.includes('antro') || text.includes('cantina') || text.includes('pizzeria') || 
-      text.includes('taqueria') || text.includes('tacos') || text.includes('loncheria') || 
-      text.includes('fondita') || text.includes('puesto de comida') || text.includes('cenaduria') || 
-      text.includes('snack') || text.includes('comida rapida') || text.includes('hamburguesa') || 
-      text.includes('marisco') || text.includes('grill') || text.includes('sushi') || 
-      text.includes('heladeria') || text.includes('paleteria') || text.includes('creperia') ||
-      text.includes('tortilleria') || text.includes('tortilla') || text.includes('nixtamal') || 
-      text.includes('despacho de masa')
+      norm.includes('restaurante') || norm.includes('fondita') || norm.includes('puesto de comida') || 
+      norm.includes('comida rapida') || norm.includes('hamburguesa') || norm.includes('marisco') || 
+      norm.includes('grill') || norm.includes('sushi') || norm.includes('bistro') || 
+      norm.includes('pizzeria') || norm.includes('taqueria') || norm.includes('tacos') || 
+      norm.includes('loncheria') || norm.includes('cenaduria') || norm.includes('snack') || 
+      norm.includes('cocina') || norm.includes('alimento') || norm.includes('comida')
     ) {
-      return { category: 'RESTAURANTE' };
-    }
-    
-    // Renta de Vehículos / Alquiler de Grúas y Maquinaria
-    if (
-      text.includes('grua') || text.includes('grúa') || 
-      text.includes('renta de auto') || text.includes('renta de coche') || 
-      text.includes('alquiler de auto') || text.includes('alquiler de coche') || 
-      text.includes('alquiler de grua') || text.includes('alquiler de grúa') || 
-      text.includes('renta de vehiculo') || text.includes('renta de vehículo') || 
-      text.includes('arrendamiento de veh') || text.includes('renta de maquinaria') ||
-      text.includes('alquiler de maquinaria')
-    ) {
-      return { category: 'COMERCIO', subCategory: 'RENTA_VEHICULOS' };
+      return 'restaurante';
     }
 
-    // Oficina / Consultorio / Despacho / Bufete
+    // Cafetería
+    if (norm.includes('cafeteria') || norm.includes('creperia') || norm.includes('heladeria') || norm.includes('paleteria')) {
+      return 'cafeteria';
+    }
+
+    // Panadería
+    if (norm.includes('panaderia') || norm.includes('pasteleria')) {
+      return 'panaderia';
+    }
+
+    // Bar / Antro
+    if (/\bbar(es)?\b/i.test(norm) || norm.includes('antro') || norm.includes('cantina')) {
+      return 'bar';
+    }
+    
+    // Tortillería
+    if (norm.includes('tortilleria') || norm.includes('tortilla') || norm.includes('nixtamal') || norm.includes('despacho de masa')) {
+      return 'tortilleria';
+    }
+    
+    // Lavandería y Tintorería (Always grouped together)
     if (
-      text.includes('oficina') || text.includes('consultorio') || text.includes('despacho') || 
-      text.includes('servicio') || text.includes('administra') || text.includes('clinica') || 
-      text.includes('dental') || text.includes('abogado') || text.includes('contable') || 
-      text.includes('corporativo') || text.includes('bufete') || text.includes('medico') || 
-      text.includes('dentista') || text.includes('notaria') || text.includes('veterinaria') || 
-      text.includes('agencia')
+      norm.includes('lavanderia') || norm.includes('tintoreria') || norm.includes('lavado y planchado') || 
+      norm.includes('planchaduria') || norm.includes('dry cleaning') || norm.includes('lavamatica') || 
+      norm.includes('tintoria')
     ) {
-      return { category: 'OFICINA' };
-    }
-    
-    // Taller / Bodega
-    if (
-      text.includes('taller') || text.includes('mecanic') || text.includes('industrial') || 
-      text.includes('bodega') || text.includes('almacen') || text.includes('almacenamiento') || 
-      text.includes('distribucion') || text.includes('deposito') || text.includes('hojalateria') || 
-      text.includes('suspensiones') || text.includes('frenos') || text.includes('vulcanizadora') || 
-      text.includes('llanteria') || text.includes('servicio automotriz') || text.includes('enderezado') || 
-      text.includes('alineacion')
-    ) {
-      return { category: 'TALLER' };
-    }
-    
-    // Hotel / Hospedaje
-    if (text.includes('hotel') || text.includes('motel') || text.includes('hospedaje')) {
-      return { category: 'COMERCIO', subCategory: 'HOTEL' };
-    }
-    
-    // Zapatería
-    if (text.includes('zapato') || text.includes('calzado') || text.includes('zapateria')) {
-      return { category: 'COMERCIO', subCategory: 'ZAPATERIA' };
-    }
-    
-    // Lavandería / Tintorería (Always grouped together)
-    if (
-      text.includes('lavanderia') || text.includes('tintoreria') || text.includes('lavado y planchado') || 
-      text.includes('planchaduria') || text.includes('dry cleaning') || text.includes('lavamatica') || 
-      text.includes('tintoria')
-    ) {
-      return { category: 'COMERCIO', subCategory: 'LAVANDERIA' };
+      return 'lavanderia';
     }
     
     // Tienda de Pinturas
-    if (text.includes('pintura') || text.includes('barniz') || text.includes('barnices') || text.includes('distribuidora de pinturas')) {
-      return { category: 'COMERCIO', subCategory: 'TIENDA_PINTURAS' };
+    if (norm.includes('pintura') || norm.includes('barniz') || norm.includes('barnices') || norm.includes('distribuidora de pinturas')) {
+      return 'tienda_pinturas';
     }
     
-    // Farmacia
-    if (text.includes('farmacia') || text.includes('drogueria') || text.includes('botica')) {
-      return { category: 'COMERCIO', subCategory: 'FARMACIA' };
-    }
-    
-    // Escuela / Colegio / Educación
+    // Taller Mecánico
     if (
-      text.includes('escuela') || text.includes('educacion') || text.includes('educativ') || text.includes('guarderia') || 
-      text.includes('colegio') || text.includes('academia') || text.includes('universidad') || 
-      text.includes('kinder') || text.includes('preescolar') || text.includes('primaria') || 
-      text.includes('secundaria') || text.includes('preparatoria') || text.includes('institu') || text.includes('intitu')
+      norm.includes('taller') || norm.includes('mecanico') || norm.includes('hojalateria') || 
+      norm.includes('automotriz') || norm.includes('suspensiones') || norm.includes('frenos') || 
+      norm.includes('vulcanizadora') || norm.includes('llanteria') || norm.includes('servicio automotriz') || 
+      norm.includes('enderezado') || norm.includes('alineacion')
     ) {
-      return { category: 'COMERCIO', subCategory: 'ESCUELA' };
+      return 'taller_mecanico';
     }
     
-    // Gimnasio / Spa / Estética
-    if (
-      text.includes('gimnasio') || text.includes('gym') || text.includes('crossfit') || 
-      text.includes('spa') || text.includes('estetica') || text.includes('peluqueria') || 
-      text.includes('barberia') || text.includes('salon de belleza') || text.includes('yoga') || 
-      text.includes('pilates')
-    ) {
-      return { category: 'COMERCIO', subCategory: 'GIMNASIO' };
-    }
-    
-    // Abarrotes
-    if (text.includes('abarrotes') || /\bsuper\b/.test(text) || text.includes('tiendita') || text.includes('minisuper') || text.includes('miscelanea')) {
-      return { category: 'COMERCIO', subCategory: 'ABARROTES' };
+    // Bodega / Almacén
+    if (norm.includes('bodega') || norm.includes('almacen') || norm.includes('almacenamiento') || norm.includes('distribucion') || norm.includes('deposito')) {
+      return 'bodega';
     }
     
     // Plaza Comercial
-    if (text.includes('plaza') || text.includes('mall') || text.includes('centro comercial') || text.includes('plazas comerciales') || text.includes('galerias') || text.includes('departamental')) {
-      return { category: 'COMERCIO', subCategory: 'PLAZA_COMERCIAL' };
+    if (norm.includes('plaza') || norm.includes('centro comercial') || norm.includes('mall') || norm.includes('galerias')) {
+      return 'plaza_comercial';
+    }
+
+    // Despacho Jurídico / Contable
+    if (norm.includes('despacho') || norm.includes('bufete') || norm.includes('abogado') || norm.includes('contable')) {
+      return 'despacho';
+    }
+
+    // Consultorio Médico
+    if (norm.includes('consultorio medico') || norm.includes('clinica') || norm.includes('medico')) {
+      return 'consultorio_medico';
+    }
+
+    // Consultorio Dental
+    if (norm.includes('consultorio dental') || norm.includes('dentista') || norm.includes('dental')) {
+      return 'consultorio_dental';
+    }
+
+    // Veterinaria
+    if (norm.includes('veterinaria') || norm.includes('estetica canina')) {
+      return 'veterinaria';
+    }
+    
+    // Oficina
+    if (norm.includes('oficina') || norm.includes('corporativo') || norm.includes('administrativo')) {
+      return 'oficina';
+    }
+    
+    // Gimnasio
+    if (norm.includes('gimnasio') || norm.includes('gym') || norm.includes('crossfit')) {
+      return 'gimnasio';
+    }
+
+    // Spa
+    if (norm.includes('spa') || norm.includes('baños de vapor')) {
+      return 'spa';
+    }
+
+    // Estética
+    if (norm.includes('estetica') || norm.includes('peluqueria') || norm.includes('barberia') || norm.includes('salon de belleza')) {
+      return 'estetica';
+    }
+    
+    // Escuela / Educación
+    if (
+      norm.includes('escuela') || norm.includes('educacion') || norm.includes('educativ') || norm.includes('guarderia') || 
+      norm.includes('colegio') || norm.includes('academia') || norm.includes('universidad') || 
+      norm.includes('kinder') || norm.includes('preescolar') || norm.includes('primaria') || 
+      norm.includes('secundaria') || norm.includes('preparatoria') || norm.includes('institu') || norm.includes('intitu')
+    ) {
+      return 'escuela';
+    }
+
+    // Farmacia
+    if (norm.includes('farmacia') || norm.includes('drogueria') || norm.includes('botica')) {
+      return 'farmacia';
+    }
+
+    // Zapatería
+    if (norm.includes('zapateria') || norm.includes('zapato') || norm.includes('calzado')) {
+      return 'zapateria';
+    }
+
+    // Minisuper / Abarrotes
+    if (norm.includes('minisuper') || norm.includes('abarrotes') || norm.includes('tiendita') || /\bsuper\b/.test(norm)) {
+      return 'minisuper';
+    }
+
+    // Hotel
+    if (norm.includes('hotel') || norm.includes('motel') || norm.includes('hospedaje')) {
+      return 'hotel';
     }
     
     // Venta de Productos en General
     if (
-      text.includes('productos en general') || text.includes('artículos en general') ||
-      text.includes('articulos en general') || text.includes('venta de productos') ||
-      text.includes('comercio general') || text.includes('comercio en general')
+      norm.includes('productos en general') || norm.includes('artículos en general') || 
+      norm.includes('articulos en general') || norm.includes('venta de productos') ||
+      norm.includes('comercio general') || norm.includes('comercio en general')
     ) {
-      return { category: 'COMERCIO', subCategory: 'VENTA_PRODUCTOS_GENERAL' };
+      return 'venta_productos_general';
     }
 
-    // Otro Comercio
-    if (text.includes('boutique') || text.includes('ropa') || text.includes('tienda') || text.includes('comercio') || text.includes('venta') || text.includes('papeleria') || text.includes('jugueteria') || text.includes('ferreteria') || text.includes('merceria') || text.includes('boneteria') || text.includes('joyeria') || text.includes('optica')) {
-      return { category: 'COMERCIO', subCategory: 'OTRO_COMERCIO' };
+    // Comercio General
+    if (
+      norm.includes('tienda') || norm.includes('boutique') || norm.includes('comercio') || 
+      norm.includes('regalos') || norm.includes('ropa') || norm.includes('papeleria') || 
+      norm.includes('jugueteria') || norm.includes('ferreteria') || norm.includes('merceria') || 
+      norm.includes('boneteria') || norm.includes('joyeria') || norm.includes('optica') || 
+      norm.includes('venta')
+    ) {
+      return 'comercio';
     }
     
-    return { category: 'OTRO' };
+    return 'comercio'; // default fallback
   };
 
-  const applyLocalEstimates = (category: string, subCat: string, m2Str: string) => {
+  const applyLocalEstimates = (category: string, m2Str: string) => {
     const m2 = parseFloat(m2Str) || 50;
     
     let gases = 0;
@@ -251,118 +290,154 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
     let solidos = 100;
     let flotante = 3;
 
-    if (category === 'RESTAURANTE') {
-      gases = m2 <= 50 ? 50 : m2 <= 120 ? 100 : 200;
-      liqComb = m2 <= 50 ? 5 : m2 <= 120 ? 10 : 20; // Aceite
-      solidos = Math.round(m2 * 15);
-      flotante = Math.ceil(m2 / 10);
-    } else if (category === 'CENTROS_RECREATIVOS') {
-      gases = 0; // Never add gas for recreational centers
-      liqInf = m2 <= 100 ? 10 : m2 <= 500 ? 50 : 150;
-      liqComb = m2 <= 100 ? 20 : m2 <= 500 ? 100 : 400;
-      solidos = Math.round(m2 * 25);
-      flotante = Math.ceil(m2 / 5);
-    } else if (category === 'COMERCIO') {
-      switch (subCat) {
-        case 'HOTEL':
-          gases = m2 <= 100 ? 90 : m2 <= 500 ? 300 : 800; // Gas LP para calderas
-          liqInf = m2 <= 100 ? 5 : m2 <= 500 ? 20 : 50;   // Limpieza, alcohol
-          liqComb = m2 <= 100 ? 10 : m2 <= 500 ? 100 : 300; // Diésel planta emergencias
-          solidos = Math.round(m2 * 20);                   // Colchones, sábanas, muebles
-          flotante = Math.ceil(m2 / 15);
-          break;
-        case 'ZAPATERIA':
-          gases = 0;
-          liqInf = 0;
-          liqComb = 0;
-          solidos = Math.round(m2 * 12);                   // Cartón, cuero, zapatos
-          flotante = Math.ceil(m2 / 12);
-          break;
-        case 'ABARROTES':
-          gases = 0;
-          liqInf = m2 <= 50 ? 2 : m2 <= 120 ? 10 : 30;     // Aerosoles, licores
-          liqComb = m2 <= 50 ? 5 : m2 <= 120 ? 20 : 50;     // Aceites comestibles
-          solidos = Math.round(m2 * 15);                   // Cajas, empaques
-          flotante = Math.ceil(m2 / 8);                    // Concurrido
-          break;
-        case 'FARMACIA':
-          gases = 0;
-          liqInf = m2 <= 50 ? 10 : m2 <= 120 ? 30 : 70;
-          liqComb = 0;
-          solidos = Math.round(m2 * 8);
-          flotante = Math.ceil(m2 / 10);
-          break;
-        case 'LAVANDERIA':
-          gases = m2 <= 50 ? 200 : m2 <= 120 ? 400 : 800;
-          liqInf = m2 <= 50 ? 15 : m2 <= 120 ? 40 : 80;
-          liqComb = m2 <= 50 ? 30 : m2 <= 120 ? 60 : 150;
-          solidos = Math.round(m2 * 10);
-          flotante = Math.ceil(m2 / 12);
-          break;
-        case 'TIENDA_PINTURAS':
-          gases = 0;
-          liqInf = m2 <= 50 ? 200 : m2 <= 120 ? 500 : 1200;
-          liqComb = m2 <= 50 ? 100 : m2 <= 120 ? 300 : 650;
-          solidos = Math.round(m2 * 15);
-          flotante = Math.ceil(m2 / 15);
-          break;
-        case 'ESCUELA':
-          gases = 0;
-          liqInf = 0;
-          liqComb = 0;
-          solidos = Math.round(m2 * 14);
-          flotante = Math.ceil(m2 / 4);
-          break;
-        case 'GIMNASIO':
-          gases = 0;
-          liqInf = 0;
-          liqComb = 0;
-          solidos = Math.round(m2 * 7);
-          flotante = Math.ceil(m2 / 8);
-          break;
-        case 'PLAZA_COMERCIAL':
-          gases = m2 <= 100 ? 45 : m2 <= 500 ? 200 : 600;  // Gas locales comida
-          liqInf = m2 <= 100 ? 15 : m2 <= 500 ? 60 : 150;
-          liqComb = m2 <= 100 ? 30 : m2 <= 500 ? 150 : 400;
-          solidos = Math.round(m2 * 18);
-          flotante = Math.ceil(m2 / 5);                    // Altísima afluencia
-          break;
-        case 'VENTA_PRODUCTOS_GENERAL':
-          gases = 0;
-          liqInf = m2 <= 50 ? 5 : m2 <= 120 ? 15 : 40;     // Aerosoles, desinfectantes, perfumes
-          liqComb = 0;
-          solidos = Math.round(m2 * 12);                   // Mercancía diversa, cartón, plástico
-          flotante = Math.ceil(m2 / 12);
-          break;
-        case 'RENTA_VEHICULOS':
-          gases = 0;
-          liqInf = m2 <= 100 ? 50 : m2 <= 500 ? 200 : 500;   // Gasolinas
-          liqComb = m2 <= 100 ? 100 : m2 <= 500 ? 400 : 1000; // Aceites, diesel
-          solidos = Math.round(m2 * 10);
-          flotante = Math.ceil(m2 / 20);
-          break;
-        default: // OTRO_COMERCIO / general
-          gases = 0;
-          liqInf = 0;
-          liqComb = 0;
-          solidos = Math.round(m2 * 10);
-          flotante = Math.ceil(m2 / 15);
-          break;
-      }
-    } else if (category === 'OFICINA') {
-      gases = 0;
-      solidos = Math.round(m2 * 6);
-      flotante = Math.ceil(m2 / 20);
-    } else if (category === 'TALLER') {
-      gases = m2 <= 50 ? 30 : 50;
-      liqInf = m2 <= 50 ? 10 : 30;
-      liqComb = m2 <= 50 ? 50 : 150;
-      solidos = Math.round(m2 * 25);
-      flotante = 4;
-    } else { // OTRO
-      gases = 0;
-      solidos = Math.round(m2 * 10);
-      flotante = Math.ceil(m2 / 15);
+    switch (category) {
+      case 'restaurante':
+        gases = m2 <= 50 ? 50 : m2 <= 120 ? 100 : 200;
+        liqComb = m2 <= 50 ? 5 : m2 <= 120 ? 10 : 20; // Aceite
+        solidos = Math.round(m2 * 15);
+        flotante = Math.ceil(m2 / 10);
+        break;
+      case 'cafeteria':
+        gases = m2 <= 50 ? 20 : m2 <= 120 ? 45 : 90;
+        liqComb = m2 <= 50 ? 2 : m2 <= 120 ? 5 : 10;
+        solidos = Math.round(m2 * 12);
+        flotante = Math.ceil(m2 / 8);
+        break;
+      case 'panaderia':
+        gases = m2 <= 50 ? 90 : m2 <= 120 ? 200 : 400;
+        liqComb = m2 <= 50 ? 5 : m2 <= 120 ? 10 : 20;
+        solidos = Math.round(m2 * 20);
+        flotante = Math.ceil(m2 / 12);
+        break;
+      case 'bar':
+        liqInf = m2 <= 50 ? 50 : m2 <= 120 ? 150 : 400;
+        solidos = Math.round(m2 * 12);
+        flotante = Math.ceil(m2 / 4);
+        break;
+      case 'tortilleria':
+        gases = m2 <= 50 ? 200 : m2 <= 120 ? 400 : 800;
+        solidos = Math.round(m2 * 8);
+        flotante = Math.ceil(m2 / 15);
+        break;
+      case 'centros_recreativos':
+        liqInf = m2 <= 100 ? 10 : m2 <= 500 ? 50 : 150;
+        liqComb = m2 <= 100 ? 20 : m2 <= 500 ? 100 : 400;
+        solidos = Math.round(m2 * 25);
+        flotante = Math.ceil(m2 / 5);
+        break;
+      case 'oficina':
+        solidos = Math.round(m2 * 6);
+        flotante = Math.ceil(m2 / 20);
+        break;
+      case 'despacho':
+        solidos = Math.round(m2 * 5);
+        flotante = Math.ceil(m2 / 25);
+        break;
+      case 'consultorio_medico':
+        liqInf = m2 <= 50 ? 5 : m2 <= 120 ? 15 : 30;
+        solidos = Math.round(m2 * 8);
+        flotante = Math.ceil(m2 / 15);
+        break;
+      case 'consultorio_dental':
+        liqInf = m2 <= 50 ? 3 : m2 <= 120 ? 10 : 20;
+        solidos = Math.round(m2 * 6);
+        flotante = Math.ceil(m2 / 15);
+        break;
+      case 'taller_mecanico':
+        gases = m2 <= 50 ? 30 : 50;
+        liqInf = m2 <= 50 ? 10 : 30;
+        liqComb = m2 <= 50 ? 50 : 150;
+        solidos = Math.round(m2 * 25);
+        flotante = 4;
+        break;
+      case 'bodega':
+        liqInf = m2 <= 100 ? 20 : 100;
+        liqComb = m2 <= 100 ? 50 : 200;
+        solidos = Math.round(m2 * 40);
+        flotante = Math.ceil(m2 / 50);
+        break;
+      case 'plaza_comercial':
+        gases = m2 <= 100 ? 45 : m2 <= 500 ? 200 : 600;
+        liqInf = m2 <= 100 ? 15 : m2 <= 500 ? 60 : 150;
+        liqComb = m2 <= 100 ? 30 : m2 <= 500 ? 150 : 400;
+        solidos = Math.round(m2 * 18);
+        flotante = Math.ceil(m2 / 5);
+        break;
+      case 'escuela':
+        solidos = Math.round(m2 * 14);
+        flotante = Math.ceil(m2 / 4);
+        break;
+      case 'gimnasio':
+        solidos = Math.round(m2 * 7);
+        flotante = Math.ceil(m2 / 8);
+        break;
+      case 'spa':
+        gases = m2 <= 100 ? 45 : 90;
+        liqComb = m2 <= 50 ? 10 : m2 <= 120 ? 20 : 55;
+        solidos = Math.round(m2 * 8);
+        flotante = Math.ceil(m2 / 10);
+        break;
+      case 'estetica':
+        liqInf = m2 <= 50 ? 10 : m2 <= 120 ? 20 : 40;
+        solidos = Math.round(m2 * 7);
+        flotante = Math.ceil(m2 / 10);
+        break;
+      case 'farmacia':
+        liqInf = m2 <= 50 ? 10 : m2 <= 120 ? 30 : 70;
+        solidos = Math.round(m2 * 8);
+        flotante = Math.ceil(m2 / 10);
+        break;
+      case 'zapateria':
+        solidos = Math.round(m2 * 12);
+        flotante = Math.ceil(m2 / 12);
+        break;
+      case 'minisuper':
+        liqInf = m2 <= 50 ? 2 : m2 <= 120 ? 10 : 30;
+        liqComb = m2 <= 50 ? 5 : m2 <= 120 ? 20 : 55;
+        solidos = Math.round(m2 * 15);
+        flotante = Math.ceil(m2 / 8);
+        break;
+      case 'veterinaria':
+        liqInf = m2 <= 50 ? 5 : 15;
+        solidos = Math.round(m2 * 10);
+        flotante = Math.ceil(m2 / 15);
+        break;
+      case 'renta_vehiculos':
+        liqInf = m2 <= 100 ? 50 : m2 <= 500 ? 200 : 500;
+        liqComb = m2 <= 100 ? 100 : m2 <= 500 ? 400 : 1000;
+        solidos = Math.round(m2 * 10);
+        flotante = Math.ceil(m2 / 20);
+        break;
+      case 'hotel':
+        gases = m2 <= 100 ? 90 : m2 <= 500 ? 300 : 800;
+        liqInf = m2 <= 100 ? 5 : m2 <= 500 ? 20 : 50;
+        liqComb = m2 <= 100 ? 10 : m2 <= 500 ? 100 : 300;
+        solidos = Math.round(m2 * 20);
+        flotante = Math.ceil(m2 / 15);
+        break;
+      case 'venta_productos_general':
+        liqInf = m2 <= 50 ? 5 : m2 <= 120 ? 15 : 40;
+        solidos = Math.round(m2 * 12);
+        flotante = Math.ceil(m2 / 12);
+        break;
+      case 'lavanderia':
+        gases = m2 <= 50 ? 200 : m2 <= 120 ? 400 : 800;
+        liqInf = m2 <= 50 ? 15 : m2 <= 120 ? 40 : 80;
+        liqComb = m2 <= 50 ? 30 : m2 <= 120 ? 60 : 150;
+        solidos = Math.round(m2 * 10);
+        flotante = Math.ceil(m2 / 12);
+        break;
+      case 'tienda_pinturas':
+        liqInf = m2 <= 50 ? 200 : m2 <= 120 ? 500 : 1200;
+        liqComb = m2 <= 50 ? 100 : m2 <= 120 ? 300 : 650;
+        solidos = Math.round(m2 * 15);
+        flotante = Math.ceil(m2 / 15);
+        break;
+      case 'comercio':
+      default:
+        solidos = Math.round(m2 * 10);
+        flotante = Math.ceil(m2 / 15);
+        break;
     }
 
     setGasesInflamables(String(gases));
@@ -425,11 +500,9 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
         .catch(err => console.error('Error fetching employees count:', err));
 
       // Detect category and apply local estimates instantly
-      const detected = detectCategoryFromGiro(doc.activity || '');
-      setBusinessCategory(detected.category);
-      const sub = detected.subCategory || 'OTRO_COMERCIO';
-      setSubCategory(sub);
-      applyLocalEstimates(detected.category, sub, m2Construccion);
+      const cat = detectCategoryFromGiro(doc.activity || '');
+      setBusinessCategory(cat);
+      applyLocalEstimates(cat, m2Construccion);
     }
   };
 
@@ -601,10 +674,10 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
     }
   }, [sotanoSi, sotanoM2, nivel1Si, nivel1M2, nivel2Si, nivel2M2, nivel3Si, nivel3M2, azoteaSi, azoteaM2]);
 
-  // Sync estimates whenever category, subcategory, or m2 changes
+  // Sync estimates whenever category or m2 changes
   useEffect(() => {
-    applyLocalEstimates(businessCategory, subCategory, m2Construccion);
-  }, [businessCategory, subCategory, m2Construccion]);
+    applyLocalEstimates(businessCategory, m2Construccion);
+  }, [businessCategory, m2Construccion]);
 
   if (!isOpen) return null;
 
@@ -668,59 +741,48 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
               </select>
             </div>
 
-            <div className="w-full md:w-48">
+            <div className="w-full md:w-64">
               <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">
-                Categoría del Giro (Estimación)
+                Giro Estimación (Manual/Auto)
               </label>
               <select
                 value={businessCategory}
                 onChange={e => {
                   const val = e.target.value;
                   setBusinessCategory(val);
-                  const defaultSub = val === 'COMERCIO' ? 'ZAPATERIA' : 'OTRO_COMERCIO';
-                  setSubCategory(defaultSub);
-                  applyLocalEstimates(val, defaultSub, m2Construccion);
+                  applyLocalEstimates(val, m2Construccion);
                 }}
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-red-600 outline-none font-bold"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-red-600 outline-none font-bold text-xs uppercase"
               >
-                <option value="RESTAURANTE">RESTAURANTE</option>
-                <option value="CENTROS_RECREATIVOS">CENTROS RECREATIVOS (JUEGOS INFANTILES, ETC.)</option>
-                <option value="COMERCIO">COMERCIO (ZAPATERÍA, ETC.)</option>
-                <option value="OFICINA">OFICINA</option>
-                <option value="TALLER">TALLER / BODEGA</option>
-                <option value="OTRO">OTRO</option>
+                <option value="comercio">Comercio General</option>
+                <option value="venta_productos_general">Venta de Productos en General</option>
+                <option value="centros_recreativos">Centros Recreativos (Juegos Infantiles, de Diversión, Club)</option>
+                <option value="oficina">Oficina Administrativa / Corporativo</option>
+                <option value="despacho">Despacho Jurídico / Contable</option>
+                <option value="consultorio_medico">Consultorio Médico / Clínica</option>
+                <option value="consultorio_dental">Consultorio Dental</option>
+                <option value="restaurante">Restaurante</option>
+                <option value="cafeteria">Cafetería / Pastelería</option>
+                <option value="bar">Bar / Cantina / Antro</option>
+                <option value="lavanderia">Lavandería y Tintorería</option>
+                <option value="tienda_pinturas">Tienda de Pinturas</option>
+                <option value="taller_mecanico">Taller Mecánico / Hojalatería</option>
+                <option value="bodega">Bodega / Almacén</option>
+                <option value="plaza_comercial">Plaza Comercial</option>
+                <option value="tortilleria">Tortillería</option>
+                <option value="escuela">Escuela / Colegio / Instituto</option>
+                <option value="gimnasio">Gimnasio / CrossFit</option>
+                <option value="spa">Spa / Baños de Vapor</option>
+                <option value="estetica">Estética / Peluquería / Barbería</option>
+                <option value="farmacia">Farmacia / Botica</option>
+                <option value="zapateria">Zapatería</option>
+                <option value="panaderia">Panadería</option>
+                <option value="minisuper">Minisuper / Abarrotes</option>
+                <option value="veterinaria">Veterinaria / Estética Canina</option>
+                <option value="renta_vehiculos">Renta de Vehículos / Alquiler de Grúas</option>
+                <option value="hotel">Hotel / Hospedaje</option>
               </select>
             </div>
-
-            {businessCategory === 'COMERCIO' && (
-              <div className="w-full md:w-48">
-                <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">
-                  Subcategoría de Comercio
-                </label>
-                <select
-                  value={subCategory}
-                  onChange={e => {
-                    const val = e.target.value;
-                    setSubCategory(val);
-                    applyLocalEstimates('COMERCIO', val, m2Construccion);
-                  }}
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-red-600 outline-none font-bold"
-                >
-                  <option value="ZAPATERIA">ZAPATERÍA</option>
-                  <option value="ABARROTES">TIENDA DE ABARROTES</option>
-                  <option value="VENTA_PRODUCTOS_GENERAL">VENTA DE PRODUCTOS EN GENERAL</option>
-                  <option value="FARMACIA">FARMACIA</option>
-                  <option value="LAVANDERIA">LAVANDERÍA Y TINTORERÍA</option>
-                  <option value="TIENDA_PINTURAS">TIENDA DE PINTURAS</option>
-                  <option value="HOTEL">HOTEL</option>
-                  <option value="ESCUELA">ESCUELA / COLEGIO</option>
-                  <option value="GIMNASIO">GIMNASIO / ESTÉTICA</option>
-                  <option value="PLAZA_COMERCIAL">PLAZA COMERCIAL</option>
-                  <option value="RENTA_VEHICULOS">RENTA DE VEHÍCULOS / ALQUILER DE GRÚAS</option>
-                  <option value="OTRO_COMERCIO">OTRO COMERCIO</option>
-                </select>
-              </div>
-            )}
             
             <div className="w-full md:w-28">
               <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">
@@ -747,7 +809,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                   setM2Construccion(val);
                   setM2Superficie(val);
                   if (nivel1Si) setNivel1M2(val);
-                  applyLocalEstimates(businessCategory, subCategory, val);
+                  applyLocalEstimates(businessCategory, val);
                 }}
                 placeholder="m²"
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-red-600 outline-none font-bold"
@@ -828,11 +890,9 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                     onChange={e => {
                       const val = e.target.value;
                       setGiro(val);
-                      const detected = detectCategoryFromGiro(val);
-                      setBusinessCategory(detected.category);
-                      const sub = detected.subCategory || 'OTRO_COMERCIO';
-                      setSubCategory(sub);
-                      applyLocalEstimates(detected.category, sub, m2Construccion);
+                      const cat = detectCategoryFromGiro(val);
+                      setBusinessCategory(cat);
+                      applyLocalEstimates(cat, m2Construccion);
                     }}
                     placeholder="Giro Comercial"
                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-gray-50 dark:bg-gray-700 dark:text-white uppercase text-sm"
