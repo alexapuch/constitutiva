@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Trash2, Eye, BookOpen, Download } from 'lucide-react';
+import { X, Trash2, Eye, BookOpen, Download, Search, ChevronDown } from 'lucide-react';
 import { generateCaratulasPDF } from '../../utils/generateCaratulasPDF';
 import { DocumentInfo } from '../../types';
 
@@ -15,11 +15,15 @@ export default function ManualCaratulasModal({ isOpen, onClose, onPreview, docum
   const [commercialName, setCommercialName] = useState('');
   const [frameColor, setFrameColor] = useState<string>('31,73,125');
   const [selectedDocId, setSelectedDocId] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const handleLimpiar = () => {
     setCompanyName('');
     setCommercialName('');
     setSelectedDocId('');
+    setSearchTerm('');
+    setDropdownOpen(false);
   };
 
   const handleClose = () => {
@@ -27,17 +31,12 @@ export default function ManualCaratulasModal({ isOpen, onClose, onPreview, docum
     onClose();
   };
 
-  const handleDocChange = (docIdStr: string) => {
-    setSelectedDocId(docIdStr);
-    if (!docIdStr) {
-      handleLimpiar();
-      return;
-    }
-    const doc = documents.find(d => String(d.id) === docIdStr);
-    if (doc) {
-      setCompanyName(doc.company_name || '');
-      setCommercialName(doc.commercial_name || '');
-    }
+  const handleSelectDoc = (doc: DocumentInfo) => {
+    setSelectedDocId(String(doc.id));
+    setCompanyName(doc.company_name || '');
+    setCommercialName(doc.commercial_name || '');
+    setSearchTerm(doc.commercial_name || doc.company_name || '');
+    setDropdownOpen(false);
   };
 
   const buildDocInfo = () => ({
@@ -45,6 +44,11 @@ export default function ManualCaratulasModal({ isOpen, onClose, onPreview, docum
     company_name: companyName.trim().toUpperCase(),
     date: '', time_start: '', time_end: '', address: '', is_active: 1
   });
+
+  const filteredDocs = documents.filter(doc =>
+    (doc.commercial_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (doc.company_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handlePreview = async () => {
     if (!commercialName.trim()) return;
@@ -81,20 +85,79 @@ export default function ManualCaratulasModal({ isOpen, onClose, onPreview, docum
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-5" style={{ overscrollBehavior: 'contain' }}>
-          <div>
+          <div className="relative">
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
               Cargar Datos de Empresa Existente
             </label>
-            <select
-              value={selectedDocId}
-              onChange={e => handleDocChange(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-[16px] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none bg-white text-gray-800"
-            >
-              <option value="">-- Manual (Sin cargar acta) --</option>
-              {documents.map(d => (
-                <option key={d.id} value={String(d.id)}>{d.commercial_name}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Buscar o seleccionar acta..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setDropdownOpen(true);
+                  if (selectedDocId) setSelectedDocId('');
+                }}
+                onFocus={() => setDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setDropdownOpen(false), 200)}
+                className="w-full border border-gray-300 rounded-lg pl-9 pr-16 py-2.5 text-[16px] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none bg-white text-gray-800"
+              />
+              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3.5 pointer-events-none" />
+              
+              <div className="absolute right-3 top-3 flex items-center gap-1.5">
+                {searchTerm && (
+                  <button 
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setSearchTerm('');
+                      setSelectedDocId('');
+                      setDropdownOpen(true);
+                    }}
+                    className="text-gray-400 hover:text-gray-600 p-0.5"
+                    title="Limpiar búsqueda"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setDropdownOpen(!dropdownOpen);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 p-0.5"
+                  title="Ver todas las actas"
+                >
+                  <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+            </div>
+
+            {dropdownOpen && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {filteredDocs.length === 0 ? (
+                  <div className="p-3 text-sm text-gray-500 text-center">No se encontraron resultados.</div>
+                ) : (
+                  <ul className="py-1">
+                    {filteredDocs.map((doc) => (
+                      <li 
+                        key={doc.id} 
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleSelectDoc(doc);
+                        }}
+                        className={`px-4 py-2 hover:bg-purple-50 cursor-pointer text-sm border-b border-gray-100 last:border-0 ${selectedDocId === String(doc.id) ? 'bg-purple-100 font-semibold text-purple-900' : ''}`}
+                      >
+                        <div className="text-gray-900 font-medium">{doc.commercial_name || 'Sin Nombre Comercial'}</div>
+                        <div className="text-gray-500 text-xs mt-0.5">{doc.company_name || 'Sin Razón Social'}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
