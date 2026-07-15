@@ -1456,6 +1456,7 @@ export default function AdminView() {
         isOpen={showCaratulasModal}
         onClose={() => setShowCaratulasModal(false)}
         onPreview={(url, name) => { setPreviewUrl(url); setPreviewName(name); setPreviewType('Carátulas'); }}
+        documents={documents}
       />
 
       <ConstanciasHistoryDrawer

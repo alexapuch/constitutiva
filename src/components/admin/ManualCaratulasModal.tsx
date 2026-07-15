@@ -1,26 +1,43 @@
 import React, { useState } from 'react';
 import { X, Trash2, Eye, BookOpen, Download } from 'lucide-react';
 import { generateCaratulasPDF } from '../../utils/generateCaratulasPDF';
+import { DocumentInfo } from '../../types';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   onPreview: (url: string, name: string) => void;
+  documents: DocumentInfo[];
 }
 
-export default function ManualCaratulasModal({ isOpen, onClose, onPreview }: Props) {
+export default function ManualCaratulasModal({ isOpen, onClose, onPreview, documents }: Props) {
   const [companyName, setCompanyName] = useState('');
   const [commercialName, setCommercialName] = useState('');
   const [frameColor, setFrameColor] = useState<string>('31,73,125');
+  const [selectedDocId, setSelectedDocId] = useState('');
 
   const handleLimpiar = () => {
     setCompanyName('');
     setCommercialName('');
+    setSelectedDocId('');
   };
 
   const handleClose = () => {
     handleLimpiar();
     onClose();
+  };
+
+  const handleDocChange = (docIdStr: string) => {
+    setSelectedDocId(docIdStr);
+    if (!docIdStr) {
+      handleLimpiar();
+      return;
+    }
+    const doc = documents.find(d => String(d.id) === docIdStr);
+    if (doc) {
+      setCompanyName(doc.company_name || '');
+      setCommercialName(doc.commercial_name || '');
+    }
   };
 
   const buildDocInfo = () => ({
@@ -64,8 +81,20 @@ export default function ManualCaratulasModal({ isOpen, onClose, onPreview }: Pro
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-5" style={{ overscrollBehavior: 'contain' }}>
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-xs text-purple-700">
-            Se generará una vista previa con las 4 carátulas de anexos (I, II, III y IV) usando los datos de la empresa que ingreses.
+          <div>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
+              Cargar Datos de Empresa Existente
+            </label>
+            <select
+              value={selectedDocId}
+              onChange={e => handleDocChange(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-[16px] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none bg-white text-gray-800"
+            >
+              <option value="">-- Manual (Sin cargar acta) --</option>
+              {documents.map(d => (
+                <option key={d.id} value={String(d.id)}>{d.commercial_name}</option>
+              ))}
+            </select>
           </div>
 
           <div>
