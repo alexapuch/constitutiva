@@ -41,6 +41,9 @@ export interface DC3Data {
 
   // Incluir firma del capacitador
   incluirFirma?: boolean;
+
+  // Firma personalizada del capacitador (DataURL base64 o URL)
+  firmaCapacitadorUrl?: string;
 }
 
 // Coordenadas calibradas con precisión matemática a partir del análisis de desplazamientos
@@ -182,20 +185,24 @@ export const generateDC3PDF = async (data: DC3Data, preview: boolean = false): P
   try {
     // Cargar plantillas y firma del capacitador en paralelo
     // Carga PNG y devuelve { dataUrl, width, height } para preservar aspecto
-    const loadPng = async (url: string): Promise<{ dataUrl: string; w: number; h: number } | null> => {
+    const loadPng = async (urlOrDataUrl: string): Promise<{ dataUrl: string; w: number; h: number } | null> => {
       try {
-        const res = await fetch(url);
-        if (!res.ok) return null;
-        const blob = await res.blob();
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-        const { w, h } = await new Promise<{ w: number; h: number }>((resolve) => {
+        let dataUrl = urlOrDataUrl;
+        if (!urlOrDataUrl.startsWith('data:')) {
+          const res = await fetch(urlOrDataUrl);
+          if (!res.ok) return null;
+          const blob = await res.blob();
+          dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        }
+        const { w, h } = await new Promise<{ w: number; h: number }>((resolve, reject) => {
           const img = new Image();
           img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+          img.onerror = () => reject(new Error('No se pudo cargar la imagen'));
           img.src = dataUrl;
         });
         return { dataUrl, w, h };
@@ -207,7 +214,7 @@ export const generateDC3PDF = async (data: DC3Data, preview: boolean = false): P
     const [imgHoja1, imgHoja2, firmaCapacitador] = await Promise.all([
       getCachedJpeg('/formatodc3_hoja1.jpg'),
       getCachedJpeg('/formatodc3_hoja2.jpg'),
-      loadPng('/firma_capacitador.png')
+      loadPng(data.firmaCapacitadorUrl || '/firma_capacitador.png')
     ]);
 
     const doc = new jsPDF({

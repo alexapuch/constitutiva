@@ -65,6 +65,114 @@ export default function ManualDC3Modal({
   // Incluir firma del capacitador en el PDF
   const [incluirFirma, setIncluirFirma] = useState(true);
 
+  // Firma personalizada del capacitador en base64
+  const [customSignature, setCustomSignature] = useState<string>('');
+  const [signatureMode, setSignatureMode] = useState<'draw' | 'upload'>('draw');
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+
+  // Obtener las coordenadas del canvas adaptadas para toques y mouse
+  const getCanvasCoords = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * (canvas.width / rect.width),
+      y: (e.clientY - rect.top) * (canvas.height / rect.height)
+    };
+  };
+
+  const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.setPointerCapture(e.pointerId);
+    const coords = getCanvasCoords(e);
+    ctx.beginPath();
+    ctx.moveTo(coords.x, coords.y);
+    setIsDrawing(true);
+  };
+
+  const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const coords = getCanvasCoords(e);
+    ctx.lineTo(coords.x, coords.y);
+    ctx.stroke();
+  };
+
+  const stopDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.releasePointerCapture(e.pointerId);
+    setIsDrawing(false);
+    
+    // Auto-guardar firma al terminar trazo
+    saveCanvasSignature();
+  };
+
+  const saveCanvasSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL('image/png');
+    setCustomSignature(dataUrl);
+    localStorage.setItem('dc3_custom_signature', dataUrl);
+  };
+
+  const drawGuideLine = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(10, canvas.height - 30);
+    ctx.lineTo(canvas.width - 10, canvas.height - 30);
+    ctx.stroke();
+    // Restaurar pincel para dibujo
+    ctx.setLineDash([]);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawGuideLine(canvas, ctx);
+    setCustomSignature('');
+    localStorage.removeItem('dc3_custom_signature');
+  };
+
+  // Inicializar lienzo del canvas
+  useEffect(() => {
+    if (signatureMode === 'draw' && incluirFirma && isOpen) {
+      const timer = setTimeout(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * 2;
+        canvas.height = rect.height * 2;
+        ctx.scale(2, 2);
+        
+        drawGuideLine(canvas, ctx);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [signatureMode, incluirFirma, isOpen]);
+
   // Efecto para sincronizar fechaInicio con fechaFin si sameDate está activo
   useEffect(() => {
     if (sameDate && globalDates.fechaInicio) {
@@ -111,6 +219,11 @@ export default function ManualDC3Modal({
   // Cargar datos persistentes de localStorage
   useEffect(() => {
     if (isOpen) {
+      const savedSignature = localStorage.getItem('dc3_custom_signature');
+      if (savedSignature) {
+        setCustomSignature(savedSignature);
+      }
+
       const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (savedData) {
         try {
@@ -435,7 +548,8 @@ export default function ManualDC3Modal({
       courses: selectedCourses,
       employees: activeEmps,
       customFileName: customFileName.trim(),
-      incluirFirma
+      incluirFirma,
+      firmaCapacitadorUrl: customSignature || undefined
     };
 
     await onGenerate(payload);
@@ -460,7 +574,8 @@ export default function ManualDC3Modal({
       courses: selectedCourses,
       employees: activeEmps,
       customFileName: customFileName.trim(),
-      incluirFirma
+      incluirFirma,
+      firmaCapacitadorUrl: customSignature || undefined
     };
 
     await onPreview(payload);
@@ -869,7 +984,7 @@ export default function ManualDC3Modal({
                   placeholder="Ej. JORGE H. MEZA"
                   value={formData.instructor}
                   onChange={(e) => handleInputChange('instructor', e.target.value)}
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm uppercase dark:bg-gray-700"
+                  className="w-full border border-gray-300 dark:border-gray-650 rounded-lg p-2.5 text-sm uppercase dark:bg-gray-700"
                 />
               </div>
 
@@ -886,9 +1001,116 @@ export default function ManualDC3Modal({
                   <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Desactiva esta opción si deseas un DC-3 sin imagen de firma.</p>
                 </div>
               </label>
+
+              {incluirFirma && (
+                <div className="p-4 bg-gray-50 dark:bg-gray-750/30 border border-gray-200 dark:border-gray-700 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Firma del Capacitador</span>
+                    <div className="flex gap-1.5 bg-white dark:bg-gray-800 p-0.5 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <button
+                        type="button"
+                        onClick={() => setSignatureMode('draw')}
+                        className={`px-3 py-1 text-[11px] font-bold rounded-md transition-colors ${
+                          signatureMode === 'draw'
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
+                        }`}
+                      >
+                        Dibujar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSignatureMode('upload')}
+                        className={`px-3 py-1 text-[11px] font-bold rounded-md transition-colors ${
+                          signatureMode === 'upload'
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
+                        }`}
+                      >
+                        Subir Imagen
+                      </button>
+                    </div>
+                  </div>
+
+                  {signatureMode === 'draw' ? (
+                    <div className="space-y-2">
+                      <div className="relative border border-gray-300 dark:border-gray-650 bg-white rounded-lg overflow-hidden h-36 flex items-center justify-center">
+                        <canvas
+                          ref={canvasRef}
+                          onPointerDown={startDrawing}
+                          onPointerMove={draw}
+                          onPointerUp={stopDrawing}
+                          onPointerLeave={stopDrawing}
+                          className="w-full h-full cursor-crosshair touch-none"
+                          style={{ touchAction: 'none' }}
+                        />
+                        <span className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-[10px] text-gray-400 pointer-events-none select-none">
+                          Firma aquí arriba de la línea (PC o celular)
+                        </span>
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          type="button"
+                          onClick={clearCanvas}
+                          className="px-3 py-1.5 border border-red-200 dark:border-red-900 bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-400 rounded-lg hover:bg-red-100 transition-colors font-bold text-xs"
+                        >
+                          Limpiar Lienzo
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="border-2 border-dashed border-gray-350 dark:border-gray-700 rounded-lg p-4 flex flex-col items-center justify-center bg-white dark:bg-gray-800 hover:bg-gray-50/50 transition-colors cursor-pointer relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                const base64 = event.target?.result as string;
+                                setCustomSignature(base64);
+                                localStorage.setItem('dc3_custom_signature', base64);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                        />
+                        <Sparkles className="w-6 h-6 text-gray-400 mb-1" />
+                        <span className="text-xs font-bold text-gray-600 dark:text-gray-450">Presiona aquí para seleccionar imagen</span>
+                        <span className="text-[10px] text-gray-400 mt-0.5">PNG o JPG transparente/fondo claro</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {customSignature && (
+                    <div className="pt-2.5 border-t border-dashed border-gray-250 dark:border-gray-700 flex flex-col items-center">
+                      <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1.5 self-start uppercase">Firma del capacitador a aplicar:</span>
+                      <div className="bg-white p-2 rounded border border-gray-200 flex items-center justify-center max-w-[200px] h-20 shadow-inner">
+                        <img src={customSignature} alt="Firma del Capacitador" className="max-w-full max-h-full object-contain" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomSignature('');
+                          localStorage.removeItem('dc3_custom_signature');
+                          if (signatureMode === 'draw') {
+                            clearCanvas();
+                          }
+                        }}
+                        className="mt-2 text-[10.5px] font-bold text-red-650 hover:text-red-750 hover:underline"
+                      >
+                        Quitar firma personalizada
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
-              💡 El nombre del Instructor, la Actividad y el Agente Capacitador se guardarán de forma persistente en tu navegador al descargar o ver la vista previa.
+              💡 El nombre del Instructor, la Actividad, el Agente Capacitador y la Firma se guardarán de forma persistente en tu navegador al descargar o ver la vista previa.
             </p>
           </div>
 
