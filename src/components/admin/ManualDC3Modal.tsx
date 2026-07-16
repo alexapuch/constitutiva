@@ -90,8 +90,13 @@ export default function ManualDC3Modal({
 
     canvas.setPointerCapture(e.pointerId);
     const coords = getCanvasCoords(e);
+    
+    // Iniciar trazo y dibujar un punto inmediato para soportar clics/taps sencillos (como puntos o tildes)
     ctx.beginPath();
     ctx.moveTo(coords.x, coords.y);
+    ctx.lineTo(coords.x + 0.1, coords.y + 0.1);
+    ctx.stroke();
+    
     setIsDrawing(true);
   };
 
