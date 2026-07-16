@@ -928,7 +928,7 @@ export default function ManualDC3Modal({
                       type="text"
                       value={course.nombreCurso}
                       onChange={(e) => updateCourseField(course.id, 'nombreCurso', e.target.value)}
-                      className="flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 font-bold text-xs md:text-sm uppercase py-1 focus:outline-none dark:text-white"
+                      className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 font-bold text-xs md:text-sm uppercase bg-white dark:bg-gray-750 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:text-white transition-all"
                       title="Nombre del curso (editable)"
                     />
                   </div>
