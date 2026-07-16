@@ -71,14 +71,14 @@ export default function ManualDC3Modal({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
-  // Obtener las coordenadas del canvas adaptadas para toques y mouse
+  // Obtener las coordenadas del canvas adaptadas para toques y mouse (usando píxeles CSS)
   const getCanvasCoords = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
     return {
-      x: (e.clientX - rect.left) * (canvas.width / rect.width),
-      y: (e.clientY - rect.top) * (canvas.height / rect.height)
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
     };
   };
 
@@ -126,13 +126,13 @@ export default function ManualDC3Modal({
     localStorage.setItem('dc3_custom_signature', dataUrl);
   };
 
-  const drawGuideLine = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+  const drawGuideLine = (width: number, height: number, ctx: CanvasRenderingContext2D) => {
     ctx.strokeStyle = '#cbd5e1';
     ctx.lineWidth = 1;
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
-    ctx.moveTo(10, canvas.height - 30);
-    ctx.lineTo(canvas.width - 10, canvas.height - 30);
+    ctx.moveTo(10, height - 30);
+    ctx.lineTo(width - 10, height - 30);
     ctx.stroke();
     // Restaurar pincel para dibujo
     ctx.setLineDash([]);
@@ -147,8 +147,9 @@ export default function ManualDC3Modal({
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawGuideLine(canvas, ctx);
+    drawGuideLine(rect.width, rect.height, ctx);
     setCustomSignature('');
     localStorage.removeItem('dc3_custom_signature');
   };
@@ -167,7 +168,7 @@ export default function ManualDC3Modal({
         canvas.height = rect.height * 2;
         ctx.scale(2, 2);
         
-        drawGuideLine(canvas, ctx);
+        drawGuideLine(rect.width, rect.height, ctx);
       }, 100);
       return () => clearTimeout(timer);
     }
