@@ -189,9 +189,9 @@ export default function OSRS() {
       <header className="bg-slate-900/80 border-b border-amber-900/30 backdrop-blur-md sticky top-0 z-20 px-4 md:px-8 py-4 flex items-center justify-between shadow-lg">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/')}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center justify-center border border-slate-700"
-            title="Volver al inicio"
+            onClick={() => navigate('/admin')}
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center justify-center border border-slate-700 cursor-pointer"
+            title="Volver al Panel Admin"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
