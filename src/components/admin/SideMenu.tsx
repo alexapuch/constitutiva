@@ -22,6 +22,7 @@ interface SideMenuProps {
   onOpenCroquisRiesgos: () => void;
   onOpenCroquisSeñaletica: () => void;
   onOpenCalendario: () => void;
+  onOpenOSRS: () => void;
   onLogout: () => void;
   onNavigateHome: () => void;
 }
@@ -29,7 +30,7 @@ interface SideMenuProps {
 export default function SideMenu({
   isOpen, onClose, quotesCount,
   onOpenQuoteHistory, onOpenNewQuote, onOpenManualConstancia, onOpenManualDC3, onOpenOrganigrama,
-  onOpenCaratulas, onOpenCartaResponsiva, onOpenConstanciasHistory, onOpenActaBlank, onOpenGeoRiesgos, onOpenIncendio, onOpenRiesgos, onOpenCroquisRiesgos, onOpenCroquisSeñaletica, onOpenCalendario, onLogout, onNavigateHome
+  onOpenCaratulas, onOpenCartaResponsiva, onOpenConstanciasHistory, onOpenActaBlank, onOpenGeoRiesgos, onOpenIncendio, onOpenRiesgos, onOpenCroquisRiesgos, onOpenCroquisSeñaletica, onOpenCalendario, onOpenOSRS, onLogout, onNavigateHome
 }: SideMenuProps) {
   const { theme, toggleTheme } = useTheme();
 
@@ -196,6 +197,14 @@ export default function SideMenu({
               >
                 <ClipboardList className="w-5 h-5 text-orange-600" />
                 Calendario de Actividades
+              </button>
+
+              <button
+                onClick={() => { onClose(); onOpenOSRS(); }}
+                className="w-full flex items-center gap-3 px-5 py-3 text-amber-700 hover:bg-amber-50 hover:text-amber-900 dark:text-amber-400 dark:hover:bg-amber-950/30 transition-colors font-bold text-left"
+              >
+                <span className="text-lg">🗡️</span>
+                OSRS Timers
               </button>
             </nav>
 

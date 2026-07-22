@@ -81,21 +81,12 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-              <p
-                onClick={() => navigate('/admin')}
-                className="text-blue-600 text-sm font-medium cursor-pointer hover:text-blue-800 transition-colors py-1"
-              >
-                Ingresar como Administrador
-              </p>
-              <span className="hidden sm:inline text-gray-300">•</span>
-              <p
-                onClick={() => navigate('/osrs')}
-                className="text-amber-600 text-sm font-bold cursor-pointer hover:text-amber-800 transition-colors py-1 flex items-center gap-1.5"
-              >
-                <span>🗡️</span> OSRS Timers
-              </p>
-            </div>
+            <p
+              onClick={() => navigate('/admin')}
+              className="text-blue-500 text-sm font-medium cursor-pointer hover:text-blue-800 transition-colors py-2"
+            >
+              Ingresar como Administrador
+            </p>
           </div>
 
 

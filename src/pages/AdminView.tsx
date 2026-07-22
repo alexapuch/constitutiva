@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, lazy, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { DocumentInfo, Employee } from '../types';
 import { Trash2, Save, FileText, Users, Plus, Download, Award, Eye, CheckCircle2, RotateCcw, ChevronDown, ChevronRight, MessageCircle, Check, Pencil, Search } from 'lucide-react';
@@ -49,6 +50,7 @@ const SESSION_KEY = 'adminAuth';
 const SESSION_VERSION_KEY = 'adminAuthVersion';
 
 export default function AdminView() {
+  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -544,6 +546,7 @@ export default function AdminView() {
         onOpenCroquisRiesgos={() => setShowCroquisRiesgosModal(true)}
         onOpenCroquisSeñaletica={() => setShowCroquisSeñaleticaModal(true)}
         onOpenCalendario={() => setShowCalendarioModal(true)}
+        onOpenOSRS={() => navigate('/osrs')}
         onLogout={async () => {
           await supabase.auth.signOut();
           setIsAuthenticated(false);
@@ -573,7 +576,16 @@ export default function AdminView() {
             <Menu className="w-6 h-6" />
             <span className="text-lg font-bold text-blue-900 dark:text-blue-300">Panel Admin</span>
           </button>
-          <span className="text-sm font-medium text-gray-400">{APP_VERSION}</span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/osrs')}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-bold rounded-lg border border-amber-500/30 text-xs md:text-sm transition-all"
+              title="Abrir OSRS Timers"
+            >
+              <span>🗡️</span> OSRS Timers
+            </button>
+            <span className="text-sm font-medium text-gray-400">{APP_VERSION}</span>
+          </div>
         </div>
 
 
