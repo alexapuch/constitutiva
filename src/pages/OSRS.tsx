@@ -29,6 +29,56 @@ export default function OSRS() {
   // Sending indicator
   const [testingMsg, setTestingMsg] = useState(false);
 
+  // Request browser Notification permissions
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Notification trigger helper (WhatsApp CallMeBot + Audio Chime + Browser Push)
+  const triggerNotification = async (title: string, text: string) => {
+    // 1. Audio chime
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.6);
+    } catch (e) {
+      /* Audio context blocked or unsupported */
+    }
+
+    // 2. Browser native desktop/mobile push notification
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(title, { body: text, icon: '/seprisa-logo.png' });
+      } catch (e) {
+        /* ignore notification errors */
+      }
+    }
+
+    // 3. WhatsApp via CallMeBot (Backend proxy + Fallback direct fetch)
+    try {
+      const res = await fetch('/api/osrs/notify-custom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      if (!res.ok) throw new Error('Backend failed');
+    } catch (e) {
+      const url = `https://api.callmebot.com/whatsapp.php?phone=+5219848790569&text=${encodeURIComponent(text)}&apikey=2048530`;
+      fetch(url, { mode: 'no-cors' }).catch(() => {});
+    }
+  };
+
   // Tick effect for timers
   useEffect(() => {
     const interval = setInterval(() => {
@@ -37,6 +87,12 @@ export default function OSRS() {
       if (birdTarget) {
         const remaining = Math.max(0, Math.floor((birdTarget - now) / 1000));
         setBirdTimeLeft(remaining);
+
+        const lastNotified = localStorage.getItem('osrs_bird_notified');
+        if (remaining === 0 && lastNotified !== birdTarget.toString()) {
+          localStorage.setItem('osrs_bird_notified', birdTarget.toString());
+          triggerNotification('🐥 ¡Bird Houses Listos!', 'ya esta listo tus bird houses');
+        }
       } else {
         setBirdTimeLeft(0);
       }
@@ -44,6 +100,12 @@ export default function OSRS() {
       if (herbTarget) {
         const remaining = Math.max(0, Math.floor((herbTarget - now) / 1000));
         setHerbTimeLeft(remaining);
+
+        const lastNotified = localStorage.getItem('osrs_herb_notified');
+        if (remaining === 0 && lastNotified !== herbTarget.toString()) {
+          localStorage.setItem('osrs_herb_notified', herbTarget.toString());
+          triggerNotification('🌿 ¡Herbs Listas!', 'tus herbs ya estan listas para recolectar');
+        }
       } else {
         setHerbTimeLeft(0);
       }
@@ -58,6 +120,7 @@ export default function OSRS() {
     const target = Date.now() + seconds * 1000;
     setBirdTarget(target);
     localStorage.setItem('osrs_bird_target', target.toString());
+    localStorage.removeItem('osrs_bird_notified');
 
     try {
       await fetch('/api/osrs/start', {
@@ -65,24 +128,25 @@ export default function OSRS() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'bird', durationSeconds: seconds })
       });
-      Swal.fire({
-        icon: 'success',
-        title: '¡Bird Run Iniciado!',
-        text: `Timer configurado a ${devMode ? '15 seg' : '50 minutos'}. Recibirás un WhatsApp al finalizar.`,
-        timer: 2000,
-        showConfirmButton: false,
-        toast: true,
-        position: 'top-end'
-      });
     } catch (e) {
       console.error(e);
     }
+    Swal.fire({
+      icon: 'success',
+      title: '¡Bird Run Iniciado!',
+      text: `Timer configurado a ${devMode ? '15 seg' : '50 minutos'}. Recibirás tu WhatsApp al finalizar.`,
+      timer: 2000,
+      showConfirmButton: false,
+      toast: true,
+      position: 'top-end'
+    });
   };
 
   // Stop Bird Run
   const handleStopBird = async () => {
     setBirdTarget(null);
     localStorage.removeItem('osrs_bird_target');
+    localStorage.removeItem('osrs_bird_notified');
     try {
       await fetch('/api/osrs/stop', {
         method: 'POST',
@@ -100,6 +164,7 @@ export default function OSRS() {
     const target = Date.now() + seconds * 1000;
     setHerbTarget(target);
     localStorage.setItem('osrs_herb_target', target.toString());
+    localStorage.removeItem('osrs_herb_notified');
 
     try {
       await fetch('/api/osrs/start', {
@@ -107,24 +172,25 @@ export default function OSRS() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'herb', durationSeconds: seconds })
       });
-      Swal.fire({
-        icon: 'success',
-        title: '¡Herb Run Iniciado!',
-        text: `Timer configurado a ${devMode ? '20 seg' : '80 minutos'}. Recibirás un WhatsApp al finalizar.`,
-        timer: 2000,
-        showConfirmButton: false,
-        toast: true,
-        position: 'top-end'
-      });
     } catch (e) {
       console.error(e);
     }
+    Swal.fire({
+      icon: 'success',
+      title: '¡Herb Run Iniciado!',
+      text: `Timer configurado a ${devMode ? '20 seg' : '80 minutos'}. Recibirás tu WhatsApp al finalizar.`,
+      timer: 2000,
+      showConfirmButton: false,
+      toast: true,
+      position: 'top-end'
+    });
   };
 
   // Stop Herb Run
   const handleStopHerb = async () => {
     setHerbTarget(null);
     localStorage.removeItem('osrs_herb_target');
+    localStorage.removeItem('osrs_herb_notified');
     try {
       await fetch('/api/osrs/stop', {
         method: 'POST',
