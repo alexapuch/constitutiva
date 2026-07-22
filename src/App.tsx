@@ -12,6 +12,7 @@ import Home from './pages/Home';
 const PublicView = lazy(() => import('./pages/PublicView'));
 const AdminView = lazy(() => import('./pages/AdminView'));
 const VerificarConstancia = lazy(() => import('./pages/VerificarConstancia'));
+const OSRS = lazy(() => import('./pages/OSRS'));
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -41,6 +42,7 @@ export default function App() {
             <Route path="/acta" element={<PublicView />} />
             <Route path="/admin" element={<AdminView />} />
             <Route path="/verificar/:id" element={<VerificarConstancia />} />
+            <Route path="/osrs" element={<OSRS />} />
           </Routes>
 
         </Suspense>

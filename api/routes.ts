@@ -1624,5 +1624,93 @@ Generate a JSON object matching this structure:
     }
 });
 
+// --- OSRS Timers & CallMeBot Notifications ---
+const CALLMEBOT_PHONE = '+5219848790569';
+const CALLMEBOT_APIKEY = '2048530';
+
+async function sendCallMeBotWhatsApp(text: string) {
+    try {
+        const msg = encodeURIComponent(text);
+        await fetch(`https://api.callmebot.com/whatsapp.php?phone=${CALLMEBOT_PHONE}&text=${msg}&apikey=${CALLMEBOT_APIKEY}`);
+    } catch (e) {
+        console.error('CallMeBot notification error:', e);
+    }
+}
+
+interface ActiveTimer {
+    timerId: NodeJS.Timeout;
+    reminderInterval?: NodeJS.Timeout;
+    targetTime: number;
+    timerType: 'bird' | 'herb';
+}
+const activeOsrsTimers: Record<string, ActiveTimer> = {};
+
+function cancelOsrsTimer(type: 'bird' | 'herb') {
+    if (activeOsrsTimers[type]) {
+        clearTimeout(activeOsrsTimers[type].timerId);
+        if (activeOsrsTimers[type].reminderInterval) {
+            clearInterval(activeOsrsTimers[type].reminderInterval);
+        }
+        delete activeOsrsTimers[type];
+    }
+}
+
+router.post('/osrs/start', (req, res) => {
+    const { type, durationSeconds } = req.body;
+    if (!type || (type !== 'bird' && type !== 'herb')) {
+        return res.status(400).json({ error: 'Invalid type' });
+    }
+
+    cancelOsrsTimer(type);
+
+    const seconds = Number(durationSeconds) || (type === 'bird' ? 50 * 60 : 80 * 60);
+    const delayMs = seconds * 1000;
+    const targetTime = Date.now() + delayMs;
+
+    const message = type === 'bird'
+        ? "🐥 ya esta listo tus bird houses"
+        : "🌿 tus herbs ya estan listas para recolectar";
+
+    const reminderMessage = type === 'bird'
+        ? "⚠️ Recordatorio: ¡Aún no has hecho tu bird run!"
+        : "⚠️ Recordatorio: ¡Aún no has recolectado tus herbs!";
+
+    const timerId = setTimeout(() => {
+        sendCallMeBotWhatsApp(message);
+
+        // Schedule recurring 45-minute reminders
+        const REMINDER_INTERVAL_MS = 45 * 60 * 1000;
+        const reminderInterval = setInterval(() => {
+            sendCallMeBotWhatsApp(reminderMessage);
+        }, REMINDER_INTERVAL_MS);
+
+        if (activeOsrsTimers[type]) {
+            activeOsrsTimers[type].reminderInterval = reminderInterval;
+        }
+    }, delayMs);
+
+    activeOsrsTimers[type] = {
+        timerId,
+        targetTime,
+        timerType: type
+    };
+
+    res.json({ success: true, targetTime });
+});
+
+router.post('/osrs/stop', (req, res) => {
+    const { type } = req.body;
+    if (type === 'bird' || type === 'herb') {
+        cancelOsrsTimer(type);
+    }
+    res.json({ success: true });
+});
+
+router.post('/osrs/test', async (req, res) => {
+    await sendCallMeBotWhatsApp("🧪 Mensaje de prueba de OSRS Timers: ¡CallMeBot funcionando correctamente!");
+    res.json({ success: true });
+});
+
 export default router;
+
 
