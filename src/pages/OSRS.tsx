@@ -8,6 +8,11 @@ import { subscribeUserToPush, checkPushSubscriptionStatus } from '../utils/webPu
 const BIRD_DURATION_SEC = 50 * 60; // 50 minutes
 const HERB_DURATION_SEC = 80 * 60; // 80 minutes
 
+const computeTimeLeft = (targetTime: number | null) => {
+  if (!targetTime) return 0;
+  return Math.max(0, Math.floor((targetTime - Date.now()) / 1000));
+};
+
 export default function OSRS() {
   const navigate = useNavigate();
 
@@ -16,7 +21,11 @@ export default function OSRS() {
     const saved = localStorage.getItem('osrs_bird_target');
     return saved ? parseInt(saved, 10) : null;
   });
-  const [birdTimeLeft, setBirdTimeLeft] = useState<number>(0);
+  const [birdTimeLeft, setBirdTimeLeft] = useState<number>(() => {
+    const saved = localStorage.getItem('osrs_bird_target');
+    const target = saved ? parseInt(saved, 10) : null;
+    return computeTimeLeft(target);
+  });
   const [lastBirdCompleted, setLastBirdCompleted] = useState<number | null>(() => {
     const saved = localStorage.getItem('osrs_bird_last_completed');
     return saved ? parseInt(saved, 10) : null;
@@ -27,7 +36,11 @@ export default function OSRS() {
     const saved = localStorage.getItem('osrs_herb_target');
     return saved ? parseInt(saved, 10) : null;
   });
-  const [herbTimeLeft, setHerbTimeLeft] = useState<number>(0);
+  const [herbTimeLeft, setHerbTimeLeft] = useState<number>(() => {
+    const saved = localStorage.getItem('osrs_herb_target');
+    const target = saved ? parseInt(saved, 10) : null;
+    return computeTimeLeft(target);
+  });
   const [lastHerbCompleted, setLastHerbCompleted] = useState<number | null>(() => {
     const saved = localStorage.getItem('osrs_herb_last_completed');
     return saved ? parseInt(saved, 10) : null;
@@ -50,10 +63,12 @@ export default function OSRS() {
       .then(data => {
         if (data.bird?.targetTime && data.bird.status === 'pending') {
           setBirdTarget(data.bird.targetTime);
+          setBirdTimeLeft(computeTimeLeft(data.bird.targetTime));
           localStorage.setItem('osrs_bird_target', data.bird.targetTime.toString());
         }
         if (data.herb?.targetTime && data.herb.status === 'pending') {
           setHerbTarget(data.herb.targetTime);
+          setHerbTimeLeft(computeTimeLeft(data.herb.targetTime));
           localStorage.setItem('osrs_herb_target', data.herb.targetTime.toString());
         }
       })
@@ -115,7 +130,7 @@ export default function OSRS() {
 
   // Tick effect for timers
   useEffect(() => {
-    const interval = setInterval(() => {
+    const updateTimers = () => {
       const now = Date.now();
 
       if (birdTarget) {
@@ -143,7 +158,10 @@ export default function OSRS() {
       } else {
         setHerbTimeLeft(0);
       }
-    }, 1000);
+    };
+
+    updateTimers();
+    const interval = setInterval(updateTimers, 1000);
 
     return () => clearInterval(interval);
   }, [birdTarget, herbTarget]);
