@@ -56,7 +56,7 @@ export default function AdminLoginForm({ onLogin }: { onLogin?: () => void }) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Límite de correos superado (Rate Limit)',
-                    text: 'Se ha alcanzado el límite de envíos por correo de Supabase. Puedes ingresar escribiendo tu Contraseña Maestra ("ammp98puchi").',
+                    text: 'Se ha alcanzado el límite de envíos por correo de Supabase. Puedes ingresar escribiendo tu Contraseña Maestra.',
                     confirmButtonText: 'Entendido',
                     confirmButtonColor: '#1e3a8a'
                 });
@@ -136,7 +136,7 @@ export default function AdminLoginForm({ onLogin }: { onLogin?: () => void }) {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             className="w-full border border-blue-200 rounded-xl p-4 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all text-blue-900 placeholder:text-blue-300 shadow-inner text-center font-bold tracking-wider text-lg"
-                            placeholder="ammp98puchi"
+                            placeholder="••••••••••••"
                             autoFocus
                         />
                     </div>
@@ -174,7 +174,7 @@ export default function AdminLoginForm({ onLogin }: { onLogin?: () => void }) {
                         }}
                         className="text-xs text-blue-600 hover:text-blue-800 font-semibold cursor-pointer py-1"
                     >
-                        {usePasswordMode ? '← Volver al acceso por correo' : '🔑 Ingresar con Contraseña Maestra (ammp98puchi)'}
+                        {usePasswordMode ? '← Volver al acceso por correo' : '🔑 Ingresar con Contraseña Maestra'}
                     </button>
 
                     {emailSent && !usePasswordMode && (
