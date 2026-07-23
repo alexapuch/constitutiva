@@ -17,6 +17,7 @@ export default function AdminLoginForm({ onLogin }: { onLogin?: () => void }) {
         if (e) e.preventDefault();
         if (password.trim().toLowerCase() === MASTER_PASSWORD) {
             localStorage.setItem('adminAuth', 'true');
+            if (onLogin) onLogin();
             Swal.fire({
                 icon: 'success',
                 title: '¡Acceso Concedido!',
@@ -26,7 +27,6 @@ export default function AdminLoginForm({ onLogin }: { onLogin?: () => void }) {
                 toast: true,
                 position: 'top-end'
             });
-            if (onLogin) onLogin();
         } else {
             Swal.fire({
                 icon: 'error',

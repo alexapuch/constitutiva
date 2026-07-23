@@ -520,7 +520,7 @@ export default function AdminView() {
   if (authLoading) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4"><div className="w-8 h-8 border-4 border-blue-900 border-t-transparent rounded-full animate-spin" /></div>;
   }
-  if (!isAuthenticated) return <AdminLoginForm />;
+  if (!isAuthenticated) return <AdminLoginForm onLogin={() => setIsAuthenticated(true)} />;
 
   return (
     <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center p-4"><div className="w-8 h-8 border-4 border-blue-900 border-t-transparent rounded-full animate-spin" /></div>}>
