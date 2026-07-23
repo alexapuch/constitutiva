@@ -33,11 +33,5 @@
             "source": "/(.*)",
             "destination": "/index.html"
         }
-    ],
-    "crons": [
-        {
-            "path": "/api/osrs/cron",
-            "schedule": "* * * * *"
-        }
     ]
 }
