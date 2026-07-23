@@ -16,6 +16,10 @@ export default function OSRS() {
     return saved ? parseInt(saved, 10) : null;
   });
   const [birdTimeLeft, setBirdTimeLeft] = useState<number>(0);
+  const [lastBirdCompleted, setLastBirdCompleted] = useState<number | null>(() => {
+    const saved = localStorage.getItem('osrs_bird_last_completed');
+    return saved ? parseInt(saved, 10) : null;
+  });
 
   // Herb Run State
   const [herbTarget, setHerbTarget] = useState<number | null>(() => {
@@ -23,6 +27,10 @@ export default function OSRS() {
     return saved ? parseInt(saved, 10) : null;
   });
   const [herbTimeLeft, setHerbTimeLeft] = useState<number>(0);
+  const [lastHerbCompleted, setLastHerbCompleted] = useState<number | null>(() => {
+    const saved = localStorage.getItem('osrs_herb_last_completed');
+    return saved ? parseInt(saved, 10) : null;
+  });
 
   // Dev mode for quick testing
   const [devMode, setDevMode] = useState(false);
@@ -123,13 +131,36 @@ export default function OSRS() {
     return () => clearInterval(interval);
   }, [birdTarget, herbTarget]);
 
+  // Format seconds to mm:ss or hh:mm:ss
+  const formatTime = (totalSeconds: number) => {
+    if (totalSeconds <= 0) return '00:00';
+    const hrs = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+
+    if (hrs > 0) {
+      return `${hrs}h ${mins.toString().padStart(2, '0')}m ${secs.toString().padStart(2, '0')}s`;
+    }
+    return `${mins.toString().padStart(2, '0')}m ${secs.toString().padStart(2, '0')}s`;
+  };
+
+  // Format timestamp to 12-hour local clock string (e.g. 09:38 PM)
+  const formatClockTime = (timestamp: number | null) => {
+    if (!timestamp) return null;
+    const d = new Date(timestamp);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+  };
+
   // Start / Reset Bird Run
   const handleStartBird = async () => {
+    const nowMs = Date.now();
     const seconds = devMode ? 15 : BIRD_DURATION_SEC;
-    const target = Date.now() + seconds * 1000;
+    const target = nowMs + seconds * 1000;
     const endsAt = new Date(target).toISOString();
     setBirdTarget(target);
+    setLastBirdCompleted(nowMs);
     localStorage.setItem('osrs_bird_target', target.toString());
+    localStorage.setItem('osrs_bird_last_completed', nowMs.toString());
     localStorage.removeItem('osrs_bird_notified');
 
     try {
@@ -184,11 +215,14 @@ export default function OSRS() {
 
   // Start / Reset Herb Run
   const handleStartHerb = async () => {
+    const nowMs = Date.now();
     const seconds = devMode ? 20 : HERB_DURATION_SEC;
-    const target = Date.now() + seconds * 1000;
+    const target = nowMs + seconds * 1000;
     const endsAt = new Date(target).toISOString();
     setHerbTarget(target);
+    setLastHerbCompleted(nowMs);
     localStorage.setItem('osrs_herb_target', target.toString());
+    localStorage.setItem('osrs_herb_last_completed', nowMs.toString());
     localStorage.removeItem('osrs_herb_notified');
 
     try {
@@ -432,9 +466,16 @@ export default function OSRS() {
                 <div className="text-4xl md:text-5xl font-black font-mono tracking-wider text-amber-400 drop-shadow-md">
                   {birdTarget ? formatTime(birdTimeLeft) : '50:00'}
                 </div>
-                <div className="text-xs text-slate-400 mt-2 flex items-center justify-center gap-1 font-medium">
-                  <Clock className="w-3.5 h-3.5 text-amber-500" />
-                  {birdTarget ? (birdTimeLeft > 0 ? 'En progreso...' : '¡Listo para recolectar!') : 'Timer inactivo'}
+                <div className="text-xs text-slate-400 mt-2 flex flex-col items-center gap-1 font-medium">
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-amber-500" />
+                    {birdTarget ? (birdTimeLeft > 0 ? `Termina a las: ${formatClockTime(birdTarget)}` : '¡Listo para recolectar!') : 'Timer inactivo'}
+                  </div>
+                  {lastBirdCompleted && (
+                    <span className="text-[11px] text-amber-400/80 font-mono mt-0.5">
+                      Última recolección: {formatClockTime(lastBirdCompleted)}
+                    </span>
+                  )}
                 </div>
 
                 {/* Progress Bar */}
@@ -507,9 +548,16 @@ export default function OSRS() {
                 <div className="text-4xl md:text-5xl font-black font-mono tracking-wider text-emerald-400 drop-shadow-md">
                   {herbTarget ? formatTime(herbTimeLeft) : '1h 20m'}
                 </div>
-                <div className="text-xs text-slate-400 mt-2 flex items-center justify-center gap-1 font-medium">
-                  <Clock className="w-3.5 h-3.5 text-emerald-500" />
-                  {herbTarget ? (herbTimeLeft > 0 ? 'En progreso...' : '¡Listo para cosechar!') : 'Timer inactivo'}
+                <div className="text-xs text-slate-400 mt-2 flex flex-col items-center gap-1 font-medium">
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                    {herbTarget ? (herbTimeLeft > 0 ? `Termina a las: ${formatClockTime(herbTarget)}` : '¡Listo para cosechar!') : 'Timer inactivo'}
+                  </div>
+                  {lastHerbCompleted && (
+                    <span className="text-[11px] text-emerald-400/80 font-mono mt-0.5">
+                      Última recolección: {formatClockTime(lastHerbCompleted)}
+                    </span>
+                  )}
                 </div>
 
                 {/* Progress Bar */}
