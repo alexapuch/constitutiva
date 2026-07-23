@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Feather, Sprout, Play, RotateCcw, Send, CheckCircle2, Clock, BellRing, Sparkles } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { supabase } from '../utils/supabaseClient';
 
 const BIRD_DURATION_SEC = 50 * 60; // 50 minutes
 const HERB_DURATION_SEC = 80 * 60; // 80 minutes
@@ -126,9 +127,22 @@ export default function OSRS() {
   const handleStartBird = async () => {
     const seconds = devMode ? 15 : BIRD_DURATION_SEC;
     const target = Date.now() + seconds * 1000;
+    const endsAt = new Date(target).toISOString();
     setBirdTarget(target);
     localStorage.setItem('osrs_bird_target', target.toString());
     localStorage.removeItem('osrs_bird_notified');
+
+    try {
+      // Direct Supabase insert into osrs_timers
+      await supabase.from('osrs_timers').delete().eq('type', 'bird_run');
+      await supabase.from('osrs_timers').insert({
+        type: 'bird_run',
+        ends_at: endsAt,
+        notified: false
+      });
+    } catch (e) {
+      console.error(e);
+    }
 
     try {
       await fetch('/api/osrs/start', {
@@ -139,6 +153,7 @@ export default function OSRS() {
     } catch (e) {
       console.error(e);
     }
+
     Swal.fire({
       icon: 'success',
       title: '¡Bird Run Iniciado!',
@@ -156,6 +171,7 @@ export default function OSRS() {
     localStorage.removeItem('osrs_bird_target');
     localStorage.removeItem('osrs_bird_notified');
     try {
+      await supabase.from('osrs_timers').delete().eq('type', 'bird_run');
       await fetch('/api/osrs/stop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -170,9 +186,22 @@ export default function OSRS() {
   const handleStartHerb = async () => {
     const seconds = devMode ? 20 : HERB_DURATION_SEC;
     const target = Date.now() + seconds * 1000;
+    const endsAt = new Date(target).toISOString();
     setHerbTarget(target);
     localStorage.setItem('osrs_herb_target', target.toString());
     localStorage.removeItem('osrs_herb_notified');
+
+    try {
+      // Direct Supabase insert into osrs_timers
+      await supabase.from('osrs_timers').delete().eq('type', 'herb_patch');
+      await supabase.from('osrs_timers').insert({
+        type: 'herb_patch',
+        ends_at: endsAt,
+        notified: false
+      });
+    } catch (e) {
+      console.error(e);
+    }
 
     try {
       await fetch('/api/osrs/start', {
@@ -183,6 +212,7 @@ export default function OSRS() {
     } catch (e) {
       console.error(e);
     }
+
     Swal.fire({
       icon: 'success',
       title: '¡Herb Run Iniciado!',
@@ -200,6 +230,7 @@ export default function OSRS() {
     localStorage.removeItem('osrs_herb_target');
     localStorage.removeItem('osrs_herb_notified');
     try {
+      await supabase.from('osrs_timers').delete().eq('type', 'herb_patch');
       await fetch('/api/osrs/stop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
