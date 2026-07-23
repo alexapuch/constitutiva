@@ -1861,13 +1861,13 @@ router.get('/osrs/status', async (req, res) => {
 router.post('/osrs/notify-custom', async (req, res) => {
     const { text } = req.body;
     if (!text) return res.status(400).json({ error: 'Text required' });
-    await sendCallMeBotWhatsApp(text);
-    res.json({ success: true });
+    const count = await sendWebPushToAll('📣 Notificación OSRS', text, '/osrs');
+    res.json({ success: true, sentCount: count });
 });
 
 router.post('/osrs/test', async (req, res) => {
-    await sendCallMeBotWhatsApp("🧪 Mensaje de prueba de OSRS Timers: ¡CallMeBot funcionando correctamente!");
-    res.json({ success: true });
+    const count = await sendWebPushToAll("🧪 Mensaje de prueba", "¡Web Push PWA funcionando correctamente!", "/osrs");
+    res.json({ success: true, sentCount: count });
 });
 
 export default router;
