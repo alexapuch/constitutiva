@@ -1646,7 +1646,7 @@ async function checkAndProcessOsrsTimers() {
             .in('access_code', ['OSRS_BIRD', 'OSRS_HERB'])
             .eq('is_active', -999);
 
-        if (error || !records) return;
+        if (error || !records || records.length === 0) return;
 
         const now = Date.now();
         const REMINDER_INTERVAL_MS = 45 * 60 * 1000; // 45 mins
@@ -1657,7 +1657,9 @@ async function checkAndProcessOsrsTimers() {
             const status = record.commercial_name; // 'pending' | 'notified' | 'stopped'
             const lastReminder = Number(record.address || 0);
 
-            if (status === 'pending' && targetTime > 0 && now >= targetTime) {
+            if (status === 'stopped' || !targetTime) continue;
+
+            if (status === 'pending' && now >= targetTime) {
                 const message = type === 'bird'
                     ? "🐥 ya esta listo tus bird houses"
                     : "🌿 tus herbs ya estan listas para recolectar";
@@ -1671,6 +1673,8 @@ async function checkAndProcessOsrsTimers() {
                         address: String(now)
                     })
                     .eq('id', record.id);
+
+                await new Promise(resolve => setTimeout(resolve, 2000));
             } else if (status === 'notified') {
                 if (now - lastReminder >= REMINDER_INTERVAL_MS) {
                     const reminderMessage = type === 'bird'
@@ -1683,6 +1687,8 @@ async function checkAndProcessOsrsTimers() {
                         .from('document_info')
                         .update({ address: String(now) })
                         .eq('id', record.id);
+
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                 }
             }
         }
@@ -1714,32 +1720,22 @@ router.post('/osrs/start', async (req, res) => {
     const accessCode = `OSRS_${type.toUpperCase()}`;
 
     try {
-        const { data: existing } = await supabase
+        // Delete all old records for this timer type to prevent duplicates/stale rows
+        await supabase
             .from('document_info')
-            .select('id')
+            .delete()
             .eq('access_code', accessCode);
 
-        if (existing && existing.length > 0) {
-            await supabase
-                .from('document_info')
-                .update({
-                    company_name: String(targetTime),
-                    commercial_name: 'pending',
-                    address: '0',
-                    is_active: -999
-                })
-                .eq('access_code', accessCode);
-        } else {
-            await supabase
-                .from('document_info')
-                .insert({
-                    access_code: accessCode,
-                    company_name: String(targetTime),
-                    commercial_name: 'pending',
-                    address: '0',
-                    is_active: -999
-                });
-        }
+        // Insert new clean record
+        await supabase
+            .from('document_info')
+            .insert({
+                access_code: accessCode,
+                company_name: String(targetTime),
+                commercial_name: 'pending',
+                address: '0',
+                is_active: -999
+            });
     } catch (e) {
         console.error('Error saving OSRS timer to Supabase:', e);
     }
@@ -1754,7 +1750,7 @@ router.post('/osrs/stop', async (req, res) => {
         const accessCode = `OSRS_${type.toUpperCase()}`;
         await supabase
             .from('document_info')
-            .update({ commercial_name: 'stopped' })
+            .delete()
             .eq('access_code', accessCode);
     }
     res.json({ success: true });

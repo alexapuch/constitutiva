@@ -50,7 +50,7 @@ export default function OSRS() {
     }
   }, []);
 
-  // Notification trigger helper (WhatsApp CallMeBot + Audio Chime + Browser Push)
+  // Notification trigger helper (Audio Chime + Browser Push + Server Cron Trigger)
   const triggerNotification = async (title: string, text: string) => {
     // 1. Audio chime
     try {
@@ -67,7 +67,7 @@ export default function OSRS() {
       osc.start();
       osc.stop(ctx.currentTime + 0.6);
     } catch (e) {
-      /* Audio context blocked or unsupported */
+      /* Audio context blocked */
     }
 
     // 2. Browser native desktop/mobile push notification
@@ -75,21 +75,15 @@ export default function OSRS() {
       try {
         new Notification(title, { body: text, icon: '/seprisa-logo.png' });
       } catch (e) {
-        /* ignore notification errors */
+        /* ignore */
       }
     }
 
-    // 3. WhatsApp via CallMeBot (Backend proxy + Fallback direct fetch)
+    // 3. Trigger server cron to process WhatsApp notification safely without duplication
     try {
-      const res = await fetch('/api/osrs/notify-custom', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-      });
-      if (!res.ok) throw new Error('Backend failed');
+      await fetch('/api/osrs/cron', { method: 'POST' });
     } catch (e) {
-      const url = `https://api.callmebot.com/whatsapp.php?phone=+5219848790569&text=${encodeURIComponent(text)}&apikey=2048530`;
-      fetch(url, { mode: 'no-cors' }).catch(() => {});
+      /* ignore */
     }
   };
 
