@@ -1625,10 +1625,7 @@ Generate a JSON object matching this structure:
     }
 });
 
-// --- OSRS Timers & CallMeBot Notifications ---
-const CALLMEBOT_PHONE = '+5219848790569';
-const CALLMEBOT_APIKEY = '2048530';
-
+// --- OSRS Timers & Web Push PWA Notifications ---
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BPF8tXi5xHpYWNpZEBshlY25tgNwaBM1dMZjQ9PqhuROqd2yG1T_ovcNTjOcft_mKh3YwfVBRhBkwPdI91v9K4o';
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '49CLfbHnT4JR_DPTenIg636cmAlbFTXIxWdRUS8fd2Q';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@seprisa.com';
@@ -1638,15 +1635,6 @@ webpush.setVapidDetails(
     VAPID_PUBLIC_KEY,
     VAPID_PRIVATE_KEY
 );
-
-async function sendCallMeBotWhatsApp(text: string) {
-    try {
-        const msg = encodeURIComponent(text);
-        await fetch(`https://api.callmebot.com/whatsapp.php?phone=${CALLMEBOT_PHONE}&text=${msg}&apikey=${CALLMEBOT_APIKEY}`);
-    } catch (e) {
-        console.error('CallMeBot notification error:', e);
-    }
-}
 
 async function sendWebPushToAll(title: string, body: string, url: string = '/osrs') {
     try {
@@ -1729,13 +1717,10 @@ async function checkAndProcessOsrsTimers() {
                         ? "🐥 ya esta listo tus bird houses"
                         : "🌿 tus herbs ya estan listas para recolectar";
                     
-                    // 1. Send WhatsApp via CallMeBot
-                    await sendCallMeBotWhatsApp(message);
-
-                    // 2. Send Native Web Push PWA notification
+                    // Send Native Web Push PWA notification
                     await sendWebPushToAll(title, message, '/osrs');
 
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             } else if (record.notified) {
                 // Check for 45-minute inactivity reminders
@@ -1748,7 +1733,6 @@ async function checkAndProcessOsrsTimers() {
                         ? "⚠️ Recordatorio: ¡Aún no has hecho tu bird run!"
                         : "⚠️ Recordatorio: ¡Aún no has recolectado tus herbs!";
                     
-                    await sendCallMeBotWhatsApp(reminderMessage);
                     await sendWebPushToAll(reminderTitle, reminderMessage, '/osrs');
 
                     // Update created_at to timestamp of this reminder
@@ -1757,7 +1741,7 @@ async function checkAndProcessOsrsTimers() {
                         .update({ created_at: new Date().toISOString() })
                         .eq('id', record.id);
 
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             }
         }
