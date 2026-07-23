@@ -1674,7 +1674,10 @@ async function sendWebPushToAll(title: string, body: string, url: string = '/osr
             };
 
             try {
-                await webpush.sendNotification(pushSubscription, payload);
+                await webpush.sendNotification(pushSubscription, payload, {
+                    TTL: 86400,
+                    urgency: 'high'
+                });
                 successCount++;
             } catch (err: any) {
                 console.error(`Error sending Web Push to ${sub.endpoint}:`, err?.statusCode || err);
