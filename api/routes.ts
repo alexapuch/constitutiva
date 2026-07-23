@@ -1637,73 +1637,152 @@ async function sendCallMeBotWhatsApp(text: string) {
     }
 }
 
-interface ActiveTimer {
-    timerId: NodeJS.Timeout;
-    reminderInterval?: NodeJS.Timeout;
-    targetTime: number;
-    timerType: 'bird' | 'herb';
-}
-const activeOsrsTimers: Record<string, ActiveTimer> = {};
+// Cron handler function to check pending timers & send notifications even when tab/browser is closed
+async function checkAndProcessOsrsTimers() {
+    try {
+        const { data: records, error } = await supabase
+            .from('document_info')
+            .select('*')
+            .in('access_code', ['OSRS_BIRD', 'OSRS_HERB'])
+            .eq('is_active', -999);
 
-function cancelOsrsTimer(type: 'bird' | 'herb') {
-    if (activeOsrsTimers[type]) {
-        clearTimeout(activeOsrsTimers[type].timerId);
-        if (activeOsrsTimers[type].reminderInterval) {
-            clearInterval(activeOsrsTimers[type].reminderInterval);
+        if (error || !records) return;
+
+        const now = Date.now();
+        const REMINDER_INTERVAL_MS = 45 * 60 * 1000; // 45 mins
+
+        for (const record of records) {
+            const type = record.access_code === 'OSRS_BIRD' ? 'bird' : 'herb';
+            const targetTime = Number(record.company_name);
+            const status = record.commercial_name; // 'pending' | 'notified' | 'stopped'
+            const lastReminder = Number(record.address || 0);
+
+            if (status === 'pending' && targetTime > 0 && now >= targetTime) {
+                const message = type === 'bird'
+                    ? "🐥 ya esta listo tus bird houses"
+                    : "🌿 tus herbs ya estan listas para recolectar";
+                
+                await sendCallMeBotWhatsApp(message);
+
+                await supabase
+                    .from('document_info')
+                    .update({
+                        commercial_name: 'notified',
+                        address: String(now)
+                    })
+                    .eq('id', record.id);
+            } else if (status === 'notified') {
+                if (now - lastReminder >= REMINDER_INTERVAL_MS) {
+                    const reminderMessage = type === 'bird'
+                        ? "⚠️ Recordatorio: ¡Aún no has hecho tu bird run!"
+                        : "⚠️ Recordatorio: ¡Aún no has recolectado tus herbs!";
+                    
+                    await sendCallMeBotWhatsApp(reminderMessage);
+
+                    await supabase
+                        .from('document_info')
+                        .update({ address: String(now) })
+                        .eq('id', record.id);
+                }
+            }
         }
-        delete activeOsrsTimers[type];
+    } catch (err) {
+        console.error('Error in checkAndProcessOsrsTimers:', err);
     }
 }
 
-router.post('/osrs/start', (req, res) => {
+// Cron endpoint (Called automatically by Vercel Cron or external cron ping)
+router.get('/osrs/cron', async (req, res) => {
+    await checkAndProcessOsrsTimers();
+    res.json({ success: true, timestamp: Date.now() });
+});
+
+router.post('/osrs/cron', async (req, res) => {
+    await checkAndProcessOsrsTimers();
+    res.json({ success: true, timestamp: Date.now() });
+});
+
+// Start/Reset a timer
+router.post('/osrs/start', async (req, res) => {
     const { type, durationSeconds } = req.body;
     if (!type || (type !== 'bird' && type !== 'herb')) {
         return res.status(400).json({ error: 'Invalid type' });
     }
 
-    cancelOsrsTimer(type);
-
     const seconds = Number(durationSeconds) || (type === 'bird' ? 50 * 60 : 80 * 60);
-    const delayMs = seconds * 1000;
-    const targetTime = Date.now() + delayMs;
+    const targetTime = Date.now() + seconds * 1000;
+    const accessCode = `OSRS_${type.toUpperCase()}`;
 
-    const message = type === 'bird'
-        ? "🐥 ya esta listo tus bird houses"
-        : "🌿 tus herbs ya estan listas para recolectar";
+    try {
+        const { data: existing } = await supabase
+            .from('document_info')
+            .select('id')
+            .eq('access_code', accessCode);
 
-    const reminderMessage = type === 'bird'
-        ? "⚠️ Recordatorio: ¡Aún no has hecho tu bird run!"
-        : "⚠️ Recordatorio: ¡Aún no has recolectado tus herbs!";
-
-    const timerId = setTimeout(() => {
-        sendCallMeBotWhatsApp(message);
-
-        // Schedule recurring 45-minute reminders
-        const REMINDER_INTERVAL_MS = 45 * 60 * 1000;
-        const reminderInterval = setInterval(() => {
-            sendCallMeBotWhatsApp(reminderMessage);
-        }, REMINDER_INTERVAL_MS);
-
-        if (activeOsrsTimers[type]) {
-            activeOsrsTimers[type].reminderInterval = reminderInterval;
+        if (existing && existing.length > 0) {
+            await supabase
+                .from('document_info')
+                .update({
+                    company_name: String(targetTime),
+                    commercial_name: 'pending',
+                    address: '0',
+                    is_active: -999
+                })
+                .eq('access_code', accessCode);
+        } else {
+            await supabase
+                .from('document_info')
+                .insert({
+                    access_code: accessCode,
+                    company_name: String(targetTime),
+                    commercial_name: 'pending',
+                    address: '0',
+                    is_active: -999
+                });
         }
-    }, delayMs);
-
-    activeOsrsTimers[type] = {
-        timerId,
-        targetTime,
-        timerType: type
-    };
+    } catch (e) {
+        console.error('Error saving OSRS timer to Supabase:', e);
+    }
 
     res.json({ success: true, targetTime });
 });
 
-router.post('/osrs/stop', (req, res) => {
+// Stop a timer
+router.post('/osrs/stop', async (req, res) => {
     const { type } = req.body;
     if (type === 'bird' || type === 'herb') {
-        cancelOsrsTimer(type);
+        const accessCode = `OSRS_${type.toUpperCase()}`;
+        await supabase
+            .from('document_info')
+            .update({ commercial_name: 'stopped' })
+            .eq('access_code', accessCode);
     }
     res.json({ success: true });
+});
+
+// Get current timer targets
+router.get('/osrs/status', async (req, res) => {
+    try {
+        const { data: records } = await supabase
+            .from('document_info')
+            .select('*')
+            .in('access_code', ['OSRS_BIRD', 'OSRS_HERB'])
+            .eq('is_active', -999);
+
+        const statusMap: Record<string, any> = {};
+        if (records) {
+            for (const r of records) {
+                const type = r.access_code === 'OSRS_BIRD' ? 'bird' : 'herb';
+                statusMap[type] = {
+                    targetTime: Number(r.company_name),
+                    status: r.commercial_name
+                };
+            }
+        }
+        res.json(statusMap);
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 router.post('/osrs/notify-custom', async (req, res) => {

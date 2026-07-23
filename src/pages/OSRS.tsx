@@ -29,8 +29,22 @@ export default function OSRS() {
   // Sending indicator
   const [testingMsg, setTestingMsg] = useState(false);
 
-  // Request browser Notification permissions
+  // Sync status from Supabase on mount
   useEffect(() => {
+    fetch('/api/osrs/status')
+      .then(res => res.json())
+      .then(data => {
+        if (data.bird?.targetTime && data.bird.status === 'pending') {
+          setBirdTarget(data.bird.targetTime);
+          localStorage.setItem('osrs_bird_target', data.bird.targetTime.toString());
+        }
+        if (data.herb?.targetTime && data.herb.status === 'pending') {
+          setHerbTarget(data.herb.targetTime);
+          localStorage.setItem('osrs_herb_target', data.herb.targetTime.toString());
+        }
+      })
+      .catch(() => {});
+
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
