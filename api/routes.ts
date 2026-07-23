@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { customAlphabet } from 'nanoid';
 import { GoogleGenAI, Type } from '@google/genai';
+import webpush from 'web-push';
 
 
 const generateCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 6);
@@ -1628,12 +1629,67 @@ Generate a JSON object matching this structure:
 const CALLMEBOT_PHONE = '+5219848790569';
 const CALLMEBOT_APIKEY = '2048530';
 
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BPF8tXi5xHpYWNpZEBshlY25tgNwaBM1dMZjQ9PqhuROqd2yG1T_ovcNTjOcft_mKh3YwfVBRhBkwPdI91v9K4o';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '49CLfbHnT4JR_DPTenIg636cmAlbFTXIxWdRUS8fd2Q';
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@seprisa.com';
+
+webpush.setVapidDetails(
+    VAPID_SUBJECT,
+    VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY
+);
+
 async function sendCallMeBotWhatsApp(text: string) {
     try {
         const msg = encodeURIComponent(text);
         await fetch(`https://api.callmebot.com/whatsapp.php?phone=${CALLMEBOT_PHONE}&text=${msg}&apikey=${CALLMEBOT_APIKEY}`);
     } catch (e) {
         console.error('CallMeBot notification error:', e);
+    }
+}
+
+async function sendWebPushToAll(title: string, body: string, url: string = '/osrs') {
+    try {
+        const { data: subs, error } = await supabase
+            .from('push_subscriptions')
+            .select('*');
+
+        if (error || !subs || subs.length === 0) return 0;
+
+        const payload = JSON.stringify({
+            title,
+            body,
+            icon: '/seprisa-logo.png',
+            url
+        });
+
+        let successCount = 0;
+        for (const sub of subs) {
+            const pushSubscription = {
+                endpoint: sub.endpoint,
+                keys: {
+                    p256dh: sub.p256dh,
+                    auth: sub.auth
+                }
+            };
+
+            try {
+                await webpush.sendNotification(pushSubscription, payload);
+                successCount++;
+            } catch (err: any) {
+                console.error(`Error sending Web Push to ${sub.endpoint}:`, err?.statusCode || err);
+                if (err?.statusCode === 404 || err?.statusCode === 410) {
+                    await supabase
+                        .from('push_subscriptions')
+                        .delete()
+                        .eq('endpoint', sub.endpoint);
+                }
+            }
+        }
+        return successCount;
+    } catch (e) {
+        console.error('Error in sendWebPushToAll:', e);
+        return 0;
     }
 }
 
@@ -1657,7 +1713,6 @@ async function checkAndProcessOsrsTimers() {
 
             if (!record.notified && now >= endsAtMs) {
                 // ATOMIC UPDATE: Only update if notified is STILL false
-                // This prevents race conditions with pg_cron or concurrent calls
                 const { data: updated } = await supabase
                     .from('osrs_timers')
                     .update({ notified: true })
@@ -1666,11 +1721,17 @@ async function checkAndProcessOsrsTimers() {
                     .select();
 
                 if (updated && updated.length > 0) {
+                    const title = isBird ? '🐥 ¡Bird Houses Listos!' : '🌿 ¡Herbs Listas!';
                     const message = isBird
                         ? "🐥 ya esta listo tus bird houses"
                         : "🌿 tus herbs ya estan listas para recolectar";
                     
+                    // 1. Send WhatsApp via CallMeBot
                     await sendCallMeBotWhatsApp(message);
+
+                    // 2. Send Native Web Push PWA notification
+                    await sendWebPushToAll(title, message, '/osrs');
+
                     await new Promise(resolve => setTimeout(resolve, 2000));
                 }
             } else if (record.notified) {
@@ -1679,11 +1740,14 @@ async function checkAndProcessOsrsTimers() {
                 const timeSinceNotified = now - Math.max(endsAtMs, lastCheck);
                 
                 if (timeSinceNotified >= REMINDER_INTERVAL_MS) {
+                    const reminderTitle = '⚠️ Recordatorio OSRS';
                     const reminderMessage = isBird
                         ? "⚠️ Recordatorio: ¡Aún no has hecho tu bird run!"
                         : "⚠️ Recordatorio: ¡Aún no has recolectado tus herbs!";
                     
                     await sendCallMeBotWhatsApp(reminderMessage);
+                    await sendWebPushToAll(reminderTitle, reminderMessage, '/osrs');
+
                     // Update created_at to timestamp of this reminder
                     await supabase
                         .from('osrs_timers')
@@ -1714,6 +1778,15 @@ router.get('/osrs/cron', async (req, res) => {
 router.post('/osrs/cron', async (req, res) => {
     await checkAndProcessOsrsTimers();
     res.json({ success: true, timestamp: Date.now() });
+});
+
+// Standalone Web Push trigger endpoint
+router.post('/osrs/send-push', async (req, res) => {
+    const { title, body, url } = req.body;
+    const msgTitle = title || '🗡️ OSRS Timers';
+    const msgBody = body || '¡Notificación de prueba Web Push en tu dispositivo!';
+    const count = await sendWebPushToAll(msgTitle, msgBody, url || '/osrs');
+    res.json({ success: true, sentCount: count });
 });
 
 // Start/Reset a timer

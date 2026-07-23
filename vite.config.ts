@@ -13,7 +13,7 @@ export default defineConfig(({mode}) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: false,
-        selfDestroying: true,
+        selfDestroying: false,
         includeAssets: [
           'seprisa-logo.png',
           'constancia_vacia.png',

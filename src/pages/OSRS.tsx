@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Feather, Sprout, Play, RotateCcw, Send, CheckCircle2, Clock, BellRing, Sparkles } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { supabase } from '../utils/supabaseClient';
+import { subscribeUserToPush, checkPushSubscriptionStatus } from '../utils/webPush';
 
 const BIRD_DURATION_SEC = 50 * 60; // 50 minutes
 const HERB_DURATION_SEC = 80 * 60; // 80 minutes
@@ -38,7 +39,11 @@ export default function OSRS() {
   // Sending indicator
   const [testingMsg, setTestingMsg] = useState(false);
 
-  // Sync status from Supabase on mount
+  // Web Push Subscription state
+  const [isPushSubscribed, setIsPushSubscribed] = useState(false);
+  const [subscribingPush, setSubscribingPush] = useState(false);
+
+  // Sync status & check Push Subscription on mount
   useEffect(() => {
     fetch('/api/osrs/status')
       .then(res => res.json())
@@ -54,14 +59,35 @@ export default function OSRS() {
       })
       .catch(() => {});
 
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
+    checkPushSubscriptionStatus().then(setIsPushSubscribed);
   }, []);
 
-  // Notification trigger helper (Audio Chime + Browser Push + Server Cron Trigger)
+  // Handle subscribing device to VAPID Web Push
+  const handleSubscribePush = async () => {
+    setSubscribingPush(true);
+    const res = await subscribeUserToPush();
+    setSubscribingPush(false);
+    if (res.success) {
+      setIsPushSubscribed(true);
+      Swal.fire({
+        icon: 'success',
+        title: '¡Notificaciones Web Push PWA Activadas!',
+        text: 'Tu dispositivo recibirá notificaciones nativas de Web Push cuando termine un timer, ¡incluso con la app y el navegador cerrados!',
+        timer: 3500,
+        showConfirmButton: false
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Suscripción Push',
+        text: res.error || 'No se pudo activar la suscripción Web Push.'
+      });
+    }
+  };
+
+  // Notification trigger helper (Audio Chime when open + Trigger Server Cron)
   const triggerNotification = async (title: string, text: string) => {
-    // 1. Audio chime
+    // 1. Audio chime (if browser window is active)
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const osc = ctx.createOscillator();
@@ -79,16 +105,7 @@ export default function OSRS() {
       /* Audio context blocked */
     }
 
-    // 2. Browser native desktop/mobile push notification
-    if ('Notification' in window && Notification.permission === 'granted') {
-      try {
-        new Notification(title, { body: text, icon: '/seprisa-logo.png' });
-      } catch (e) {
-        /* ignore */
-      }
-    }
-
-    // 3. Trigger server cron to process WhatsApp notification safely without duplication
+    // 2. Trigger server cron to send WhatsApp + VAPID Web Push
     try {
       await fetch('/api/osrs/cron', { method: 'POST' });
     } catch (e) {
@@ -381,6 +398,19 @@ export default function OSRS() {
 
           {/* Action Controls */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleSubscribePush}
+              disabled={subscribingPush}
+              className={`flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 border rounded-xl text-xs md:text-sm font-semibold transition-all cursor-pointer ${
+                isPushSubscribed
+                  ? 'bg-blue-600/20 border-blue-500/50 text-blue-300'
+                  : 'bg-indigo-600/30 hover:bg-indigo-600/40 border-indigo-500 text-indigo-200 animate-pulse'
+              }`}
+              title="Suscripción a Notificaciones Web Push (App Cerrada)"
+            >
+              <BellRing className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${subscribingPush ? 'animate-spin' : ''}`} />
+              <span>{isPushSubscribed ? 'Push Activo' : 'Activar Push PWA'}</span>
+            </button>
             <button
               onClick={handleCronHelp}
               className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 rounded-xl text-xs md:text-sm font-semibold transition-all cursor-pointer"
