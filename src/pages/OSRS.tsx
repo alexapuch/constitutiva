@@ -401,7 +401,7 @@ export default function OSRS() {
             <button
               onClick={handleSubscribePush}
               disabled={subscribingPush}
-              className={`flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 border rounded-xl text-xs md:text-sm font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 border rounded-xl text-xs md:text-sm font-semibold transition-all cursor-pointer ${
                 isPushSubscribed
                   ? 'bg-blue-600/20 border-blue-500/50 text-blue-300'
                   : 'bg-indigo-600/30 hover:bg-indigo-600/40 border-indigo-500 text-indigo-200 animate-pulse'
@@ -410,22 +410,6 @@ export default function OSRS() {
             >
               <BellRing className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${subscribingPush ? 'animate-spin' : ''}`} />
               <span>{isPushSubscribed ? 'Push Activo' : 'Activar Push PWA'}</span>
-            </button>
-            <button
-              onClick={handleCronHelp}
-              className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 rounded-xl text-xs md:text-sm font-semibold transition-all cursor-pointer"
-              title="Activar notificaciones 24/7 sin abrir la app"
-            >
-              <span>⚡</span>
-              <span className="hidden sm:inline">Avisos</span> 24/7
-            </button>
-            <button
-              onClick={handleTestWhatsApp}
-              disabled={testingMsg}
-              className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 rounded-xl text-xs md:text-sm font-semibold transition-all disabled:opacity-50 cursor-pointer"
-            >
-              <Send className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${testingMsg ? 'animate-bounce' : ''}`} />
-              <span className="hidden sm:inline">Probar</span> WhatsApp
             </button>
           </div>
         </div>
