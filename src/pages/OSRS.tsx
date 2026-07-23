@@ -347,52 +347,69 @@ export default function OSRS() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col selection:bg-amber-500 selection:text-slate-950">
-      {/* Header */}
-      <header className="bg-slate-900/80 border-b border-amber-900/30 backdrop-blur-md sticky top-0 z-20 px-4 md:px-8 py-4 flex items-center justify-between shadow-lg">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/admin')}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center justify-center border border-slate-700 cursor-pointer"
-            title="Volver al Panel Admin"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-black text-xl shadow-inner">
-              🗡️
-            </div>
-            <div>
-              <h1 className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-200 to-yellow-500 tracking-wider">
-                OSRS TIMERS
-              </h1>
-              <p className="text-xs text-amber-500/70 font-medium">Bird Houses & Herb Runs Notifier</p>
+      {/* Header with iOS Safe Area Notch Padding */}
+      <header
+        className="bg-slate-900/90 border-b border-amber-900/30 backdrop-blur-md sticky top-0 z-20 px-4 md:px-8 shadow-lg transition-all"
+        style={{
+          paddingTop: 'calc(0.85rem + env(safe-area-inset-top, 0px))',
+          paddingBottom: '0.85rem',
+          paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))',
+          paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))'
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <button
+              onClick={() => navigate('/admin')}
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center justify-center border border-slate-700 cursor-pointer shrink-0"
+              title="Volver al Panel Admin"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-black text-lg sm:text-xl shadow-inner shrink-0">
+                🗡️
+              </div>
+              <div>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-200 to-yellow-500 tracking-wider leading-tight">
+                  OSRS TIMERS
+                </h1>
+                <p className="text-[11px] sm:text-xs text-amber-500/70 font-medium leading-none">Bird Houses & Herb Runs</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleCronHelp}
-            className="flex items-center gap-2 px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 rounded-xl text-xs md:text-sm font-semibold transition-all cursor-pointer"
-            title="Activar notificaciones 24/7 sin abrir la app"
-          >
-            <span>⚡</span>
-            <span className="hidden sm:inline">Avisos</span> 24/7
-          </button>
-          <button
-            onClick={handleTestWhatsApp}
-            disabled={testingMsg}
-            className="flex items-center gap-2 px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 rounded-xl text-xs md:text-sm font-semibold transition-all disabled:opacity-50 cursor-pointer"
-          >
-            <Send className={`w-4 h-4 ${testingMsg ? 'animate-bounce' : ''}`} />
-            <span className="hidden sm:inline">Probar</span> WhatsApp
-          </button>
+          {/* Action Controls */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCronHelp}
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 rounded-xl text-xs md:text-sm font-semibold transition-all cursor-pointer"
+              title="Activar notificaciones 24/7 sin abrir la app"
+            >
+              <span>⚡</span>
+              <span className="hidden sm:inline">Avisos</span> 24/7
+            </button>
+            <button
+              onClick={handleTestWhatsApp}
+              disabled={testingMsg}
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 rounded-xl text-xs md:text-sm font-semibold transition-all disabled:opacity-50 cursor-pointer"
+            >
+              <Send className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${testingMsg ? 'animate-bounce' : ''}`} />
+              <span className="hidden sm:inline">Probar</span> WhatsApp
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 space-y-6">
+      <main
+        className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 space-y-6"
+        style={{
+          paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))',
+          paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))',
+          paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))'
+        }}
+      >
         
         {/* Banner Alert */}
         <div className="bg-gradient-to-r from-amber-950/40 via-amber-900/20 to-slate-900 border border-amber-500/30 rounded-2xl p-4 md:p-5 flex items-start gap-4 shadow-xl relative overflow-hidden">
