@@ -236,6 +236,42 @@ export default function OSRS() {
     }
   };
 
+  // Cron Job Helper Modal
+  const handleCronHelp = () => {
+    const cronUrl = `${window.location.origin}/api/osrs/cron`;
+    Swal.fire({
+      title: '⚡ Avisos Puntuales 24/7',
+      html: `
+        <div style="text-align: left; font-size: 14px; color: #334155; line-height: 1.5;">
+          <p style="margin-bottom: 12px;">Vercel limita los crons gratuitos en servidores serverless. Para que los mensajes de WhatsApp te lleguen <strong>exactos al minuto sin abrir la página</strong>:</p>
+          <ol style="margin-left: 20px; list-style-type: decimal; margin-bottom: 12px;">
+            <li style="margin-bottom: 6px;">Entra a <a href="https://cron-job.org" target="_blank" style="color: #2563eb; font-weight: bold; text-decoration: underline;">cron-job.org</a> (es 100% gratis).</li>
+            <li style="margin-bottom: 6px;">Crea un trabajo con frecuencia de <strong>cada 1 minuto</strong> y pégale la siguiente URL:</li>
+          </ol>
+          <div style="background: #f1f5f9; padding: 10px; border-radius: 8px; font-family: monospace; word-break: break-all; margin: 10px 0; border: 1px solid #cbd5e1; font-weight: bold;">
+            ${cronUrl}
+          </div>
+          <p style="font-size: 12px; color: #64748b; margin-top: 10px;">¡Con esto los avisos llegarán puntualísimos aunque tu celular o PC estén apagados!</p>
+        </div>
+      `,
+      confirmButtonText: 'Copiar URL de Cron',
+      showCancelButton: true,
+      cancelButtonText: 'Cerrar',
+      confirmButtonColor: '#0B152A'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        navigator.clipboard.writeText(cronUrl);
+        Swal.fire({
+          icon: 'success',
+          title: '¡URL Copiada!',
+          text: 'Pégala en cron-job.org para activar las alertas automatizadas.',
+          timer: 2500,
+          showConfirmButton: false
+        });
+      }
+    });
+  };
+
   // Format seconds to mm:ss or hh:mm:ss
   const formatTime = (totalSeconds: number) => {
     if (totalSeconds <= 0) return '00:00';
@@ -284,6 +320,14 @@ export default function OSRS() {
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleCronHelp}
+            className="flex items-center gap-2 px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 rounded-xl text-xs md:text-sm font-semibold transition-all cursor-pointer"
+            title="Activar notificaciones 24/7 sin abrir la app"
+          >
+            <span>⚡</span>
+            <span className="hidden sm:inline">Avisos</span> 24/7
+          </button>
           <button
             onClick={handleTestWhatsApp}
             disabled={testingMsg}
