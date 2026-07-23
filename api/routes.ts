@@ -1640,11 +1640,10 @@ async function sendCallMeBotWhatsApp(text: string) {
 // Cron handler function to check pending timers & send notifications even when tab/browser is closed
 async function checkAndProcessOsrsTimers() {
     try {
+        // Query osrs_timers table for pending unnotified timers
         const { data: records, error } = await supabase
-            .from('document_info')
-            .select('*')
-            .in('access_code', ['OSRS_BIRD', 'OSRS_HERB'])
-            .eq('is_active', -999);
+            .from('osrs_timers')
+            .select('*');
 
         if (error || !records || records.length === 0) return;
 
@@ -1652,46 +1651,55 @@ async function checkAndProcessOsrsTimers() {
         const REMINDER_INTERVAL_MS = 45 * 60 * 1000; // 45 mins
 
         for (const record of records) {
-            const type = record.access_code === 'OSRS_BIRD' ? 'bird' : 'herb';
-            const targetTime = Number(record.company_name);
-            const status = record.commercial_name; // 'pending' | 'notified' | 'stopped'
-            const lastReminder = Number(record.address || 0);
+            const isBird = record.type === 'bird_run';
+            const typeKey = isBird ? 'bird' : 'herb';
+            const endsAtMs = new Date(record.ends_at).getTime();
 
-            if (status === 'stopped' || !targetTime) continue;
+            if (!record.notified && now >= endsAtMs) {
+                // ATOMIC UPDATE: Only update if notified is STILL false
+                // This prevents race conditions with pg_cron or concurrent calls
+                const { data: updated } = await supabase
+                    .from('osrs_timers')
+                    .update({ notified: true })
+                    .eq('id', record.id)
+                    .eq('notified', false)
+                    .select();
 
-            if (status === 'pending' && now >= targetTime) {
-                const message = type === 'bird'
-                    ? "🐥 ya esta listo tus bird houses"
-                    : "🌿 tus herbs ya estan listas para recolectar";
+                if (updated && updated.length > 0) {
+                    const message = isBird
+                        ? "🐥 ya esta listo tus bird houses"
+                        : "🌿 tus herbs ya estan listas para recolectar";
+                    
+                    await sendCallMeBotWhatsApp(message);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            } else if (record.notified) {
+                // Check for 45-minute inactivity reminders
+                const lastCheck = record.created_at ? new Date(record.created_at).getTime() : endsAtMs;
+                const timeSinceNotified = now - Math.max(endsAtMs, lastCheck);
                 
-                await sendCallMeBotWhatsApp(message);
-
-                await supabase
-                    .from('document_info')
-                    .update({
-                        commercial_name: 'notified',
-                        address: String(now)
-                    })
-                    .eq('id', record.id);
-
-                await new Promise(resolve => setTimeout(resolve, 2000));
-            } else if (status === 'notified') {
-                if (now - lastReminder >= REMINDER_INTERVAL_MS) {
-                    const reminderMessage = type === 'bird'
+                if (timeSinceNotified >= REMINDER_INTERVAL_MS) {
+                    const reminderMessage = isBird
                         ? "⚠️ Recordatorio: ¡Aún no has hecho tu bird run!"
                         : "⚠️ Recordatorio: ¡Aún no has recolectado tus herbs!";
                     
                     await sendCallMeBotWhatsApp(reminderMessage);
-
+                    // Update created_at to timestamp of this reminder
                     await supabase
-                        .from('document_info')
-                        .update({ address: String(now) })
+                        .from('osrs_timers')
+                        .update({ created_at: new Date().toISOString() })
                         .eq('id', record.id);
 
                     await new Promise(resolve => setTimeout(resolve, 2000));
                 }
             }
         }
+
+        // Clean up any legacy document_info records if present
+        await supabase
+            .from('document_info')
+            .delete()
+            .in('access_code', ['OSRS_BIRD', 'OSRS_HERB']);
     } catch (err) {
         console.error('Error in checkAndProcessOsrsTimers:', err);
     }
@@ -1717,24 +1725,29 @@ router.post('/osrs/start', async (req, res) => {
 
     const seconds = Number(durationSeconds) || (type === 'bird' ? 50 * 60 : 80 * 60);
     const targetTime = Date.now() + seconds * 1000;
-    const accessCode = `OSRS_${type.toUpperCase()}`;
+    const dbType = type === 'bird' ? 'bird_run' : 'herb_patch';
+    const endsAt = new Date(targetTime).toISOString();
 
     try {
         // Delete all old records for this timer type to prevent duplicates/stale rows
         await supabase
-            .from('document_info')
+            .from('osrs_timers')
             .delete()
-            .eq('access_code', accessCode);
+            .eq('type', dbType);
 
-        // Insert new clean record
+        // Delete legacy document_info records
         await supabase
             .from('document_info')
+            .delete()
+            .eq('access_code', `OSRS_${type.toUpperCase()}`);
+
+        // Insert new clean record in osrs_timers
+        await supabase
+            .from('osrs_timers')
             .insert({
-                access_code: accessCode,
-                company_name: String(targetTime),
-                commercial_name: 'pending',
-                address: '0',
-                is_active: -999
+                type: dbType,
+                ends_at: endsAt,
+                notified: false
             });
     } catch (e) {
         console.error('Error saving OSRS timer to Supabase:', e);
@@ -1747,11 +1760,16 @@ router.post('/osrs/start', async (req, res) => {
 router.post('/osrs/stop', async (req, res) => {
     const { type } = req.body;
     if (type === 'bird' || type === 'herb') {
-        const accessCode = `OSRS_${type.toUpperCase()}`;
+        const dbType = type === 'bird' ? 'bird_run' : 'herb_patch';
+        await supabase
+            .from('osrs_timers')
+            .delete()
+            .eq('type', dbType);
+
         await supabase
             .from('document_info')
             .delete()
-            .eq('access_code', accessCode);
+            .eq('access_code', `OSRS_${type.toUpperCase()}`);
     }
     res.json({ success: true });
 });
@@ -1760,18 +1778,17 @@ router.post('/osrs/stop', async (req, res) => {
 router.get('/osrs/status', async (req, res) => {
     try {
         const { data: records } = await supabase
-            .from('document_info')
+            .from('osrs_timers')
             .select('*')
-            .in('access_code', ['OSRS_BIRD', 'OSRS_HERB'])
-            .eq('is_active', -999);
+            .in('type', ['bird_run', 'herb_patch']);
 
         const statusMap: Record<string, any> = {};
         if (records) {
             for (const r of records) {
-                const type = r.access_code === 'OSRS_BIRD' ? 'bird' : 'herb';
+                const type = r.type === 'bird_run' ? 'bird' : 'herb';
                 statusMap[type] = {
-                    targetTime: Number(r.company_name),
-                    status: r.commercial_name
+                    targetTime: new Date(r.ends_at).getTime(),
+                    status: r.notified ? 'notified' : 'pending'
                 };
             }
         }
