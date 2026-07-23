@@ -67,7 +67,8 @@ export default function AdminView() {
 
   useEffect(() => {
     const checkUser = (session: any) => {
-      if (session?.user?.email === 'alexapuch@hotmail.com') {
+      const isMasterAuth = localStorage.getItem(SESSION_KEY) === 'true';
+      if (session?.user?.email === 'alexapuch@hotmail.com' || isMasterAuth) {
         setIsAuthenticated(true);
       } else {
         setIsAuthenticated(false);
@@ -548,6 +549,7 @@ export default function AdminView() {
         onOpenCalendario={() => setShowCalendarioModal(true)}
         onOpenOSRS={() => navigate('/osrs')}
         onLogout={async () => {
+          localStorage.removeItem(SESSION_KEY);
           await supabase.auth.signOut();
           setIsAuthenticated(false);
         }}
