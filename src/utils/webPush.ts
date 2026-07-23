@@ -36,18 +36,26 @@ export async function subscribeUserToPush(): Promise<{ success: boolean; error?:
       return { success: false, error: 'Permiso de notificaciones denegado en el navegador.' };
     }
 
-    // Register custom Web Push Service Worker
+    // Register & update custom Web Push Service Worker
     const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    await registration.update();
     await navigator.serviceWorker.ready;
 
+    // Unsubscribe existing stale subscription to force a fresh VAPID subscription
     let subscription = await registration.pushManager.getSubscription();
-    if (!subscription) {
-      const convertedKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY);
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: convertedKey
-      });
+    if (subscription) {
+      try {
+        await subscription.unsubscribe();
+      } catch (e) {
+        /* ignore */
+      }
     }
+
+    const convertedKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY);
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: convertedKey
+    });
 
     const subJson = subscription.toJSON();
     const endpoint = subJson.endpoint;

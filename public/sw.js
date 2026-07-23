@@ -1,4 +1,4 @@
-// Web Push Service Worker for OSRS Timers and PWA Notifications
+// Web Push Service Worker for OSRS Timers and PWA Notifications (iOS Safari & Android Compatible)
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -11,8 +11,8 @@ self.addEventListener('activate', (event) => {
 // Listener for Web Push events from VAPID / server / Supabase Edge Function
 self.addEventListener('push', (event) => {
   let data = {
-    title: '🗡️ OSRS Timers',
-    body: '¡Un timer ha finalizado en tu cuenta!',
+    title: '🐥 ¡Bird Houses Listos!',
+    body: 'ya esta listo tus bird houses',
     icon: '/seprisa-logo.png',
     badge: '/seprisa-logo.png',
     url: '/osrs'
@@ -27,19 +27,19 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  // Simplified options compatible with iOS Safari Web Push & Android
   const options = {
     body: data.body,
     icon: data.icon || '/seprisa-logo.png',
     badge: data.badge || '/seprisa-logo.png',
-    vibrate: [200, 100, 200, 100, 200],
-    data: { url: data.url || '/osrs' },
-    actions: [
-      { action: 'open', title: 'Abrir OSRS Timers' }
-    ]
+    data: { url: data.url || '/osrs' }
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    self.registration.showNotification(data.title, options).catch((err) => {
+      console.error('Error in showNotification, trying minimal fallback:', err);
+      return self.registration.showNotification(data.title, { body: data.body });
+    })
   );
 });
 
