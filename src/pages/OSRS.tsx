@@ -337,19 +337,6 @@ export default function OSRS() {
     });
   };
 
-  // Format seconds to mm:ss or hh:mm:ss
-  const formatTime = (totalSeconds: number) => {
-    if (totalSeconds <= 0) return '00:00';
-    const hrs = Math.floor(totalSeconds / 3600);
-    const mins = Math.floor((totalSeconds % 3600) / 60);
-    const secs = totalSeconds % 60;
-
-    if (hrs > 0) {
-      return `${hrs}h ${mins.toString().padStart(2, '0')}m ${secs.toString().padStart(2, '0')}s`;
-    }
-    return `${mins.toString().padStart(2, '0')}m ${secs.toString().padStart(2, '0')}s`;
-  };
-
   const birdProgress = birdTarget
     ? Math.min(100, Math.max(0, 100 - (birdTimeLeft / (devMode ? 15 : BIRD_DURATION_SEC)) * 100))
     : 0;
