@@ -49,7 +49,7 @@
 html, body {
   background-color: #000000;
   background-image: url('/osrs-bg.png');
-  background-size: cover;
+  background-size: 100% 100%;
   background-position: center;
   background-attachment: fixed;
   color-scheme: dark;

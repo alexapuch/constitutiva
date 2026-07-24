@@ -409,6 +409,15 @@ export default function OSRS() {
           {/* Action Controls */}
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setDevMode(!devMode)}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer font-['MedievalSharp',serif] ${devMode
+                  ? 'bg-purple-600/30 border-purple-500 text-purple-200'
+                  : 'bg-amber-950/40 border-amber-500/30 text-amber-400/80 hover:text-amber-200'
+                }`}
+            >
+              {devMode ? '🧪 (15s/20s)' : 'Prueba'}
+            </button>
+            <button
               onClick={handleSubscribePush}
               disabled={subscribingPush}
               className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 border rounded-xl text-xs md:text-sm font-semibold transition-all cursor-pointer font-['MedievalSharp',serif] ${isPushSubscribed
@@ -433,31 +442,6 @@ export default function OSRS() {
           paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))'
         }}
       >
-
-        {/* Banner Alert */}
-        <div className="bg-black/80 border border-amber-600/40 rounded-xl p-4 md:p-5 flex items-start gap-4 shadow-xl relative overflow-hidden">
-          <div className="p-3 bg-amber-500/10 rounded-xl text-amber-400 border border-amber-500/20">
-            <BellRing className="w-6 h-6 animate-pulse" />
-          </div>
-          <div className="flex-1">
-            <h2 className="text-base md:text-lg font-bold text-amber-200 flex items-center gap-2 font-['MedievalSharp',serif] tracking-wide">
-              Notificaciones Web Push PWA <Sparkles className="w-4 h-4 text-amber-400" />
-            </h2>
-            <p className="text-xs md:text-sm text-slate-300 mt-1 leading-relaxed">
-              Las notificaciones se entregan de forma nativa a tu dispositivo. Cuando termine un timer o si no has hecho tu run tras <strong>45 minutos</strong>, recibirás el aviso automáticamente incluso con la app cerrada.
-            </p>
-          </div>
-          {/* Dev Mode Switch */}
-          <button
-            onClick={() => setDevMode(!devMode)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${devMode
-                ? 'bg-purple-600/30 border-purple-500 text-purple-200'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
-              }`}
-          >
-            {devMode ? '🧪 Modo Prueba (15s/20s)' : 'Modo Normal'}
-          </button>
-        </div>
 
         {/* Timers Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
