@@ -461,7 +461,13 @@ export default function OSRS() {
             <div className="space-y-2">
               <div className="flex items-center justify-between pt-1 w-full max-w-[260px] sm:max-w-[290px] mx-auto">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-[46px] h-[46px] rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-lg shadow-inner shrink-0 overflow-hidden relative">
+                  <div 
+                    className="w-[46px] h-[46px] rounded-xl border flex items-center justify-center text-amber-400 text-lg shrink-0 overflow-hidden relative shadow-sm"
+                    style={{
+                      backgroundColor: 'rgba(36, 23, 8, 0.82)',
+                      borderColor: 'rgba(196, 133, 42, 0.45)'
+                    }}
+                  >
                     <img 
                       src="/birdhouse-logo.png" 
                       alt="Bird House" 
