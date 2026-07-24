@@ -369,7 +369,7 @@ export default function OSRS() {
 
       {/* Header with iOS Safe Area Notch Padding */}
       <header
-        className="bg-black border-b border-amber-900/60 sticky top-0 z-20 px-4 md:px-8 shadow-2xl transition-all"
+        className="bg-black/70 backdrop-blur-md border-b border-amber-900/60 sticky top-0 z-20 px-4 md:px-8 shadow-2xl transition-all"
         style={{
           paddingTop: 'calc(0.85rem + env(safe-area-inset-top, 0px))',
           paddingBottom: '0.85rem',
