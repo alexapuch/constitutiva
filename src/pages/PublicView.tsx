@@ -104,7 +104,7 @@ export default function PublicView() {
       </div>
 
       {docInfo && (
-        <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
+        <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden text-gray-900">
           <div className="p-8 sm:p-12">
             {/* Header */}
             <div className="text-center mb-8">
