@@ -8,11 +8,6 @@ import { subscribeUserToPush, checkPushSubscriptionStatus } from '../utils/webPu
 const BIRD_DURATION_SEC = 50 * 60; // 50 minutes
 const HERB_DURATION_SEC = 80 * 60; // 80 minutes
 
-const computeTimeLeft = (targetTime: number | null) => {
-  if (!targetTime) return 0;
-  return Math.max(0, Math.floor((targetTime - Date.now()) / 1000));
-};
-
 export default function OSRS() {
   const navigate = useNavigate();
 
@@ -21,11 +16,7 @@ export default function OSRS() {
     const saved = localStorage.getItem('osrs_bird_target');
     return saved ? parseInt(saved, 10) : null;
   });
-  const [birdTimeLeft, setBirdTimeLeft] = useState<number>(() => {
-    const saved = localStorage.getItem('osrs_bird_target');
-    const target = saved ? parseInt(saved, 10) : null;
-    return computeTimeLeft(target);
-  });
+  const [birdTimeLeft, setBirdTimeLeft] = useState<number>(0);
   const [lastBirdCompleted, setLastBirdCompleted] = useState<number | null>(() => {
     const saved = localStorage.getItem('osrs_bird_last_completed');
     return saved ? parseInt(saved, 10) : null;
@@ -36,11 +27,7 @@ export default function OSRS() {
     const saved = localStorage.getItem('osrs_herb_target');
     return saved ? parseInt(saved, 10) : null;
   });
-  const [herbTimeLeft, setHerbTimeLeft] = useState<number>(() => {
-    const saved = localStorage.getItem('osrs_herb_target');
-    const target = saved ? parseInt(saved, 10) : null;
-    return computeTimeLeft(target);
-  });
+  const [herbTimeLeft, setHerbTimeLeft] = useState<number>(0);
   const [lastHerbCompleted, setLastHerbCompleted] = useState<number | null>(() => {
     const saved = localStorage.getItem('osrs_herb_last_completed');
     return saved ? parseInt(saved, 10) : null;
@@ -63,16 +50,14 @@ export default function OSRS() {
       .then(data => {
         if (data.bird?.targetTime && data.bird.status === 'pending') {
           setBirdTarget(data.bird.targetTime);
-          setBirdTimeLeft(computeTimeLeft(data.bird.targetTime));
           localStorage.setItem('osrs_bird_target', data.bird.targetTime.toString());
         }
         if (data.herb?.targetTime && data.herb.status === 'pending') {
           setHerbTarget(data.herb.targetTime);
-          setHerbTimeLeft(computeTimeLeft(data.herb.targetTime));
           localStorage.setItem('osrs_herb_target', data.herb.targetTime.toString());
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     checkPushSubscriptionStatus().then(setIsPushSubscribed);
   }, []);
@@ -130,7 +115,7 @@ export default function OSRS() {
 
   // Tick effect for timers
   useEffect(() => {
-    const updateTimers = () => {
+    const interval = setInterval(() => {
       const now = Date.now();
 
       if (birdTarget) {
@@ -158,10 +143,7 @@ export default function OSRS() {
       } else {
         setHerbTimeLeft(0);
       }
-    };
-
-    updateTimers();
-    const interval = setInterval(updateTimers, 1000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [birdTarget, herbTarget]);
@@ -381,7 +363,13 @@ export default function OSRS() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col selection:bg-amber-500 selection:text-slate-950">
+    <div 
+      className="min-h-screen bg-slate-950 bg-cover bg-center bg-no-repeat bg-fixed text-slate-100 font-sans flex flex-col selection:bg-amber-500 selection:text-slate-950 relative"
+      style={{ backgroundImage: "url('/osrs-bg.png')" }}
+    >
+      {/* Background Dark Overlay for text legibility */}
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px] pointer-events-none z-0" />
+
       {/* Header with iOS Safe Area Notch Padding */}
       <header
         className="bg-slate-900/90 border-b border-amber-900/30 backdrop-blur-md sticky top-0 z-20 px-4 md:px-8 shadow-lg transition-all"
@@ -419,11 +407,10 @@ export default function OSRS() {
             <button
               onClick={handleSubscribePush}
               disabled={subscribingPush}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 border rounded-xl text-xs md:text-sm font-semibold transition-all cursor-pointer ${
-                isPushSubscribed
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 border rounded-xl text-xs md:text-sm font-semibold transition-all cursor-pointer ${isPushSubscribed
                   ? 'bg-blue-600/20 border-blue-500/50 text-blue-300'
                   : 'bg-indigo-600/30 hover:bg-indigo-600/40 border-indigo-500 text-indigo-200 animate-pulse'
-              }`}
+                }`}
               title="Suscripción a Notificaciones Web Push (App Cerrada)"
             >
               <BellRing className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${subscribingPush ? 'animate-spin' : ''}`} />
@@ -435,35 +422,34 @@ export default function OSRS() {
 
       {/* Main Container */}
       <main
-        className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 space-y-6"
+        className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 space-y-6 z-10"
         style={{
           paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))',
           paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))',
           paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))'
         }}
       >
-        
+
         {/* Banner Alert */}
-        <div className="bg-gradient-to-r from-amber-950/40 via-amber-900/20 to-slate-900 border border-amber-500/30 rounded-2xl p-4 md:p-5 flex items-start gap-4 shadow-xl relative overflow-hidden">
+        <div className="bg-gradient-to-r from-amber-950/60 via-amber-900/40 to-slate-900/90 border border-amber-500/40 backdrop-blur-md rounded-2xl p-4 md:p-5 flex items-start gap-4 shadow-xl relative overflow-hidden">
           <div className="p-3 bg-amber-500/10 rounded-xl text-amber-400 border border-amber-500/20">
             <BellRing className="w-6 h-6 animate-pulse" />
           </div>
           <div className="flex-1">
             <h2 className="text-base md:text-lg font-bold text-amber-200 flex items-center gap-2">
-              Notificaciones por CallMeBot <Sparkles className="w-4 h-4 text-amber-400" />
+              Notificaciones Web Push PWA <Sparkles className="w-4 h-4 text-amber-400" />
             </h2>
             <p className="text-xs md:text-sm text-slate-300 mt-1 leading-relaxed">
-              Las notificaciones están configuradas a tu número de WhatsApp. Cuando termine un timer, recibirás el mensaje automáticamente. Si expira y no reinicias el timer, recibirás un recordatorio cada <strong>45 minutos</strong>.
+              Las notificaciones se entregan de forma nativa a tu dispositivo. Cuando termine un timer o si no has hecho tu run tras <strong>45 minutos</strong>, recibirás el aviso automáticamente incluso con la app cerrada.
             </p>
           </div>
           {/* Dev Mode Switch */}
           <button
             onClick={() => setDevMode(!devMode)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-              devMode
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${devMode
                 ? 'bg-purple-600/30 border-purple-500 text-purple-200'
                 : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             {devMode ? '🧪 Modo Prueba (15s/20s)' : 'Modo Normal'}
           </button>
@@ -476,7 +462,7 @@ export default function OSRS() {
           <div className="bg-slate-900/90 border border-amber-900/40 hover:border-amber-500/40 transition-all rounded-3xl p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden group">
             {/* Top Accent */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600"></div>
-            
+
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
