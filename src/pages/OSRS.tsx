@@ -368,7 +368,7 @@ export default function OSRS() {
       style={{ backgroundImage: "url('/osrs-bg.png')" }}
     >
       {/* Background Dark Overlay for text legibility */}
-      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px] pointer-events-none z-0" />
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] pointer-events-none z-0" />
 
       {/* Header with iOS Safe Area Notch Padding */}
       <header
