@@ -451,7 +451,7 @@ export default function OSRS() {
 
           {/* CARD 1: BIRD RUNS */}
           <div 
-            className="transition-all px-7 py-7 sm:px-10 sm:py-8 flex flex-col justify-between relative bg-no-repeat w-full mx-auto"
+            className="transition-all px-4 py-9 sm:px-6 sm:py-10 flex flex-col justify-between relative bg-no-repeat w-full mx-auto"
             style={{ 
               backgroundImage: "url('/card-bg.png')",
               backgroundSize: "100% 100%",
@@ -547,7 +547,7 @@ export default function OSRS() {
 
           {/* CARD 2: HERB RUNS */}
           <div 
-            className="transition-all px-7 py-7 sm:px-10 sm:py-8 flex flex-col justify-between relative bg-no-repeat w-full mx-auto"
+            className="transition-all px-4 py-9 sm:px-6 sm:py-10 flex flex-col justify-between relative bg-no-repeat w-full mx-auto"
             style={{ 
               backgroundImage: "url('/card-bg.png')",
               backgroundSize: "100% 100%",
