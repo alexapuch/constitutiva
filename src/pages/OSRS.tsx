@@ -438,11 +438,11 @@ export default function OSRS() {
 
       {/* Main Container */}
       <main
-        className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 space-y-6 z-10"
+        className="flex-1 max-w-4xl w-full mx-auto px-2 py-4 md:p-6 space-y-6 z-10"
         style={{
           paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))',
-          paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))',
-          paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))'
+          paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
+          paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0px))'
         }}
       >
 
@@ -451,7 +451,7 @@ export default function OSRS() {
 
           {/* CARD 1: BIRD RUNS */}
           <div 
-            className="transition-all px-7 py-7 sm:px-10 sm:py-8 flex flex-col justify-between relative bg-no-repeat w-full mx-auto"
+            className="transition-all px-5 py-8 sm:px-8 sm:py-9 flex flex-col justify-between relative bg-no-repeat w-full mx-auto"
             style={{ 
               backgroundImage: "url('/card-bg.png')",
               backgroundSize: "100% 100%",
@@ -547,7 +547,7 @@ export default function OSRS() {
 
           {/* CARD 2: HERB RUNS */}
           <div 
-            className="transition-all px-7 py-7 sm:px-10 sm:py-8 flex flex-col justify-between relative bg-no-repeat w-full mx-auto"
+            className="transition-all px-5 py-8 sm:px-8 sm:py-9 flex flex-col justify-between relative bg-no-repeat w-full mx-auto"
             style={{ 
               backgroundImage: "url('/card-bg.png')",
               backgroundSize: "100% 100%",
