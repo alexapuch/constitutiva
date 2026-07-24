@@ -557,7 +557,13 @@ export default function OSRS() {
             <div className="space-y-2">
               <div className="flex items-center justify-between pt-1 w-full max-w-[260px] sm:max-w-[290px] mx-auto">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-lg shadow-inner shrink-0 overflow-hidden relative">
+                  <div 
+                    className="w-10 h-10 rounded-xl border flex items-center justify-center text-emerald-400 text-lg shrink-0 overflow-hidden relative shadow-sm"
+                    style={{
+                      backgroundColor: 'rgba(7, 26, 18, 0.82)',
+                      borderColor: 'rgba(0, 145, 95, 0.45)'
+                    }}
+                  >
                     <img 
                       src="/herb-logo.png" 
                       alt="Herb Run" 
