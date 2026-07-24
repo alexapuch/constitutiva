@@ -48,9 +48,18 @@
 
 html, body {
   background-color: #000000;
+  color-scheme: dark;
+  margin: 0;
+  padding: 0;
+}
+
+#osrs-bg-fixed {
+  position: fixed;
+  inset: 0;
   background-image: url('/osrs-bg.png');
   background-size: 100% 100%;
   background-position: center;
-  background-attachment: fixed;
-  color-scheme: dark;
+  background-repeat: no-repeat;
+  z-index: 0;
+  pointer-events: none;
 }
