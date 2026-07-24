@@ -438,16 +438,16 @@ export default function OSRS() {
 
       {/* Main Container */}
       <main
-        className="flex-1 max-w-4xl w-full mx-auto px-2 py-4 md:p-6 space-y-6 z-10"
+        className="flex-1 max-w-4xl w-full mx-auto px-0 py-4 md:p-6 space-y-6 z-10"
         style={{
           paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))',
-          paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
-          paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0px))'
+          paddingLeft: 'env(safe-area-inset-left, 0px)',
+          paddingRight: 'env(safe-area-inset-right, 0px)'
         }}
       >
 
         {/* Timers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-1 sm:px-0">
 
           {/* CARD 1: BIRD RUNS */}
           <div 
