@@ -369,7 +369,7 @@ export default function OSRS() {
 
       {/* Header with iOS Safe Area Notch Padding */}
       <header
-        className="bg-black/70 backdrop-blur-md border-b border-amber-900/60 sticky top-0 z-20 px-4 md:px-8 shadow-2xl transition-all"
+        className="bg-transparent border-b border-amber-900/40 sticky top-0 z-20 px-4 md:px-8 shadow-none transition-all"
         style={{
           paddingTop: 'calc(0.85rem + env(safe-area-inset-top, 0px))',
           paddingBottom: '0.85rem',
@@ -501,9 +501,7 @@ export default function OSRS() {
                   style={{
                     background: 'linear-gradient(180deg, #EFC96A 0%, #D6A23A 50%, #8E5A16 100%)',
                     WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    WebkitTextStroke: '1px #39230C',
-                    filter: 'drop-shadow(0px 2px 2px #39230C)'
+                    WebkitTextFillColor: 'transparent'
                   }}
                 >
                   {birdTarget ? formatTime(birdTimeLeft) : '50:00'}
@@ -617,9 +615,7 @@ export default function OSRS() {
                   style={{
                     background: 'linear-gradient(180deg, #9AD8A4 0%, #72B07D 50%, #43644A 100%)',
                     WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    WebkitTextStroke: '1px #1F2E22',
-                    filter: 'drop-shadow(0px 2px 2px #1F2E22)'
+                    WebkitTextFillColor: 'transparent'
                   }}
                 >
                   {herbTarget ? formatTime(herbTimeLeft) : '1h 20m'}

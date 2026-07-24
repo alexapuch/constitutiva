@@ -55,8 +55,7 @@
 }
 
 html, body {
-  background-color: transparent;
-  color-scheme: dark;
+  background-color: #1a1510;
   margin: 0;
   padding: 0;
   min-height: 100vh;
