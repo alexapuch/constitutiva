@@ -45,3 +45,8 @@
     break-inside: avoid;
   }
 }
+
+html, body {
+  background-color: #090a0f;
+  color-scheme: dark;
+}
