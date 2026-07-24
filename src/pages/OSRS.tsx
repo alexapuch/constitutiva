@@ -495,13 +495,22 @@ export default function OSRS() {
               </div>
 
               {/* Timer Display */}
-              <div className="bg-black/85 rounded-xl px-4 py-3 border border-[#9A6417]/50 text-center relative overflow-hidden shadow-[inset_0_2px_8px_rgba(0,0,0,0.9)] w-full max-w-[260px] sm:max-w-[290px] mx-auto">
-                <div className="text-3xl sm:text-4xl font-semibold font-['Cormorant_Garamond',serif] tracking-widest bg-gradient-to-b from-[#E6B53B] to-[#B57E22] bg-clip-text text-transparent drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+              <div className="bg-black/85 rounded-xl px-4 py-3 border border-[#39230C] text-center relative overflow-hidden shadow-[inset_0_2px_8px_rgba(0,0,0,0.9)] w-full max-w-[260px] sm:max-w-[290px] mx-auto">
+                <div 
+                  className="text-3xl sm:text-4xl font-bold font-['Canterbury','Cormorant_Garamond',serif] tracking-widest leading-none py-1"
+                  style={{
+                    background: 'linear-gradient(180deg, #EFC96A 0%, #D6A23A 50%, #8E5A16 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    WebkitTextStroke: '1px #39230C',
+                    filter: 'drop-shadow(0px 2px 2px #39230C)'
+                  }}
+                >
                   {birdTarget ? formatTime(birdTimeLeft) : '50:00'}
                 </div>
                 <div className="text-xs mt-1 flex flex-col items-center gap-0.5 font-medium" style={{ color: '#B6B2A6' }}>
                   <div className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" style={{ color: '#C79632' }} />
+                    <Clock className="w-3.5 h-3.5" style={{ color: '#B6B2A6' }} />
                     {birdTarget ? (birdTimeLeft > 0 ? `Termina a las: ${formatClockTime(birdTarget)}` : '¡Listo para recolectar!') : 'Timer inactivo'}
                   </div>
                   {lastBirdCompleted && (
@@ -512,10 +521,10 @@ export default function OSRS() {
                 </div>
 
                 {/* Progress Bar */}
-                <div className="w-full h-2 rounded-full mt-2 overflow-hidden border border-[#5B350C]" style={{ backgroundColor: '#17130F' }}>
+                <div className="w-full h-2 rounded-full mt-2 overflow-hidden border border-[#39230C]" style={{ backgroundColor: '#17130F' }}>
                   <div
                     className="h-full transition-all duration-1000 ease-linear rounded-full"
-                    style={{ width: `${birdProgress}%`, backgroundColor: '#A8731D' }}
+                    style={{ width: `${birdProgress}%`, backgroundColor: '#A46F21' }}
                   ></div>
                 </div>
               </div>
@@ -526,20 +535,20 @@ export default function OSRS() {
               <button
                 onClick={handleStartBird}
                 style={{
-                  background: 'linear-gradient(180deg, #9A6417 0%, #5B350C 100%)',
-                  borderColor: '#D39A2F',
-                  color: '#E8D19B'
+                  background: 'linear-gradient(180deg, #A87422 0%, #7C5119 50%, #57330E 100%)',
+                  borderColor: '#D6A043',
+                  color: '#F0DEB2'
                 }}
-                className="w-full py-2.5 hover:brightness-110 active:scale-[0.98] font-bold text-xs sm:text-sm rounded-xl shadow-[inset_0_1px_3px_rgba(255,255,255,0.15)] border transition-all flex items-center justify-center gap-2 cursor-pointer font-['MedievalSharp',serif] tracking-wide"
+                className="w-full py-2.5 hover:brightness-110 active:scale-[0.98] font-bold text-xs sm:text-sm rounded-xl shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] border transition-all flex items-center justify-center gap-2 cursor-pointer font-['MedievalSharp',serif] tracking-wide"
               >
                 {birdTarget ? (
                   <>
-                    <RotateCcw className="w-4 h-4" style={{ color: '#E2B54D' }} />
+                    <RotateCcw className="w-4 h-4" style={{ color: '#E8C05A' }} />
                     Completar & Reiniciar (50m)
                   </>
                 ) : (
                   <>
-                    <Play className="w-4 h-4" style={{ fill: '#E2B54D', color: '#E2B54D' }} />
+                    <Play className="w-4 h-4" style={{ fill: '#E8C05A', color: '#E8C05A' }} />
                     Iniciar Bird Run (50m)
                   </>
                 )}
@@ -602,13 +611,22 @@ export default function OSRS() {
               </div>
 
               {/* Timer Display */}
-              <div className="bg-black/85 rounded-xl px-4 py-3 border border-[#356F49]/50 text-center relative overflow-hidden shadow-[inset_0_2px_8px_rgba(0,0,0,0.9)] w-full max-w-[260px] sm:max-w-[290px] mx-auto">
-                <div className="text-3xl sm:text-4xl font-semibold font-['Cormorant_Garamond',serif] tracking-widest bg-gradient-to-b from-[#7DBE87] to-[#4E7E58] bg-clip-text text-transparent drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+              <div className="bg-black/85 rounded-xl px-4 py-3 border border-[#1F2E22] text-center relative overflow-hidden shadow-[inset_0_2px_8px_rgba(0,0,0,0.9)] w-full max-w-[260px] sm:max-w-[290px] mx-auto">
+                <div 
+                  className="text-3xl sm:text-4xl font-bold font-['Canterbury','Cormorant_Garamond',serif] tracking-widest leading-none py-1"
+                  style={{
+                    background: 'linear-gradient(180deg, #9AD8A4 0%, #72B07D 50%, #43644A 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    WebkitTextStroke: '1px #1F2E22',
+                    filter: 'drop-shadow(0px 2px 2px #1F2E22)'
+                  }}
+                >
                   {herbTarget ? formatTime(herbTimeLeft) : '1h 20m'}
                 </div>
                 <div className="text-xs mt-1 flex flex-col items-center gap-0.5 font-medium" style={{ color: '#B6B2A6' }}>
                   <div className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" style={{ color: '#5F9870' }} />
+                    <Clock className="w-3.5 h-3.5" style={{ color: '#B6B2A6' }} />
                     {herbTarget ? (herbTimeLeft > 0 ? `Termina a las: ${formatClockTime(herbTarget)}` : '¡Listo para cosechar!') : 'Timer inactivo'}
                   </div>
                   {lastHerbCompleted && (
@@ -619,10 +637,10 @@ export default function OSRS() {
                 </div>
 
                 {/* Progress Bar */}
-                <div className="w-full h-2 rounded-full mt-2 overflow-hidden border border-[#183D29]" style={{ backgroundColor: '#17130F' }}>
+                <div className="w-full h-2 rounded-full mt-2 overflow-hidden border border-[#1F2E22]" style={{ backgroundColor: '#17130F' }}>
                   <div
                     className="h-full transition-all duration-1000 ease-linear rounded-full"
-                    style={{ width: `${herbProgress}%`, backgroundColor: '#487052' }}
+                    style={{ width: `${herbProgress}%`, backgroundColor: '#497055' }}
                   ></div>
                 </div>
               </div>
@@ -633,20 +651,20 @@ export default function OSRS() {
               <button
                 onClick={handleStartHerb}
                 style={{
-                  background: 'linear-gradient(180deg, #356F49 0%, #183D29 100%)',
-                  borderColor: '#6A9B70',
-                  color: '#C4D4B5'
+                  background: 'linear-gradient(180deg, #4E8B63 0%, #356948 50%, #234432 100%)',
+                  borderColor: '#7CB086',
+                  color: '#D6E3CE'
                 }}
-                className="w-full py-2.5 hover:brightness-110 active:scale-[0.98] font-bold text-xs sm:text-sm rounded-xl shadow-[inset_0_1px_3px_rgba(255,255,255,0.15)] border transition-all flex items-center justify-center gap-2 cursor-pointer font-['MedievalSharp',serif] tracking-wide"
+                className="w-full py-2.5 hover:brightness-110 active:scale-[0.98] font-bold text-xs sm:text-sm rounded-xl shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] border transition-all flex items-center justify-center gap-2 cursor-pointer font-['MedievalSharp',serif] tracking-wide"
               >
                 {herbTarget ? (
                   <>
-                    <RotateCcw className="w-4 h-4" style={{ color: '#80A878' }} />
+                    <RotateCcw className="w-4 h-4" style={{ color: '#A5C8A2' }} />
                     Completar & Reiniciar (80m)
                   </>
                 ) : (
                   <>
-                    <Play className="w-4 h-4" style={{ fill: '#80A878', color: '#80A878' }} />
+                    <Play className="w-4 h-4" style={{ fill: '#A5C8A2', color: '#A5C8A2' }} />
                     Iniciar Herb Run (80m)
                   </>
                 )}
