@@ -451,14 +451,14 @@ export default function OSRS() {
 
           {/* CARD 1: BIRD RUNS */}
           <div 
-            className="transition-all px-7 py-6 sm:px-10 sm:py-8 flex flex-col justify-between relative bg-no-repeat w-full mx-auto min-h-[270px]"
+            className="transition-all px-7 pt-6 pb-9 sm:px-10 sm:pt-7 sm:pb-10 flex flex-col justify-between relative bg-no-repeat w-full mx-auto min-h-[270px]"
             style={{ 
               backgroundImage: "url('/card-bg.png')",
               backgroundSize: "100% 100%",
               backgroundPosition: "center"
             }}
           >
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between pt-1 w-full max-w-[260px] sm:max-w-[290px] mx-auto">
                 <div className="flex items-center gap-2.5">
                   <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-lg shadow-inner shrink-0 overflow-hidden relative">
@@ -516,7 +516,7 @@ export default function OSRS() {
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-1.5 mt-2 w-full max-w-[260px] sm:max-w-[290px] mx-auto">
+            <div className="space-y-1.5 mt-1 sm:mt-1.5 w-full max-w-[260px] sm:max-w-[290px] mx-auto">
               <button
                 onClick={handleStartBird}
                 className="w-full py-2.5 bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 active:scale-[0.98] text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-[0_3px_12px_rgba(245,158,11,0.4)] border border-amber-300/80 transition-all flex items-center justify-center gap-2 cursor-pointer font-['MedievalSharp',serif] tracking-wide"
@@ -547,14 +547,14 @@ export default function OSRS() {
 
           {/* CARD 2: HERB RUNS */}
           <div 
-            className="transition-all px-7 py-6 sm:px-10 sm:py-8 flex flex-col justify-between relative bg-no-repeat w-full mx-auto min-h-[270px]"
+            className="transition-all px-7 pt-6 pb-9 sm:px-10 sm:pt-7 sm:pb-10 flex flex-col justify-between relative bg-no-repeat w-full mx-auto min-h-[270px]"
             style={{ 
               backgroundImage: "url('/card-bg.png')",
               backgroundSize: "100% 100%",
               backgroundPosition: "center"
             }}
           >
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between pt-1 w-full max-w-[260px] sm:max-w-[290px] mx-auto">
                 <div className="flex items-center gap-2.5">
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-lg shadow-inner shrink-0 overflow-hidden relative">
@@ -612,7 +612,7 @@ export default function OSRS() {
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-1.5 mt-2 w-full max-w-[260px] sm:max-w-[290px] mx-auto">
+            <div className="space-y-1.5 mt-1 sm:mt-1.5 w-full max-w-[260px] sm:max-w-[290px] mx-auto">
               <button
                 onClick={handleStartHerb}
                 className="w-full py-2.5 bg-gradient-to-r from-emerald-600 via-emerald-500 to-green-500 hover:from-emerald-500 hover:to-green-400 active:scale-[0.98] text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-[0_3px_12px_rgba(16,185,129,0.4)] border border-emerald-300/80 transition-all flex items-center justify-center gap-2 cursor-pointer font-['MedievalSharp',serif] tracking-wide"
