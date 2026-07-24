@@ -47,6 +47,10 @@
 }
 
 html, body {
-  background-color: #090a0f;
+  background-color: #000000;
+  background-image: url('/osrs-bg.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   color-scheme: dark;
 }

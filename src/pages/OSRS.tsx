@@ -363,13 +363,10 @@ export default function OSRS() {
     : 0;
 
   return (
-    <div 
-      className="min-h-screen bg-cover bg-center bg-no-repeat bg-fixed text-slate-100 font-sans flex flex-col selection:bg-amber-500 selection:text-slate-950 relative"
-      style={{ backgroundImage: "url('/osrs-bg.png')" }}
-    >
+    <div className="min-h-screen text-slate-100 font-sans flex flex-col selection:bg-amber-500 selection:text-slate-950 relative">
       {/* Header with iOS Safe Area Notch Padding */}
       <header
-        className="bg-black/40 border-b border-amber-500/30 backdrop-blur-md sticky top-0 z-20 px-4 md:px-8 shadow-lg transition-all"
+        className="bg-gradient-to-b from-black/50 to-transparent sticky top-0 z-20 px-4 md:px-8 transition-all"
         style={{
           paddingTop: 'calc(0.85rem + env(safe-area-inset-top, 0px))',
           paddingBottom: '0.85rem',
