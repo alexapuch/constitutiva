@@ -451,7 +451,7 @@ export default function OSRS() {
 
           {/* CARD 1: BIRD RUNS */}
           <div 
-            className="transition-all px-4 py-9 sm:px-6 sm:py-10 flex flex-col justify-between relative bg-no-repeat w-full mx-auto"
+            className="transition-all px-2 py-10 sm:px-4 sm:py-11 flex flex-col justify-between relative bg-no-repeat w-full mx-auto"
             style={{ 
               backgroundImage: "url('/card-bg.png')",
               backgroundSize: "100% 100%",
@@ -459,9 +459,9 @@ export default function OSRS() {
             }}
           >
             <div className="space-y-4">
-              <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-xl shadow-inner shrink-0 overflow-hidden relative">
+              <div className="flex items-center justify-between pt-1 w-full max-w-[250px] sm:max-w-[275px] mx-auto">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-lg shadow-inner shrink-0 overflow-hidden relative">
                     <img 
                       src="/birdhouse-logo.png" 
                       alt="Bird House" 
@@ -475,14 +475,14 @@ export default function OSRS() {
                     <span className="hidden">🐥</span>
                   </div>
                   <div>
-                    <h3 className="text-lg sm:text-xl font-bold text-amber-100 group-hover:text-yellow-300 transition-colors font-['MedievalSharp',serif] tracking-wider drop-shadow-md">
+                    <h3 className="text-base sm:text-lg font-bold text-amber-100 group-hover:text-yellow-300 transition-colors font-['MedievalSharp',serif] tracking-wider drop-shadow-md">
                       Bird Houses
                     </h3>
-                    <p className="text-xs text-amber-300/80 font-semibold">Timer de 50 minutos</p>
+                    <p className="text-[11px] text-amber-300/80 font-semibold">Timer de 50 minutos</p>
                   </div>
                 </div>
                 {birdTarget && birdTimeLeft === 0 && (
-                  <span className="px-2.5 py-0.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-extrabold rounded-full animate-bounce font-['MedievalSharp',serif]">
+                  <span className="px-2 py-0.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-extrabold rounded-full animate-bounce font-['MedievalSharp',serif]">
                     ¡LISTO!
                   </span>
                 )}
@@ -547,7 +547,7 @@ export default function OSRS() {
 
           {/* CARD 2: HERB RUNS */}
           <div 
-            className="transition-all px-4 py-9 sm:px-6 sm:py-10 flex flex-col justify-between relative bg-no-repeat w-full mx-auto"
+            className="transition-all px-2 py-10 sm:px-4 sm:py-11 flex flex-col justify-between relative bg-no-repeat w-full mx-auto"
             style={{ 
               backgroundImage: "url('/card-bg.png')",
               backgroundSize: "100% 100%",
@@ -555,9 +555,9 @@ export default function OSRS() {
             }}
           >
             <div className="space-y-4">
-              <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-xl shadow-inner shrink-0 overflow-hidden relative">
+              <div className="flex items-center justify-between pt-1 w-full max-w-[250px] sm:max-w-[275px] mx-auto">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-lg shadow-inner shrink-0 overflow-hidden relative">
                     <img 
                       src="/herb-logo.png" 
                       alt="Herb Run" 
@@ -571,14 +571,14 @@ export default function OSRS() {
                     <span className="hidden">🌿</span>
                   </div>
                   <div>
-                    <h3 className="text-lg sm:text-xl font-bold text-emerald-100 group-hover:text-green-300 transition-colors font-['MedievalSharp',serif] tracking-wider drop-shadow-md">
+                    <h3 className="text-base sm:text-lg font-bold text-emerald-100 group-hover:text-green-300 transition-colors font-['MedievalSharp',serif] tracking-wider drop-shadow-md">
                       Herb Runs
                     </h3>
-                    <p className="text-xs text-emerald-300/80 font-semibold">Timer de 80 minutos</p>
+                    <p className="text-[11px] text-emerald-300/80 font-semibold">Timer de 80 minutos</p>
                   </div>
                 </div>
                 {herbTarget && herbTimeLeft === 0 && (
-                  <span className="px-2.5 py-0.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-extrabold rounded-full animate-bounce font-['MedievalSharp',serif]">
+                  <span className="px-2 py-0.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-extrabold rounded-full animate-bounce font-['MedievalSharp',serif]">
                     ¡LISTO!
                   </span>
                 )}
