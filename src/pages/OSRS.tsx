@@ -467,14 +467,15 @@ export default function OSRS() {
 
           {/* CARD 1: BIRD RUNS */}
           <div 
-            className="border-2 border-amber-700/60 hover:border-amber-400/80 transition-all rounded-3xl p-6 flex flex-col justify-between shadow-[0_10px_30px_rgba(0,0,0,0.8)] relative overflow-hidden group bg-cover bg-center bg-no-repeat min-h-[360px]"
-            style={{ backgroundImage: "url('/card-bg.png')" }}
+            className="transition-all p-6 md:p-8 flex flex-col justify-between shadow-[0_10px_35px_rgba(0,0,0,0.8)] relative overflow-hidden group bg-no-repeat min-h-[420px] rounded-3xl"
+            style={{ 
+              backgroundImage: "url('/card-bg.png')",
+              backgroundSize: "100% 100%",
+              backgroundPosition: "center"
+            }}
           >
-            {/* Top Accent */}
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-600"></div>
-
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pt-1">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-2xl shadow-inner shrink-0 overflow-hidden relative">
                     <img 
@@ -504,7 +505,7 @@ export default function OSRS() {
               </div>
 
               {/* Timer Display */}
-              <div className="bg-black/60 rounded-2xl p-6 border-2 border-amber-500/40 text-center relative overflow-hidden my-4 shadow-[inset_0_2px_10px_rgba(0,0,0,0.9)] backdrop-blur-sm">
+              <div className="bg-black/70 rounded-2xl p-5 border border-amber-500/30 text-center relative overflow-hidden my-2 shadow-[inset_0_2px_10px_rgba(0,0,0,0.9)] backdrop-blur-sm">
                 <div className="text-4xl md:text-5xl font-black font-mono tracking-widest text-amber-400 drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
                   {birdTarget ? formatTime(birdTimeLeft) : '50:00'}
                 </div>
@@ -521,7 +522,7 @@ export default function OSRS() {
                 </div>
 
                 {/* Progress Bar */}
-                <div className="w-full bg-black/80 h-2.5 rounded-full mt-4 overflow-hidden border border-amber-900/60">
+                <div className="w-full bg-black/80 h-2.5 rounded-full mt-3 overflow-hidden border border-amber-900/60">
                   <div
                     className="bg-gradient-to-r from-amber-600 via-amber-400 to-yellow-300 h-full transition-all duration-1000 ease-linear rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)]"
                     style={{ width: `${birdProgress}%` }}
@@ -531,7 +532,7 @@ export default function OSRS() {
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-2 mt-4">
+            <div className="space-y-2 mt-2 pb-1">
               <button
                 onClick={handleStartBird}
                 className="w-full py-3.5 bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 active:scale-[0.98] text-slate-950 font-black text-base md:text-lg rounded-2xl shadow-[0_4px_15px_rgba(245,158,11,0.4)] border-2 border-amber-300/80 transition-all flex items-center justify-center gap-2 cursor-pointer font-['MedievalSharp',serif] tracking-wide"
@@ -562,14 +563,15 @@ export default function OSRS() {
 
           {/* CARD 2: HERB RUNS */}
           <div 
-            className="border-2 border-emerald-700/60 hover:border-emerald-400/80 transition-all rounded-3xl p-6 flex flex-col justify-between shadow-[0_10px_30px_rgba(0,0,0,0.8)] relative overflow-hidden group bg-cover bg-center bg-no-repeat min-h-[360px]"
-            style={{ backgroundImage: "url('/card-bg.png')" }}
+            className="transition-all p-6 md:p-8 flex flex-col justify-between shadow-[0_10px_35px_rgba(0,0,0,0.8)] relative overflow-hidden group bg-no-repeat min-h-[420px] rounded-3xl"
+            style={{ 
+              backgroundImage: "url('/card-bg.png')",
+              backgroundSize: "100% 100%",
+              backgroundPosition: "center"
+            }}
           >
-            {/* Top Accent */}
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-600 via-green-400 to-emerald-600"></div>
-
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pt-1">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-2xl shadow-inner shrink-0 overflow-hidden relative">
                     <img 
@@ -599,7 +601,7 @@ export default function OSRS() {
               </div>
 
               {/* Timer Display */}
-              <div className="bg-black/60 rounded-2xl p-6 border-2 border-emerald-500/40 text-center relative overflow-hidden my-4 shadow-[inset_0_2px_10px_rgba(0,0,0,0.9)] backdrop-blur-sm">
+              <div className="bg-black/70 rounded-2xl p-5 border border-emerald-500/30 text-center relative overflow-hidden my-2 shadow-[inset_0_2px_10px_rgba(0,0,0,0.9)] backdrop-blur-sm">
                 <div className="text-4xl md:text-5xl font-black font-mono tracking-widest text-emerald-400 drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
                   {herbTarget ? formatTime(herbTimeLeft) : '1h 20m'}
                 </div>
@@ -616,7 +618,7 @@ export default function OSRS() {
                 </div>
 
                 {/* Progress Bar */}
-                <div className="w-full bg-black/80 h-2.5 rounded-full mt-4 overflow-hidden border border-emerald-900/60">
+                <div className="w-full bg-black/80 h-2.5 rounded-full mt-3 overflow-hidden border border-emerald-900/60">
                   <div
                     className="bg-gradient-to-r from-emerald-600 via-emerald-400 to-green-300 h-full transition-all duration-1000 ease-linear rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                     style={{ width: `${herbProgress}%` }}
@@ -626,7 +628,7 @@ export default function OSRS() {
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-2 mt-4">
+            <div className="space-y-2 mt-2 pb-1">
               <button
                 onClick={handleStartHerb}
                 className="w-full py-3.5 bg-gradient-to-r from-emerald-600 via-emerald-500 to-green-500 hover:from-emerald-500 hover:to-green-400 active:scale-[0.98] text-slate-950 font-black text-base md:text-lg rounded-2xl shadow-[0_4px_15px_rgba(16,185,129,0.4)] border-2 border-emerald-300/80 transition-all flex items-center justify-center gap-2 cursor-pointer font-['MedievalSharp',serif] tracking-wide"
