@@ -364,15 +364,12 @@ export default function OSRS() {
 
   return (
     <div 
-      className="min-h-screen bg-slate-950 bg-cover bg-center bg-no-repeat bg-fixed text-slate-100 font-sans flex flex-col selection:bg-amber-500 selection:text-slate-950 relative"
+      className="min-h-screen bg-cover bg-center bg-no-repeat bg-fixed text-slate-100 font-sans flex flex-col selection:bg-amber-500 selection:text-slate-950 relative"
       style={{ backgroundImage: "url('/osrs-bg.png')" }}
     >
-      {/* Background Dark Overlay for text legibility */}
-      <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] pointer-events-none z-0" />
-
       {/* Header with iOS Safe Area Notch Padding */}
       <header
-        className="bg-slate-900/90 border-b border-amber-900/30 backdrop-blur-md sticky top-0 z-20 px-4 md:px-8 shadow-lg transition-all"
+        className="bg-black/40 border-b border-amber-500/30 backdrop-blur-md sticky top-0 z-20 px-4 md:px-8 shadow-lg transition-all"
         style={{
           paddingTop: 'calc(0.85rem + env(safe-area-inset-top, 0px))',
           paddingBottom: '0.85rem',
@@ -384,7 +381,7 @@ export default function OSRS() {
           <div className="flex items-center gap-2.5 sm:gap-3">
             <button
               onClick={() => navigate('/admin')}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center justify-center border border-slate-700 cursor-pointer shrink-0"
+              className="p-2 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 hover:text-white transition-all flex items-center justify-center border border-amber-500/40 cursor-pointer shrink-0"
               title="Volver al Panel Admin"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -417,9 +414,9 @@ export default function OSRS() {
             <button
               onClick={handleSubscribePush}
               disabled={subscribingPush}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 border rounded-xl text-xs md:text-sm font-semibold transition-all cursor-pointer ${isPushSubscribed
-                  ? 'bg-blue-600/20 border-blue-500/50 text-blue-300'
-                  : 'bg-indigo-600/30 hover:bg-indigo-600/40 border-indigo-500 text-indigo-200 animate-pulse'
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 border rounded-xl text-xs md:text-sm font-semibold transition-all cursor-pointer font-['MedievalSharp',serif] ${isPushSubscribed
+                  ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                  : 'bg-amber-600/30 hover:bg-amber-600/40 border-amber-500 text-amber-200 animate-pulse'
                 }`}
               title="Suscripción a Notificaciones Web Push (App Cerrada)"
             >
@@ -441,7 +438,7 @@ export default function OSRS() {
       >
 
         {/* Banner Alert */}
-        <div className="bg-gradient-to-r from-amber-950/70 via-amber-900/50 to-slate-900/90 border-2 border-amber-600/40 backdrop-blur-md rounded-2xl p-4 md:p-5 flex items-start gap-4 shadow-2xl relative overflow-hidden">
+        <div className="bg-gradient-to-r from-amber-950/70 via-amber-900/50 to-black/80 border-2 border-amber-600/40 backdrop-blur-md rounded-2xl p-4 md:p-5 flex items-start gap-4 shadow-2xl relative overflow-hidden">
           <div className="p-3 bg-amber-500/10 rounded-xl text-amber-400 border border-amber-500/20">
             <BellRing className="w-6 h-6 animate-pulse" />
           </div>
@@ -469,14 +466,17 @@ export default function OSRS() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
           {/* CARD 1: BIRD RUNS */}
-          <div className="bg-slate-900/95 border-2 border-amber-700/60 hover:border-amber-400/70 transition-all rounded-3xl p-6 flex flex-col justify-between shadow-[0_10px_30px_rgba(0,0,0,0.8)] relative overflow-hidden group backdrop-blur-md">
+          <div 
+            className="border-2 border-amber-700/60 hover:border-amber-400/80 transition-all rounded-3xl p-6 flex flex-col justify-between shadow-[0_10px_30px_rgba(0,0,0,0.8)] relative overflow-hidden group bg-cover bg-center bg-no-repeat min-h-[360px]"
+            style={{ backgroundImage: "url('/card-bg.png')" }}
+          >
             {/* Top Accent */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-600"></div>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-2xl shadow-inner shrink-0 overflow-hidden relative">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-2xl shadow-inner shrink-0 overflow-hidden relative">
                     <img 
                       src="/birdhouse-logo.png" 
                       alt="Bird House" 
@@ -490,10 +490,10 @@ export default function OSRS() {
                     <span className="hidden">🐥</span>
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-100 group-hover:text-amber-300 transition-colors font-['MedievalSharp',serif] tracking-wider">
+                    <h3 className="text-xl font-bold text-amber-100 group-hover:text-yellow-300 transition-colors font-['MedievalSharp',serif] tracking-wider drop-shadow-md">
                       Bird Houses
                     </h3>
-                    <p className="text-xs text-amber-500/80 font-medium">Timer de 50 minutos</p>
+                    <p className="text-xs text-amber-300/80 font-semibold">Timer de 50 minutos</p>
                   </div>
                 </div>
                 {birdTarget && birdTimeLeft === 0 && (
@@ -504,24 +504,24 @@ export default function OSRS() {
               </div>
 
               {/* Timer Display */}
-              <div className="bg-slate-950/90 rounded-2xl p-6 border-2 border-amber-900/40 text-center relative overflow-hidden my-4 shadow-[inset_0_2px_8px_rgba(0,0,0,0.9)]">
+              <div className="bg-black/60 rounded-2xl p-6 border-2 border-amber-500/40 text-center relative overflow-hidden my-4 shadow-[inset_0_2px_10px_rgba(0,0,0,0.9)] backdrop-blur-sm">
                 <div className="text-4xl md:text-5xl font-black font-mono tracking-widest text-amber-400 drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
                   {birdTarget ? formatTime(birdTimeLeft) : '50:00'}
                 </div>
-                <div className="text-xs text-slate-300 mt-2 flex flex-col items-center gap-1 font-medium">
+                <div className="text-xs text-amber-100/90 mt-2 flex flex-col items-center gap-1 font-medium">
                   <div className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-amber-500" />
+                    <Clock className="w-3.5 h-3.5 text-amber-400" />
                     {birdTarget ? (birdTimeLeft > 0 ? `Termina a las: ${formatClockTime(birdTarget)}` : '¡Listo para recolectar!') : 'Timer inactivo'}
                   </div>
                   {lastBirdCompleted && (
-                    <span className="text-[11px] text-amber-400/90 font-mono mt-0.5">
+                    <span className="text-[11px] text-amber-300 font-mono mt-0.5">
                       Última recolección: {formatClockTime(lastBirdCompleted)}
                     </span>
                   )}
                 </div>
 
                 {/* Progress Bar */}
-                <div className="w-full bg-slate-950 h-2.5 rounded-full mt-4 overflow-hidden border border-slate-800">
+                <div className="w-full bg-black/80 h-2.5 rounded-full mt-4 overflow-hidden border border-amber-900/60">
                   <div
                     className="bg-gradient-to-r from-amber-600 via-amber-400 to-yellow-300 h-full transition-all duration-1000 ease-linear rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)]"
                     style={{ width: `${birdProgress}%` }}
@@ -534,7 +534,7 @@ export default function OSRS() {
             <div className="space-y-2 mt-4">
               <button
                 onClick={handleStartBird}
-                className="w-full py-3.5 bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 active:scale-[0.98] text-slate-950 font-black text-base md:text-lg rounded-2xl shadow-[0_4px_15px_rgba(245,158,11,0.3)] border-2 border-amber-300/60 transition-all flex items-center justify-center gap-2 cursor-pointer font-['MedievalSharp',serif] tracking-wide"
+                className="w-full py-3.5 bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 active:scale-[0.98] text-slate-950 font-black text-base md:text-lg rounded-2xl shadow-[0_4px_15px_rgba(245,158,11,0.4)] border-2 border-amber-300/80 transition-all flex items-center justify-center gap-2 cursor-pointer font-['MedievalSharp',serif] tracking-wide"
               >
                 {birdTarget ? (
                   <>
@@ -552,7 +552,7 @@ export default function OSRS() {
               {birdTarget && (
                 <button
                   onClick={handleStopBird}
-                  className="w-full py-2 bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-red-400 font-semibold text-xs rounded-xl transition-all border border-slate-700/50 cursor-pointer font-['MedievalSharp',serif]"
+                  className="w-full py-2 bg-black/60 hover:bg-black/80 text-amber-200/80 hover:text-red-400 font-semibold text-xs rounded-xl transition-all border border-amber-500/30 cursor-pointer font-['MedievalSharp',serif]"
                 >
                   Detener Timer
                 </button>
@@ -561,14 +561,17 @@ export default function OSRS() {
           </div>
 
           {/* CARD 2: HERB RUNS */}
-          <div className="bg-slate-900/95 border-2 border-emerald-700/60 hover:border-emerald-400/70 transition-all rounded-3xl p-6 flex flex-col justify-between shadow-[0_10px_30px_rgba(0,0,0,0.8)] relative overflow-hidden group backdrop-blur-md">
+          <div 
+            className="border-2 border-emerald-700/60 hover:border-emerald-400/80 transition-all rounded-3xl p-6 flex flex-col justify-between shadow-[0_10px_30px_rgba(0,0,0,0.8)] relative overflow-hidden group bg-cover bg-center bg-no-repeat min-h-[360px]"
+            style={{ backgroundImage: "url('/card-bg.png')" }}
+          >
             {/* Top Accent */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-600 via-green-400 to-emerald-600"></div>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl shadow-inner shrink-0 overflow-hidden relative">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-2xl shadow-inner shrink-0 overflow-hidden relative">
                     <img 
                       src="/herb-logo.png" 
                       alt="Herb Run" 
@@ -582,10 +585,10 @@ export default function OSRS() {
                     <span className="hidden">🌿</span>
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-100 group-hover:text-emerald-300 transition-colors font-['MedievalSharp',serif] tracking-wider">
+                    <h3 className="text-xl font-bold text-emerald-100 group-hover:text-green-300 transition-colors font-['MedievalSharp',serif] tracking-wider drop-shadow-md">
                       Herb Runs
                     </h3>
-                    <p className="text-xs text-emerald-500/80 font-medium">Timer de 80 minutos</p>
+                    <p className="text-xs text-emerald-300/80 font-semibold">Timer de 80 minutos</p>
                   </div>
                 </div>
                 {herbTarget && herbTimeLeft === 0 && (
@@ -596,24 +599,24 @@ export default function OSRS() {
               </div>
 
               {/* Timer Display */}
-              <div className="bg-slate-950/90 rounded-2xl p-6 border-2 border-emerald-900/40 text-center relative overflow-hidden my-4 shadow-[inset_0_2px_8px_rgba(0,0,0,0.9)]">
+              <div className="bg-black/60 rounded-2xl p-6 border-2 border-emerald-500/40 text-center relative overflow-hidden my-4 shadow-[inset_0_2px_10px_rgba(0,0,0,0.9)] backdrop-blur-sm">
                 <div className="text-4xl md:text-5xl font-black font-mono tracking-widest text-emerald-400 drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
                   {herbTarget ? formatTime(herbTimeLeft) : '1h 20m'}
                 </div>
-                <div className="text-xs text-slate-400 mt-2 flex flex-col items-center gap-1 font-medium">
+                <div className="text-xs text-emerald-100/90 mt-2 flex flex-col items-center gap-1 font-medium">
                   <div className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                    <Clock className="w-3.5 h-3.5 text-emerald-400" />
                     {herbTarget ? (herbTimeLeft > 0 ? `Termina a las: ${formatClockTime(herbTarget)}` : '¡Listo para cosechar!') : 'Timer inactivo'}
                   </div>
                   {lastHerbCompleted && (
-                    <span className="text-[11px] text-emerald-400/80 font-mono mt-0.5">
+                    <span className="text-[11px] text-emerald-300 font-mono mt-0.5">
                       Última recolección: {formatClockTime(lastHerbCompleted)}
                     </span>
                   )}
                 </div>
 
                 {/* Progress Bar */}
-                <div className="w-full bg-slate-950 h-2.5 rounded-full mt-4 overflow-hidden border border-slate-800">
+                <div className="w-full bg-black/80 h-2.5 rounded-full mt-4 overflow-hidden border border-emerald-900/60">
                   <div
                     className="bg-gradient-to-r from-emerald-600 via-emerald-400 to-green-300 h-full transition-all duration-1000 ease-linear rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                     style={{ width: `${herbProgress}%` }}
@@ -626,7 +629,7 @@ export default function OSRS() {
             <div className="space-y-2 mt-4">
               <button
                 onClick={handleStartHerb}
-                className="w-full py-3.5 bg-gradient-to-r from-emerald-600 via-emerald-500 to-green-500 hover:from-emerald-500 hover:to-green-400 active:scale-[0.98] text-slate-950 font-black text-base md:text-lg rounded-2xl shadow-[0_4px_15px_rgba(16,185,129,0.3)] border-2 border-emerald-300/60 transition-all flex items-center justify-center gap-2 cursor-pointer font-['MedievalSharp',serif] tracking-wide"
+                className="w-full py-3.5 bg-gradient-to-r from-emerald-600 via-emerald-500 to-green-500 hover:from-emerald-500 hover:to-green-400 active:scale-[0.98] text-slate-950 font-black text-base md:text-lg rounded-2xl shadow-[0_4px_15px_rgba(16,185,129,0.4)] border-2 border-emerald-300/80 transition-all flex items-center justify-center gap-2 cursor-pointer font-['MedievalSharp',serif] tracking-wide"
               >
                 {herbTarget ? (
                   <>
@@ -644,7 +647,7 @@ export default function OSRS() {
               {herbTarget && (
                 <button
                   onClick={handleStopHerb}
-                  className="w-full py-2 bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-red-400 font-semibold text-xs rounded-xl transition-all border border-slate-700/50 cursor-pointer font-['MedievalSharp',serif]"
+                  className="w-full py-2 bg-black/60 hover:bg-black/80 text-emerald-200/80 hover:text-red-400 font-semibold text-xs rounded-xl transition-all border border-emerald-500/30 cursor-pointer font-['MedievalSharp',serif]"
                 >
                   Detener Timer
                 </button>

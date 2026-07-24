@@ -28,6 +28,10 @@ export default defineConfig(({mode}) => {
           'constancia_primeros_auxilios.png',
           'constancia_pa_extintores.png',
           'osrs-bg.png',
+          'card-bg.png',
+          'birdhouse-logo.png',
+          'herb-logo.png',
+          'osrs-logo.png',
         ],
         manifest: {
           name: 'SEPRISA - Sistema de Constancias',
