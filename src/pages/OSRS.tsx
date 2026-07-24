@@ -438,11 +438,11 @@ export default function OSRS() {
 
       {/* Main Container */}
       <main
-        className="flex-1 max-w-4xl w-full mx-auto px-4.5 py-4 md:p-6 space-y-6 z-10"
+        className="flex-1 max-w-4xl w-full mx-auto px-6 py-4 md:p-6 space-y-6 z-10"
         style={{
           paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))',
-          paddingLeft: 'max(1.125rem, env(safe-area-inset-left, 0px))',
-          paddingRight: 'max(1.125rem, env(safe-area-inset-right, 0px))'
+          paddingLeft: 'max(1.5rem, env(safe-area-inset-left, 0px))',
+          paddingRight: 'max(1.5rem, env(safe-area-inset-right, 0px))'
         }}
       >
 
