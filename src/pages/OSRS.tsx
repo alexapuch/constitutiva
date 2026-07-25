@@ -11,12 +11,21 @@ const HERB_DURATION_SEC = 80 * 60; // 80 minutes
 export default function OSRS() {
   const navigate = useNavigate();
 
+  // Helper to calculate remaining seconds from target timestamp
+  const calcRemaining = (target: number | null) => {
+    if (!target) return 0;
+    return Math.max(0, Math.floor((target - Date.now()) / 1000));
+  };
+
   // Bird Run State
   const [birdTarget, setBirdTarget] = useState<number | null>(() => {
     const saved = localStorage.getItem('osrs_bird_target');
     return saved ? parseInt(saved, 10) : null;
   });
-  const [birdTimeLeft, setBirdTimeLeft] = useState<number>(0);
+  const [birdTimeLeft, setBirdTimeLeft] = useState<number>(() => {
+    const saved = localStorage.getItem('osrs_bird_target');
+    return saved ? calcRemaining(parseInt(saved, 10)) : 0;
+  });
   const [lastBirdCompleted, setLastBirdCompleted] = useState<number | null>(() => {
     const saved = localStorage.getItem('osrs_bird_last_completed');
     return saved ? parseInt(saved, 10) : null;
@@ -27,7 +36,10 @@ export default function OSRS() {
     const saved = localStorage.getItem('osrs_herb_target');
     return saved ? parseInt(saved, 10) : null;
   });
-  const [herbTimeLeft, setHerbTimeLeft] = useState<number>(0);
+  const [herbTimeLeft, setHerbTimeLeft] = useState<number>(() => {
+    const saved = localStorage.getItem('osrs_herb_target');
+    return saved ? calcRemaining(parseInt(saved, 10)) : 0;
+  });
   const [lastHerbCompleted, setLastHerbCompleted] = useState<number | null>(() => {
     const saved = localStorage.getItem('osrs_herb_last_completed');
     return saved ? parseInt(saved, 10) : null;
@@ -50,10 +62,12 @@ export default function OSRS() {
       .then(data => {
         if (data.bird?.targetTime && data.bird.status === 'pending') {
           setBirdTarget(data.bird.targetTime);
+          setBirdTimeLeft(calcRemaining(data.bird.targetTime));
           localStorage.setItem('osrs_bird_target', data.bird.targetTime.toString());
         }
         if (data.herb?.targetTime && data.herb.status === 'pending') {
           setHerbTarget(data.herb.targetTime);
+          setHerbTimeLeft(calcRemaining(data.herb.targetTime));
           localStorage.setItem('osrs_herb_target', data.herb.targetTime.toString());
         }
       })
@@ -62,6 +76,23 @@ export default function OSRS() {
     checkPushSubscriptionStatus().then(setIsPushSubscribed);
   }, []);
 
+  // Helper for medieval-styled centered alerts
+  const showMedievalAlert = (title: string, text: string, icon: 'success' | 'error' | 'info' = 'success') => {
+    Swal.fire({
+      title: `<span style="font-family: 'MedievalSharp', serif; color: #EFC96A; font-size: 20px; text-shadow: 1px 1px 2px #000;">${title}</span>`,
+      html: `<div style="font-family: 'MedievalSharp', serif; color: #F0DEB2; font-size: 14px; margin-top: 6px; line-height: 1.4;">${text}</div>`,
+      icon: icon,
+      iconColor: icon === 'success' ? '#E8C05A' : '#EF4444',
+      timer: 2300,
+      showConfirmButton: false,
+      position: 'center',
+      background: '#18120c',
+      customClass: {
+        popup: 'border-2 border-[#D6A043] rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.9)] max-w-[90vw] sm:max-w-md'
+      }
+    });
+  };
+
   // Handle subscribing device to VAPID Web Push
   const handleSubscribePush = async () => {
     setSubscribingPush(true);
@@ -69,19 +100,16 @@ export default function OSRS() {
     setSubscribingPush(false);
     if (res.success) {
       setIsPushSubscribed(true);
-      Swal.fire({
-        icon: 'success',
-        title: '¡Notificaciones Web Push PWA Activadas!',
-        text: 'Tu dispositivo recibirá notificaciones nativas de Web Push cuando termine un timer, ¡incluso con la app y el navegador cerrados!',
-        timer: 3500,
-        showConfirmButton: false
-      });
+      showMedievalAlert(
+        '🔔 ¡Notificaciones Activadas!',
+        'Tu dispositivo recibirá notificaciones nativas cuando termine un timer, ¡incluso con la app cerrada!'
+      );
     } else {
-      Swal.fire({
-        icon: 'error',
-        title: 'Suscripción Push',
-        text: res.error || 'No se pudo activar la suscripción Web Push.'
-      });
+      showMedievalAlert(
+        '⚠️ Error de Suscripción',
+        res.error || 'No se pudo activar la suscripción a notificaciones.',
+        'error'
+      );
     }
   };
 
@@ -115,7 +143,7 @@ export default function OSRS() {
 
   // Tick effect for timers
   useEffect(() => {
-    const interval = setInterval(() => {
+    const tick = () => {
       const now = Date.now();
 
       if (birdTarget) {
@@ -143,7 +171,10 @@ export default function OSRS() {
       } else {
         setHerbTimeLeft(0);
       }
-    }, 1000);
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
 
     return () => clearInterval(interval);
   }, [birdTarget, herbTarget]);
@@ -175,6 +206,7 @@ export default function OSRS() {
     const target = nowMs + seconds * 1000;
     const endsAt = new Date(target).toISOString();
     setBirdTarget(target);
+    setBirdTimeLeft(seconds);
     setLastBirdCompleted(nowMs);
     localStorage.setItem('osrs_bird_target', target.toString());
     localStorage.setItem('osrs_bird_last_completed', nowMs.toString());
@@ -202,15 +234,10 @@ export default function OSRS() {
       console.error(e);
     }
 
-    Swal.fire({
-      icon: 'success',
-      title: '¡Bird Run Iniciado!',
-      text: `Timer configurado a ${devMode ? '15 seg' : '50 minutos'}. Recibirás tu WhatsApp al finalizar.`,
-      timer: 2000,
-      showConfirmButton: false,
-      toast: true,
-      position: 'top-end'
-    });
+    showMedievalAlert(
+      '🐥 ¡Bird Run Iniciado!',
+      `Timer configurado a ${devMode ? '15 seg' : '50 minutos'}. ¡Recibirás una notificación cuando esté listo!`
+    );
   };
 
   // Stop Bird Run
@@ -237,6 +264,7 @@ export default function OSRS() {
     const target = nowMs + seconds * 1000;
     const endsAt = new Date(target).toISOString();
     setHerbTarget(target);
+    setHerbTimeLeft(seconds);
     setLastHerbCompleted(nowMs);
     localStorage.setItem('osrs_herb_target', target.toString());
     localStorage.setItem('osrs_herb_last_completed', nowMs.toString());
@@ -264,15 +292,10 @@ export default function OSRS() {
       console.error(e);
     }
 
-    Swal.fire({
-      icon: 'success',
-      title: '¡Herb Run Iniciado!',
-      text: `Timer configurado a ${devMode ? '20 seg' : '80 minutos'}. Recibirás tu WhatsApp al finalizar.`,
-      timer: 2000,
-      showConfirmButton: false,
-      toast: true,
-      position: 'top-end'
-    });
+    showMedievalAlert(
+      '🌿 ¡Herb Run Iniciado!',
+      `Timer configurado a ${devMode ? '20 seg' : '80 minutos'}. ¡Recibirás una notificación cuando esté listo!`
+    );
   };
 
   // Stop Herb Run
@@ -298,21 +321,12 @@ export default function OSRS() {
     try {
       const res = await fetch('/api/osrs/test', { method: 'POST' });
       if (res.ok) {
-        Swal.fire({
-          icon: 'success',
-          title: '¡WhatsApp Enviado!',
-          text: 'Se envió la notificación de prueba a tu celular por CallMeBot.',
-          confirmButtonColor: '#0B152A'
-        });
+        showMedievalAlert('📲 ¡Notificación Enviada!', 'Se envió la notificación de prueba a tu dispositivo.');
       } else {
         throw new Error('Error al enviar');
       }
     } catch (e) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error de envío',
-        text: 'No se pudo contactar con CallMeBot.'
-      });
+      showMedievalAlert('⚠️ Error de Envío', 'No se pudo contactar con el servicio de alertas.', 'error');
     } finally {
       setTestingMsg(false);
     }

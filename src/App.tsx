@@ -8,11 +8,11 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import OfflineBanner from './components/OfflineBanner';
 import { ThemeProvider } from './context/ThemeContext';
 import Home from './pages/Home';
+import OSRS from './pages/OSRS';
 
 const PublicView = lazy(() => import('./pages/PublicView'));
 const AdminView = lazy(() => import('./pages/AdminView'));
 const VerificarConstancia = lazy(() => import('./pages/VerificarConstancia'));
-const OSRS = lazy(() => import('./pages/OSRS'));
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -36,7 +36,7 @@ export default function App() {
       <BrowserRouter>
         <OfflineBanner />
         <ScrollToTop />
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><div className="w-8 h-8 border-4 border-blue-900 border-t-transparent rounded-full animate-spin" /></div>}>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#0B152A]"><div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" /></div>}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/acta" element={<PublicView />} />
