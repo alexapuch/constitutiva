@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Feather, Sprout, Play, RotateCcw, Send, CheckCircle2, Clock, BellRing, Sparkles } from 'lucide-react';
+import { ArrowLeft, Play, RotateCcw, Clock, BellRing } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { supabase } from '../utils/supabaseClient';
 import { subscribeUserToPush, checkPushSubscriptionStatus } from '../utils/webPush';
@@ -11,20 +11,13 @@ const HERB_DURATION_SEC = 80 * 60; // 80 minutes
 export default function OSRS() {
   const navigate = useNavigate();
 
-  // Helper to calculate remaining seconds from target timestamp
-  const calcRemaining = (target: number | null) => {
-    if (!target) return 0;
-    return Math.max(0, Math.floor((target - Date.now()) / 1000));
-  };
+  // Current timestamp tick state (updates once per second for all timers)
+  const [now, setNow] = useState<number>(Date.now());
 
   // Bird Run State
   const [birdTarget, setBirdTarget] = useState<number | null>(() => {
     const saved = localStorage.getItem('osrs_bird_target');
     return saved ? parseInt(saved, 10) : null;
-  });
-  const [birdTimeLeft, setBirdTimeLeft] = useState<number>(() => {
-    const saved = localStorage.getItem('osrs_bird_target');
-    return saved ? calcRemaining(parseInt(saved, 10)) : 0;
   });
   const [lastBirdCompleted, setLastBirdCompleted] = useState<number | null>(() => {
     const saved = localStorage.getItem('osrs_bird_last_completed');
@@ -36,10 +29,6 @@ export default function OSRS() {
     const saved = localStorage.getItem('osrs_herb_target');
     return saved ? parseInt(saved, 10) : null;
   });
-  const [herbTimeLeft, setHerbTimeLeft] = useState<number>(() => {
-    const saved = localStorage.getItem('osrs_herb_target');
-    return saved ? calcRemaining(parseInt(saved, 10)) : 0;
-  });
   const [lastHerbCompleted, setLastHerbCompleted] = useState<number | null>(() => {
     const saved = localStorage.getItem('osrs_herb_last_completed');
     return saved ? parseInt(saved, 10) : null;
@@ -48,12 +37,12 @@ export default function OSRS() {
   // Dev mode for quick testing
   const [devMode, setDevMode] = useState(false);
 
-  // Sending indicator
-  const [testingMsg, setTestingMsg] = useState(false);
-
   // Web Push Subscription state
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
   const [subscribingPush, setSubscribingPush] = useState(false);
+
+  // Audio Context ref to avoid recreating AudioContext repeatedly
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   // Sync status & check Push Subscription on mount
   useEffect(() => {
@@ -62,12 +51,10 @@ export default function OSRS() {
       .then(data => {
         if (data.bird?.targetTime && data.bird.status === 'pending') {
           setBirdTarget(data.bird.targetTime);
-          setBirdTimeLeft(calcRemaining(data.bird.targetTime));
           localStorage.setItem('osrs_bird_target', data.bird.targetTime.toString());
         }
         if (data.herb?.targetTime && data.herb.status === 'pending') {
           setHerbTarget(data.herb.targetTime);
-          setHerbTimeLeft(calcRemaining(data.herb.targetTime));
           localStorage.setItem('osrs_herb_target', data.herb.targetTime.toString());
         }
       })
@@ -76,6 +63,73 @@ export default function OSRS() {
     checkPushSubscriptionStatus().then(setIsPushSubscribed);
   }, []);
 
+  // Single tick interval to drive all countdowns efficiently
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Notification trigger helper (Audio Chime when open + Trigger Server Cron)
+  const triggerNotification = async (type: 'bird' | 'herb') => {
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.6);
+    } catch (e) {
+      /* Audio context blocked */
+    }
+
+    try {
+      await fetch('/api/osrs/cron', { method: 'POST' });
+    } catch (e) {
+      /* ignore */
+    }
+  };
+
+  // Derived time remaining calculations (pure functions)
+  const calcRemainingSec = (target: number | null) => {
+    if (!target) return 0;
+    return Math.max(0, Math.floor((target - now) / 1000));
+  };
+
+  const birdTimeLeft = calcRemainingSec(birdTarget);
+  const herbTimeLeft = calcRemainingSec(herbTarget);
+
+  // Check for completion notification trigger
+  useEffect(() => {
+    if (birdTarget && birdTimeLeft === 0) {
+      const lastNotified = localStorage.getItem('osrs_bird_notified');
+      if (lastNotified !== birdTarget.toString()) {
+        localStorage.setItem('osrs_bird_notified', birdTarget.toString());
+        triggerNotification('bird');
+      }
+    }
+    if (herbTarget && herbTimeLeft === 0) {
+      const lastNotified = localStorage.getItem('osrs_herb_notified');
+      if (lastNotified !== herbTarget.toString()) {
+        localStorage.setItem('osrs_herb_notified', herbTarget.toString());
+        triggerNotification('herb');
+      }
+    }
+  }, [birdTarget, birdTimeLeft, herbTarget, herbTimeLeft]);
+
   // Helper for medieval-styled centered alerts
   const showMedievalAlert = (title: string, text: string, icon: 'success' | 'error' | 'info' = 'success') => {
     Swal.fire({
@@ -83,7 +137,7 @@ export default function OSRS() {
       html: `<div style="font-family: 'MedievalSharp', serif; color: #F0DEB2; font-size: 14px; margin-top: 6px; line-height: 1.4;">${text}</div>`,
       icon: icon,
       iconColor: icon === 'success' ? '#E8C05A' : '#EF4444',
-      timer: 2300,
+      timer: 2200,
       showConfirmButton: false,
       position: 'center',
       background: '#18120c',
@@ -113,72 +167,6 @@ export default function OSRS() {
     }
   };
 
-  // Notification trigger helper (Audio Chime when open + Trigger Server Cron)
-  const triggerNotification = async (title: string, text: string) => {
-    // 1. Audio chime (if browser window is active)
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.6);
-    } catch (e) {
-      /* Audio context blocked */
-    }
-
-    // 2. Trigger server cron to send WhatsApp + VAPID Web Push
-    try {
-      await fetch('/api/osrs/cron', { method: 'POST' });
-    } catch (e) {
-      /* ignore */
-    }
-  };
-
-  // Tick effect for timers
-  useEffect(() => {
-    const tick = () => {
-      const now = Date.now();
-
-      if (birdTarget) {
-        const remaining = Math.max(0, Math.floor((birdTarget - now) / 1000));
-        setBirdTimeLeft(remaining);
-
-        const lastNotified = localStorage.getItem('osrs_bird_notified');
-        if (remaining === 0 && lastNotified !== birdTarget.toString()) {
-          localStorage.setItem('osrs_bird_notified', birdTarget.toString());
-          triggerNotification('🐥 ¡Bird Houses Listos!', 'ya esta listo tus bird houses');
-        }
-      } else {
-        setBirdTimeLeft(0);
-      }
-
-      if (herbTarget) {
-        const remaining = Math.max(0, Math.floor((herbTarget - now) / 1000));
-        setHerbTimeLeft(remaining);
-
-        const lastNotified = localStorage.getItem('osrs_herb_notified');
-        if (remaining === 0 && lastNotified !== herbTarget.toString()) {
-          localStorage.setItem('osrs_herb_notified', herbTarget.toString());
-          triggerNotification('🌿 ¡Herbs Listas!', 'tus herbs ya estan listas para recolectar');
-        }
-      } else {
-        setHerbTimeLeft(0);
-      }
-    };
-
-    tick();
-    const interval = setInterval(tick, 1000);
-
-    return () => clearInterval(interval);
-  }, [birdTarget, herbTarget]);
-
   // Format seconds to mm:ss or hh:mm:ss
   const formatTime = (totalSeconds: number) => {
     if (totalSeconds <= 0) return '00:00';
@@ -205,39 +193,30 @@ export default function OSRS() {
     const seconds = devMode ? 15 : BIRD_DURATION_SEC;
     const target = nowMs + seconds * 1000;
     const endsAt = new Date(target).toISOString();
+
+    // Instant Optimistic State & Storage Update
     setBirdTarget(target);
-    setBirdTimeLeft(seconds);
     setLastBirdCompleted(nowMs);
     localStorage.setItem('osrs_bird_target', target.toString());
     localStorage.setItem('osrs_bird_last_completed', nowMs.toString());
     localStorage.removeItem('osrs_bird_notified');
 
-    try {
-      // Direct Supabase insert into osrs_timers
-      await supabase.from('osrs_timers').delete().eq('type', 'bird_run');
-      await supabase.from('osrs_timers').insert({
-        type: 'bird_run',
-        ends_at: endsAt,
-        notified: false
-      });
-    } catch (e) {
-      console.error(e);
-    }
-
-    try {
-      await fetch('/api/osrs/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'bird', durationSeconds: seconds })
-      });
-    } catch (e) {
-      console.error(e);
-    }
-
     showMedievalAlert(
       '🐥 ¡Bird Run Iniciado!',
       `Timer configurado a ${devMode ? '15 seg' : '50 minutos'}. ¡Recibirás una notificación cuando esté listo!`
     );
+
+    // Parallel background persistence
+    Promise.all([
+      supabase.from('osrs_timers').delete().eq('type', 'bird_run').then(() =>
+        supabase.from('osrs_timers').insert({ type: 'bird_run', ends_at: endsAt, notified: false })
+      ),
+      fetch('/api/osrs/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'bird', durationSeconds: seconds })
+      })
+    ]).catch(console.error);
   };
 
   // Stop Bird Run
@@ -245,16 +224,15 @@ export default function OSRS() {
     setBirdTarget(null);
     localStorage.removeItem('osrs_bird_target');
     localStorage.removeItem('osrs_bird_notified');
-    try {
-      await supabase.from('osrs_timers').delete().eq('type', 'bird_run');
-      await fetch('/api/osrs/stop', {
+
+    Promise.all([
+      supabase.from('osrs_timers').delete().eq('type', 'bird_run'),
+      fetch('/api/osrs/stop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'bird' })
-      });
-    } catch (e) {
-      console.error(e);
-    }
+      })
+    ]).catch(console.error);
   };
 
   // Start / Reset Herb Run
@@ -263,39 +241,30 @@ export default function OSRS() {
     const seconds = devMode ? 20 : HERB_DURATION_SEC;
     const target = nowMs + seconds * 1000;
     const endsAt = new Date(target).toISOString();
+
+    // Instant Optimistic State & Storage Update
     setHerbTarget(target);
-    setHerbTimeLeft(seconds);
     setLastHerbCompleted(nowMs);
     localStorage.setItem('osrs_herb_target', target.toString());
     localStorage.setItem('osrs_herb_last_completed', nowMs.toString());
     localStorage.removeItem('osrs_herb_notified');
 
-    try {
-      // Direct Supabase insert into osrs_timers
-      await supabase.from('osrs_timers').delete().eq('type', 'herb_patch');
-      await supabase.from('osrs_timers').insert({
-        type: 'herb_patch',
-        ends_at: endsAt,
-        notified: false
-      });
-    } catch (e) {
-      console.error(e);
-    }
-
-    try {
-      await fetch('/api/osrs/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'herb', durationSeconds: seconds })
-      });
-    } catch (e) {
-      console.error(e);
-    }
-
     showMedievalAlert(
       '🌿 ¡Herb Run Iniciado!',
       `Timer configurado a ${devMode ? '20 seg' : '80 minutos'}. ¡Recibirás una notificación cuando esté listo!`
     );
+
+    // Parallel background persistence
+    Promise.all([
+      supabase.from('osrs_timers').delete().eq('type', 'herb_patch').then(() =>
+        supabase.from('osrs_timers').insert({ type: 'herb_patch', ends_at: endsAt, notified: false })
+      ),
+      fetch('/api/osrs/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'herb', durationSeconds: seconds })
+      })
+    ]).catch(console.error);
   };
 
   // Stop Herb Run
@@ -303,75 +272,20 @@ export default function OSRS() {
     setHerbTarget(null);
     localStorage.removeItem('osrs_herb_target');
     localStorage.removeItem('osrs_herb_notified');
-    try {
-      await supabase.from('osrs_timers').delete().eq('type', 'herb_patch');
-      await fetch('/api/osrs/stop', {
+
+    Promise.all([
+      supabase.from('osrs_timers').delete().eq('type', 'herb_patch'),
+      fetch('/api/osrs/stop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'herb' })
-      });
-    } catch (e) {
-      console.error(e);
-    }
+      })
+    ]).catch(console.error);
   };
 
-  // Test CallMeBot WhatsApp
-  const handleTestWhatsApp = async () => {
-    setTestingMsg(true);
-    try {
-      const res = await fetch('/api/osrs/test', { method: 'POST' });
-      if (res.ok) {
-        showMedievalAlert('📲 ¡Notificación Enviada!', 'Se envió la notificación de prueba a tu dispositivo.');
-      } else {
-        throw new Error('Error al enviar');
-      }
-    } catch (e) {
-      showMedievalAlert('⚠️ Error de Envío', 'No se pudo contactar con el servicio de alertas.', 'error');
-    } finally {
-      setTestingMsg(false);
-    }
-  };
-
-  // Cron Job Helper Modal
-  const handleCronHelp = () => {
-    const cronUrl = `${window.location.origin}/api/osrs/cron`;
-    Swal.fire({
-      title: '⚡ Avisos Puntuales 24/7',
-      html: `
-        <div style="text-align: left; font-size: 14px; color: #334155; line-height: 1.5;">
-          <p style="margin-bottom: 12px;">Vercel limita los crons gratuitos en servidores serverless. Para que los mensajes de WhatsApp te lleguen <strong>exactos al minuto sin abrir la página</strong>:</p>
-          <ol style="margin-left: 20px; list-style-type: decimal; margin-bottom: 12px;">
-            <li style="margin-bottom: 6px;">Entra a <a href="https://cron-job.org" target="_blank" style="color: #2563eb; font-weight: bold; text-decoration: underline;">cron-job.org</a> (es 100% gratis).</li>
-            <li style="margin-bottom: 6px;">Crea un trabajo con frecuencia de <strong>cada 1 minuto</strong> y pégale la siguiente URL:</li>
-          </ol>
-          <div style="background: #f1f5f9; padding: 10px; border-radius: 8px; font-family: monospace; word-break: break-all; margin: 10px 0; border: 1px solid #cbd5e1; font-weight: bold;">
-            ${cronUrl}
-          </div>
-          <p style="font-size: 12px; color: #64748b; margin-top: 10px;">¡Con esto los avisos llegarán puntualísimos aunque tu celular o PC estén apagados!</p>
-        </div>
-      `,
-      confirmButtonText: 'Copiar URL de Cron',
-      showCancelButton: true,
-      cancelButtonText: 'Cerrar',
-      confirmButtonColor: '#0B152A'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        navigator.clipboard.writeText(cronUrl);
-        Swal.fire({
-          icon: 'success',
-          title: '¡URL Copiada!',
-          text: 'Pégala en cron-job.org para activar las alertas automatizadas.',
-          timer: 2500,
-          showConfirmButton: false
-        });
-      }
-    });
-  };
-
-  // Calculate progress % directly from target timestamp and Date.now()
+  // Calculate progress % directly from target timestamp and now
   const getProgress = (target: number | null, durationSec: number) => {
     if (!target) return 0;
-    const now = Date.now();
     const totalMs = durationSec * 1000;
     const remainingMs = target - now;
     if (remainingMs <= 0) return 100;
@@ -415,11 +329,8 @@ export default function OSRS() {
                   className="w-full h-full object-contain p-1"
                   onError={(e) => {
                     (e.target as HTMLElement).style.display = 'none';
-                    const fallback = (e.target as HTMLElement).nextElementSibling as HTMLElement;
-                    if (fallback) fallback.style.display = 'block';
                   }}
                 />
-                <span className="hidden">🗡️</span>
               </div>
               <div>
                 <h1 className="text-lg sm:text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-200 to-yellow-500 tracking-wider leading-tight font-['Cinzel_Decorative',serif]">
@@ -495,11 +406,8 @@ export default function OSRS() {
                       className="w-full h-full object-contain p-1.5"
                       onError={(e) => {
                         (e.target as HTMLElement).style.display = 'none';
-                        const fallback = (e.target as HTMLElement).nextElementSibling as HTMLElement;
-                        if (fallback) fallback.style.display = 'block';
                       }}
                     />
-                    <span className="hidden">🐥</span>
                   </div>
                   <div>
                     <h3 className="text-base sm:text-lg font-bold text-amber-100 group-hover:text-yellow-300 transition-colors font-['MedievalSharp',serif] tracking-wider drop-shadow-md">
@@ -609,11 +517,8 @@ export default function OSRS() {
                       className="w-full h-full object-contain p-1.5"
                       onError={(e) => {
                         (e.target as HTMLElement).style.display = 'none';
-                        const fallback = (e.target as HTMLElement).nextElementSibling as HTMLElement;
-                        if (fallback) fallback.style.display = 'block';
                       }}
                     />
-                    <span className="hidden">🌿</span>
                   </div>
                   <div>
                     <h3 className="text-base sm:text-lg font-bold text-emerald-100 group-hover:text-green-300 transition-colors font-['MedievalSharp',serif] tracking-wider drop-shadow-md">
@@ -699,7 +604,6 @@ export default function OSRS() {
           </div>
 
         </div>
-
       </main>
     </div>
   );
