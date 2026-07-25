@@ -30,9 +30,13 @@ function ScrollToTop() {
   return null;
 }
 
-// Background preloader for OSRS Timers assets and code
+// Background preloader for OSRS Timers assets and code (forces GPU VRAM bitmap retention)
 function OSRSAssetPreloader() {
+  const { pathname } = useLocation();
+  const isOsrs = pathname === '/osrs';
+
   useEffect(() => {
+    (window as any).__OSRS_IMAGE_CACHE__ = (window as any).__OSRS_IMAGE_CACHE__ || [];
     const osrsImages = [
       '/osrs-bg.png',
       '/card-bg.png',
@@ -42,24 +46,34 @@ function OSRSAssetPreloader() {
     ];
 
     const preload = () => {
-      // Preload image assets into browser cache & decode GPU texture memory
-      osrsImages.forEach((src) => {
+      osrsImages.forEach(async (src) => {
         const img = new Image();
         img.src = src;
         if ('decode' in img) {
-          img.decode().catch(() => {});
+          try {
+            await img.decode();
+          } catch (e) {}
         }
+        (window as any).__OSRS_IMAGE_CACHE__.push(img);
       });
     };
 
-    // Execute immediately on mount + on idle callback
     preload();
     if ('requestIdleCallback' in window) {
       (window as any).requestIdleCallback(preload);
     }
   }, []);
 
-  return null;
+  return (
+    <div
+      id="osrs-bg-fixed"
+      style={{
+        opacity: isOsrs ? 1 : 0,
+        pointerEvents: 'none',
+        transition: 'opacity 0.15s ease-in-out'
+      }}
+    />
+  );
 }
 
 export default function App() {
@@ -69,7 +83,7 @@ export default function App() {
         <OfflineBanner />
         <ScrollToTop />
         <OSRSAssetPreloader />
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#0B152A]"><div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" /></div>}>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#120c06]"><div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" /></div>}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/acta" element={<PublicView />} />
@@ -77,7 +91,6 @@ export default function App() {
             <Route path="/verificar/:id" element={<VerificarConstancia />} />
             <Route path="/osrs" element={<OSRS />} />
           </Routes>
-
         </Suspense>
       </BrowserRouter>
     </ThemeProvider>

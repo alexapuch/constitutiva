@@ -308,10 +308,7 @@ export default function OSRS() {
   const herbProgress = getProgress(herbTarget, devMode ? 20 : HERB_DURATION_SEC);
 
   return (
-    <div className="min-h-screen text-slate-100 font-sans flex flex-col selection:bg-amber-500 selection:text-slate-950 relative">
-      {/* Fixed Seamless Background Layer */}
-      <div id="osrs-bg-fixed" />
-
+    <div className="min-h-screen text-slate-100 font-sans flex flex-col selection:bg-amber-500 selection:text-slate-950 relative" style={{ backgroundColor: '#120c06' }}>
       {/* Header with iOS Safe Area Notch Padding */}
       <header
         className="bg-transparent border-b border-amber-900/40 sticky top-0 z-20 px-4 md:px-8 shadow-none transition-all"
