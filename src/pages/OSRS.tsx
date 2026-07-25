@@ -11,8 +11,18 @@ const HERB_DURATION_SEC = 80 * 60; // 80 minutes
 export default function OSRS() {
   const navigate = useNavigate();
 
-  // Current timestamp tick state (updates once per second for all timers)
-  const [now, setNow] = useState<number>(Date.now());
+  // Mounted flag to disable CSS transition on first paint
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Current timestamp tick state (initialized lazily before first render)
+  const [now, setNow] = useState<number>(() => Date.now());
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setIsMounted(true);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   // Bird Run State
   const [birdTarget, setBirdTarget] = useState<number | null>(() => {
@@ -451,7 +461,7 @@ export default function OSRS() {
                 {/* Progress Bar */}
                 <div className="w-full h-2 rounded-full mt-2 overflow-hidden border border-[#39230C]" style={{ backgroundColor: '#17130F' }}>
                   <div
-                    className="h-full transition-[width] duration-500 ease-linear rounded-full"
+                    className={`h-full rounded-full ${isMounted ? 'transition-[width] duration-500 ease-linear' : '!transition-none'}`}
                     style={{ width: `${birdProgress}%`, backgroundColor: '#A46F21' }}
                   ></div>
                 </div>
@@ -563,7 +573,7 @@ export default function OSRS() {
                 {/* Progress Bar */}
                 <div className="w-full h-2 rounded-full mt-2 overflow-hidden border border-[#1F2E22]" style={{ backgroundColor: '#17130F' }}>
                   <div
-                    className="h-full transition-[width] duration-500 ease-linear rounded-full"
+                    className={`h-full rounded-full ${isMounted ? 'transition-[width] duration-500 ease-linear' : '!transition-none'}`}
                     style={{ width: `${herbProgress}%`, backgroundColor: '#497055' }}
                   ></div>
                 </div>
