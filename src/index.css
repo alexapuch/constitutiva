@@ -72,6 +72,7 @@ html, body {
   width: 100vw;
   height: 100vh;
   height: 100dvh;
+  background-color: #120c06;
   background-image: url('/osrs-bg.png');
   background-size: 100% 100%;
   background-position: center;

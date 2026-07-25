@@ -30,12 +30,42 @@ function ScrollToTop() {
   return null;
 }
 
+// Background preloader for OSRS Timers assets and code
+function OSRSAssetPreloader() {
+  useEffect(() => {
+    const osrsImages = [
+      '/osrs-bg.png',
+      '/card-bg.png',
+      '/birdhouse-logo.png',
+      '/herb-logo.png',
+      '/osrs-logo.png'
+    ];
+
+    const preload = () => {
+      // 1. Preload image assets into browser cache
+      osrsImages.forEach((src) => {
+        const img = new Image();
+        img.src = src;
+      });
+    };
+
+    if ('requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(preload);
+    } else {
+      setTimeout(preload, 100);
+    }
+  }, []);
+
+  return null;
+}
+
 export default function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
         <OfflineBanner />
         <ScrollToTop />
+        <OSRSAssetPreloader />
         <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#0B152A]"><div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" /></div>}>
           <Routes>
             <Route path="/" element={<Home />} />

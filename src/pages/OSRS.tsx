@@ -385,6 +385,7 @@ export default function OSRS() {
           <div 
             className="transition-all px-7 pt-6 pb-11 sm:px-10 sm:pt-7 sm:pb-12 flex flex-col justify-between relative bg-no-repeat w-full mx-auto min-h-[270px]"
             style={{ 
+              backgroundColor: '#1c140b',
               backgroundImage: "url('/card-bg.png')",
               backgroundSize: "100% 100%",
               backgroundPosition: "center"
@@ -496,6 +497,7 @@ export default function OSRS() {
           <div 
             className="transition-all px-7 pt-6 pb-11 sm:px-10 sm:pt-7 sm:pb-12 flex flex-col justify-between relative bg-no-repeat w-full mx-auto min-h-[270px]"
             style={{ 
+              backgroundColor: '#0c1a12',
               backgroundImage: "url('/card-bg.png')",
               backgroundSize: "100% 100%",
               backgroundPosition: "center"
