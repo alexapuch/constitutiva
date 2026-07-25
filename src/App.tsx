@@ -42,17 +42,20 @@ function OSRSAssetPreloader() {
     ];
 
     const preload = () => {
-      // 1. Preload image assets into browser cache
+      // Preload image assets into browser cache & decode GPU texture memory
       osrsImages.forEach((src) => {
         const img = new Image();
         img.src = src;
+        if ('decode' in img) {
+          img.decode().catch(() => {});
+        }
       });
     };
 
+    // Execute immediately on mount + on idle callback
+    preload();
     if ('requestIdleCallback' in window) {
       (window as any).requestIdleCallback(preload);
-    } else {
-      setTimeout(preload, 100);
     }
   }, []);
 
