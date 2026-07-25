@@ -368,13 +368,20 @@ export default function OSRS() {
     });
   };
 
-  const birdProgress = birdTarget
-    ? Math.min(100, Math.max(0, 100 - (birdTimeLeft / (devMode ? 15 : BIRD_DURATION_SEC)) * 100))
-    : 0;
+  // Calculate progress % directly from target timestamp and Date.now()
+  const getProgress = (target: number | null, durationSec: number) => {
+    if (!target) return 0;
+    const now = Date.now();
+    const totalMs = durationSec * 1000;
+    const remainingMs = target - now;
+    if (remainingMs <= 0) return 100;
+    if (remainingMs >= totalMs) return 0;
+    const elapsedMs = totalMs - remainingMs;
+    return Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
+  };
 
-  const herbProgress = herbTarget
-    ? Math.min(100, Math.max(0, 100 - (herbTimeLeft / (devMode ? 20 : HERB_DURATION_SEC)) * 100))
-    : 0;
+  const birdProgress = getProgress(birdTarget, devMode ? 15 : BIRD_DURATION_SEC);
+  const herbProgress = getProgress(herbTarget, devMode ? 20 : HERB_DURATION_SEC);
 
   return (
     <div className="min-h-screen text-slate-100 font-sans flex flex-col selection:bg-amber-500 selection:text-slate-950 relative">
@@ -535,7 +542,7 @@ export default function OSRS() {
                 {/* Progress Bar */}
                 <div className="w-full h-2 rounded-full mt-2 overflow-hidden border border-[#39230C]" style={{ backgroundColor: '#17130F' }}>
                   <div
-                    className="h-full transition-all duration-1000 ease-linear rounded-full"
+                    className="h-full transition-[width] duration-500 ease-linear rounded-full"
                     style={{ width: `${birdProgress}%`, backgroundColor: '#A46F21' }}
                   ></div>
                 </div>
@@ -649,7 +656,7 @@ export default function OSRS() {
                 {/* Progress Bar */}
                 <div className="w-full h-2 rounded-full mt-2 overflow-hidden border border-[#1F2E22]" style={{ backgroundColor: '#17130F' }}>
                   <div
-                    className="h-full transition-all duration-1000 ease-linear rounded-full"
+                    className="h-full transition-[width] duration-500 ease-linear rounded-full"
                     style={{ width: `${herbProgress}%`, backgroundColor: '#497055' }}
                   ></div>
                 </div>
