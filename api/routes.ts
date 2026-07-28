@@ -1627,22 +1627,42 @@ Generate a JSON object matching this structure:
 
 // --- OSRS Timers & Web Push PWA Notifications ---
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BPF8tXi5xHpYWNpZEBshlY25tgNwaBM1dMZjQ9PqhuROqd2yG1T_ovcNTjOcft_mKh3YwfVBRhBkwPdI91v9K4o';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '49CLfbHnT4JR_DPTenIg636cmAlbFTXIxWdRUS8fd2Q';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@seprisa.com';
 
-webpush.setVapidDetails(
-    VAPID_SUBJECT,
-    VAPID_PUBLIC_KEY,
-    VAPID_PRIVATE_KEY
-);
+if (VAPID_PRIVATE_KEY) {
+    webpush.setVapidDetails(
+        VAPID_SUBJECT,
+        VAPID_PUBLIC_KEY,
+        VAPID_PRIVATE_KEY
+    );
+} else {
+    console.warn('⚠️ ALERTA: VAPID_PRIVATE_KEY no está configurada en process.env.');
+}
 
 async function sendWebPushToAll(title: string, body: string, url: string = '/osrs') {
+    if (!VAPID_PRIVATE_KEY) {
+        console.error('Error in sendWebPushToAll: VAPID_PRIVATE_KEY falta en las variables de entorno.');
+        return 0;
+    }
+
     try {
         const { data: subs, error } = await supabase
             .from('push_subscriptions')
             .select('*');
 
-        if (error || !subs || subs.length === 0) return 0;
+        if (error || !subs || subs.length === 0) {
+            // Registrar intento fallido por falta de suscripciones en push_log
+            try {
+                await supabase.from('push_log').insert({
+                    title,
+                    endpoint_truncado: 'NONE',
+                    status_code: 404,
+                    error: 'No se encontraron filas en push_subscriptions'
+                });
+            } catch (e) { /* ignore */ }
+            return 0;
+        }
 
         const payload = JSON.stringify({
             title,
@@ -1661,15 +1681,46 @@ async function sendWebPushToAll(title: string, body: string, url: string = '/osr
                 }
             };
 
+            const truncatedEndpoint = sub.endpoint
+                ? sub.endpoint.substring(0, 55) + '...'
+                : 'desconocido';
+
             try {
                 await webpush.sendNotification(pushSubscription, payload, {
                     TTL: 86400,
                     urgency: 'high'
                 });
                 successCount++;
+
+                // 1. Actualizar last_success_at en push_subscriptions
+                await supabase
+                    .from('push_subscriptions')
+                    .update({ last_success_at: new Date().toISOString() })
+                    .eq('endpoint', sub.endpoint);
+
+                // 2. Registrar éxito en push_log
+                await supabase.from('push_log').insert({
+                    title,
+                    endpoint_truncado: truncatedEndpoint,
+                    status_code: 201,
+                    error: null
+                });
+
             } catch (err: any) {
-                console.error(`Error sending Web Push to ${sub.endpoint}:`, err?.statusCode || err);
-                if (err?.statusCode === 404 || err?.statusCode === 410) {
+                const statusCode = err?.statusCode || 500;
+                const errorMsg = err?.message || String(err);
+                console.error(`Error sending Web Push to ${sub.endpoint}:`, statusCode, errorMsg);
+
+                // 1. Registrar fallo en push_log
+                await supabase.from('push_log').insert({
+                    title,
+                    endpoint_truncado: truncatedEndpoint,
+                    status_code: statusCode,
+                    error: errorMsg
+                });
+
+                // 2. Si es 404 o 410 (suscriptores muertos), limpiar de Supabase
+                if (statusCode === 404 || statusCode === 410) {
                     await supabase
                         .from('push_subscriptions')
                         .delete()
@@ -1684,95 +1735,37 @@ async function sendWebPushToAll(title: string, body: string, url: string = '/osr
     }
 }
 
-// Cron handler function to check pending timers & send notifications even when tab/browser is closed
-async function checkAndProcessOsrsTimers() {
-    try {
-        // Query osrs_timers table for pending unnotified timers
-        const { data: records, error } = await supabase
-            .from('osrs_timers')
-            .select('*');
-
-        if (error || !records || records.length === 0) return;
-
-        const now = Date.now();
-        const REMINDER_INTERVAL_MS = 45 * 60 * 1000; // 45 mins
-
-        for (const record of records) {
-            const isBird = record.type === 'bird_run';
-            const typeKey = isBird ? 'bird' : 'herb';
-            const endsAtMs = new Date(record.ends_at).getTime();
-
-            if (!record.notified && now >= endsAtMs) {
-                // ATOMIC UPDATE: Only update if notified is STILL false
-                const { data: updated } = await supabase
-                    .from('osrs_timers')
-                    .update({ notified: true })
-                    .eq('id', record.id)
-                    .eq('notified', false)
-                    .select();
-
-                if (updated && updated.length > 0) {
-                    const title = isBird ? '🐥 ¡Bird Houses Listos!' : '🌿 ¡Herbs Listas!';
-                    const message = isBird
-                        ? "🐥 ya esta listo tus bird houses"
-                        : "🌿 tus herbs ya estan listas para recolectar";
-                    
-                    // Send Native Web Push PWA notification
-                    await sendWebPushToAll(title, message, '/osrs');
-
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-            } else if (record.notified) {
-                // Check for 45-minute inactivity reminders
-                const lastCheck = record.created_at ? new Date(record.created_at).getTime() : endsAtMs;
-                const timeSinceNotified = now - Math.max(endsAtMs, lastCheck);
-                
-                if (timeSinceNotified >= REMINDER_INTERVAL_MS) {
-                    const reminderTitle = '⚠️ Recordatorio OSRS';
-                    const reminderMessage = isBird
-                        ? "⚠️ Recordatorio: ¡Aún no has hecho tu bird run!"
-                        : "⚠️ Recordatorio: ¡Aún no has recolectado tus herbs!";
-                    
-                    await sendWebPushToAll(reminderTitle, reminderMessage, '/osrs');
-
-                    // Update created_at to timestamp of this reminder
-                    await supabase
-                        .from('osrs_timers')
-                        .update({ created_at: new Date().toISOString() })
-                        .eq('id', record.id);
-
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-            }
-        }
-
-        // Clean up any legacy document_info records if present
-        await supabase
-            .from('document_info')
-            .delete()
-            .in('access_code', ['OSRS_BIRD', 'OSRS_HERB']);
-    } catch (err) {
-        console.error('Error in checkAndProcessOsrsTimers:', err);
-    }
-}
-
-// Cron endpoint (Called automatically by Vercel Cron or external cron ping)
-router.get('/osrs/cron', async (req, res) => {
-    await checkAndProcessOsrsTimers();
-    res.json({ success: true, timestamp: Date.now() });
+// Endpoint de Cron en Express desactivado (La fuente de verdad ahora es pg_cron en Postgres)
+router.get('/osrs/cron', (req, res) => {
+    res.json({ success: true, message: 'Cron manejado exclusivamente por pg_cron en Postgres' });
 });
 
-router.post('/osrs/cron', async (req, res) => {
-    await checkAndProcessOsrsTimers();
-    res.json({ success: true, timestamp: Date.now() });
+router.post('/osrs/cron', (req, res) => {
+    res.json({ success: true, message: 'Cron manejado exclusivamente por pg_cron en Postgres' });
 });
 
-// Standalone Web Push trigger endpoint
+// Standalone Web Push trigger endpoint llamado por pg_cron via net.http_post
 router.post('/osrs/send-push', async (req, res) => {
+    if (!VAPID_PRIVATE_KEY) {
+        return res.status(500).json({
+            success: false,
+            error: 'VAPID_PRIVATE_KEY no está configurada en las variables de entorno del servidor Vercel'
+        });
+    }
+
     const { title, body, url } = req.body;
     const msgTitle = title || '🗡️ OSRS Timers';
     const msgBody = body || '¡Notificación de prueba Web Push en tu dispositivo!';
     const count = await sendWebPushToAll(msgTitle, msgBody, url || '/osrs');
+    
+    if (count === 0) {
+        return res.status(500).json({
+            success: false,
+            error: 'no hay suscripciones activas o fallaron todos los envíos',
+            sentCount: 0
+        });
+    }
+
     res.json({ success: true, sentCount: count });
 });
 

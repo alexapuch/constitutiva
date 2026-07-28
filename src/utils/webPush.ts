@@ -2,6 +2,17 @@ import { supabase } from './supabaseClient';
 
 export const PUBLIC_VAPID_KEY = 'BPF8tXi5xHpYWNpZEBshlY25tgNwaBM1dMZjQ9PqhuROqd2yG1T_ovcNTjOcft_mKh3YwfVBRhBkwPdI91v9K4o';
 
+export function getOrCreateDeviceId(): string {
+  let deviceId = localStorage.getItem('web_push_device_id');
+  if (!deviceId) {
+    deviceId = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : 'dev_' + Math.random().toString(36).substring(2) + Date.now();
+    localStorage.setItem('web_push_device_id', deviceId);
+  }
+  return deviceId;
+}
+
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -66,16 +77,21 @@ export async function subscribeUserToPush(): Promise<{ success: boolean; error?:
       return { success: false, error: 'No se pudieron extraer las claves VAPID de la suscripción.' };
     }
 
-    // Upsert into Supabase push_subscriptions table
+    const deviceId = getOrCreateDeviceId();
+    const nowIso = new Date().toISOString();
+
+    // Upsert into Supabase push_subscriptions table deduplicated by device_id
     const { error: dbError } = await supabase.from('push_subscriptions').upsert(
       {
+        device_id: deviceId,
         endpoint,
         p256dh,
         auth,
         user_agent: navigator.userAgent,
-        created_at: new Date().toISOString()
+        updated_at: nowIso,
+        created_at: nowIso
       },
-      { onConflict: 'endpoint' }
+      { onConflict: 'device_id' }
     );
 
     if (dbError) {
@@ -89,3 +105,78 @@ export async function subscribeUserToPush(): Promise<{ success: boolean; error?:
     return { success: false, error: e.message || 'Error al configurar suscripción Push' };
   }
 }
+
+/**
+ * Verificación y auto-re-suscripción transparente:
+ * 1. Si el permiso está concedido y getSubscription() es null -> auto-re-suscribe en silencio.
+ * 2. Si existe la suscripción local -> comprueba si está guardada en Supabase; si falta, la resincroniza.
+ */
+export async function ensurePushSubscriptionSync(): Promise<boolean> {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+  if (typeof Notification === 'undefined') return false;
+
+  // Si no hay permiso concedido, el usuario requiere interacción manual
+  if (Notification.permission !== 'granted') return false;
+
+  try {
+    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    await navigator.serviceWorker.ready;
+
+    let sub = await registration.pushManager.getSubscription();
+
+    // Caso A: El token expiró o iOS lo borró (getSubscription() == null) PERO permiso sigue concedido
+    if (!sub) {
+      console.log('🔄 Re-suscribiendo automáticamente en silencio (Permiso previamente concedido)...');
+      const res = await subscribeUserToPush();
+      return res.success;
+    }
+
+    // Caso B: Existe suscripción local -> verificar presencia en Supabase
+    const subJson = sub.toJSON();
+    const endpoint = subJson.endpoint;
+    const p256dh = subJson.keys?.p256dh;
+    const auth = subJson.keys?.auth;
+
+    if (!endpoint || !p256dh || !auth) {
+      const res = await subscribeUserToPush();
+      return res.success;
+    }
+
+    const deviceId = getOrCreateDeviceId();
+
+    // Verificar si esta suscripción o device_id ya existe en Supabase
+    const { data, error } = await supabase
+      .from('push_subscriptions')
+      .select('endpoint')
+      .eq('device_id', deviceId)
+      .maybeSingle();
+
+    // Si fue eliminada de Supabase (ej. tras error 410) o el endpoint cambió -> hacer upsert
+    if (error || !data || data.endpoint !== endpoint) {
+      console.log('🔄 Sincronizando suscripción Push existente con Supabase...');
+      const nowIso = new Date().toISOString();
+      const { error: dbError } = await supabase.from('push_subscriptions').upsert(
+        {
+          device_id: deviceId,
+          endpoint,
+          p256dh,
+          auth,
+          user_agent: navigator.userAgent,
+          updated_at: nowIso
+        },
+        { onConflict: 'device_id' }
+      );
+
+      if (dbError) {
+        console.error('Error al sincronizar suscripción en Supabase:', dbError);
+        return false;
+      }
+    }
+
+    return true;
+  } catch (e) {
+    console.error('Error en ensurePushSubscriptionSync:', e);
+    return false;
+  }
+}
+

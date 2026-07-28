@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Play, RotateCcw, Clock, BellRing } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { supabase } from '../utils/supabaseClient';
-import { subscribeUserToPush, checkPushSubscriptionStatus } from '../utils/webPush';
+import { subscribeUserToPush, ensurePushSubscriptionSync } from '../utils/webPush';
 
 const BIRD_DURATION_SEC = 50 * 60; // 50 minutes
 const HERB_DURATION_SEC = 80 * 60; // 80 minutes
@@ -54,7 +54,7 @@ export default function OSRS() {
   // Audio Context ref to avoid recreating AudioContext repeatedly
   const audioCtxRef = useRef<AudioContext | null>(null);
 
-  // Sync status & check Push Subscription on mount
+  // Sync status & auto-resubscribe Push Subscription on mount
   useEffect(() => {
     fetch('/api/osrs/status')
       .then(res => res.json())
@@ -70,7 +70,8 @@ export default function OSRS() {
       })
       .catch(() => { });
 
-    checkPushSubscriptionStatus().then(setIsPushSubscribed);
+    // Auto-resubscribe in background if permission is granted, or sync with Supabase
+    ensurePushSubscriptionSync().then(setIsPushSubscribed);
   }, []);
 
   // Single tick interval to drive all countdowns efficiently
@@ -81,7 +82,7 @@ export default function OSRS() {
     return () => clearInterval(interval);
   }, []);
 
-  // Notification trigger helper (Audio Chime when open + Trigger Server Cron)
+  // Notification trigger helper (Audio Chime when open)
   const triggerNotification = async (type: 'bird' | 'herb') => {
     try {
       if (!audioCtxRef.current) {
@@ -104,12 +105,6 @@ export default function OSRS() {
       osc.stop(ctx.currentTime + 0.6);
     } catch (e) {
       /* Audio context blocked */
-    }
-
-    try {
-      await fetch('/api/osrs/cron', { method: 'POST' });
-    } catch (e) {
-      /* ignore */
     }
   };
 
