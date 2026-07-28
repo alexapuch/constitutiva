@@ -1782,26 +1782,21 @@ router.post('/osrs/start', async (req, res) => {
     const endsAt = new Date(targetTime).toISOString();
 
     try {
-        // Delete all old records for this timer type to prevent duplicates/stale rows
+        // Atomic upsert by type to strictly prevent race-condition duplicate rows
         await supabase
             .from('osrs_timers')
-            .delete()
-            .eq('type', dbType);
+            .upsert({
+                type: dbType,
+                ends_at: endsAt,
+                notified: false,
+                last_reminder_at: null
+            }, { onConflict: 'type' });
 
-        // Delete legacy document_info records
+        // Delete legacy document_info records if present
         await supabase
             .from('document_info')
             .delete()
             .eq('access_code', `OSRS_${type.toUpperCase()}`);
-
-        // Insert new clean record in osrs_timers
-        await supabase
-            .from('osrs_timers')
-            .insert({
-                type: dbType,
-                ends_at: endsAt,
-                notified: false
-            });
     } catch (e) {
         console.error('Error saving OSRS timer to Supabase:', e);
     }
