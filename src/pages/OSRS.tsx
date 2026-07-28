@@ -47,8 +47,10 @@ export default function OSRS() {
   // Dev mode for quick testing
   const [devMode, setDevMode] = useState(false);
 
-  // Web Push Subscription state
-  const [isPushSubscribed, setIsPushSubscribed] = useState(false);
+  // Web Push Subscription state (initialized synchronously to avoid layout flicker)
+  const [isPushSubscribed, setIsPushSubscribed] = useState<boolean>(() => {
+    return typeof Notification !== 'undefined' && Notification.permission === 'granted';
+  });
   const [subscribingPush, setSubscribingPush] = useState(false);
 
   // Audio Context ref to avoid recreating AudioContext repeatedly
