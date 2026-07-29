@@ -10,20 +10,6 @@ export default function Home() {
   const [code, setCode] = useState('');
   const [showQrModal, setShowQrModal] = useState(false);
 
-  // Auto-redirect authenticated admin straight to /admin
-  useEffect(() => {
-    const isMasterAuth = localStorage.getItem('adminAuth') === 'true';
-    if (isMasterAuth) {
-      navigate('/admin', { replace: true });
-      return;
-    }
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.email === 'alexapuch@hotmail.com') {
-        navigate('/admin', { replace: true });
-      }
-    });
-  }, [navigate]);
-
   const currentUrl = window.location.href;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(currentUrl)}`;
 
