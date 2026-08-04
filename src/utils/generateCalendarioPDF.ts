@@ -90,7 +90,9 @@ export const generateCalendarioPDF = async (
       textColor: [0, 0, 0],
       fontStyle: 'bold',
       lineColor: [0, 0, 0],
-      lineWidth: 0.3
+      lineWidth: 0.3,
+      minCellHeight: 6.8,
+      valign: 'middle',
     },
     columnStyles: {
       0: { cellWidth: 90, halign: 'left', fillColor: [240, 248, 255] }, // Activity col
@@ -100,7 +102,7 @@ export const generateCalendarioPDF = async (
     styles: {
       lineColor: [0, 0, 0],
       lineWidth: 0.3,
-      cellPadding: 1.2,
+      cellPadding: 2,
     },
     didParseCell: function (data) {
       if (data.section === 'head' && data.column.index > 0 && data.column.index <= 12) {

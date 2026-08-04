@@ -151,7 +151,7 @@ export default function ManualCalendarioModal({
               <tbody className="divide-y divide-slate-300 dark:divide-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">
                 {ACTIVITIES_LIST.map((activity, rIdx) => (
                   <tr key={rIdx} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                    <td className="px-3 py-2 font-semibold border-r border-slate-300 dark:border-slate-700 whitespace-normal min-w-[250px] leading-tight text-[11px]">
+                    <td className="px-3 py-3 font-semibold border-r border-slate-300 dark:border-slate-700 whitespace-normal min-w-[250px] leading-tight text-[11px]">
                       {activity}
                     </td>
                     {MONTHS_LIST.map((_, cIdx) => (
@@ -164,13 +164,13 @@ export default function ManualCalendarioModal({
                             : 'bg-transparent hover:bg-slate-100 dark:hover:bg-slate-700'
                         }`}
                       >
-                        <div className="w-full h-8 flex items-center justify-center">
+                        <div className="w-full h-11 flex items-center justify-center">
                           {/* Invisible checkmark to give body if we wanted, but color is enough */}
                         </div>
                       </td>
                     ))}
                     <td className="border-r border-slate-300 dark:border-slate-700"></td>
-                    <td className="px-2 py-2 text-center font-bold text-[10px] uppercase">
+                    <td className="px-2 py-3 text-center font-bold text-[10px] uppercase">
                       {(() => {
                         if (rIdx === 2) return "EVIDENCIA FOTOGRÁFICA";
                         if (rIdx >= 12 && rIdx <= 14) return "CONSTANCIAS";
