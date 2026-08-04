@@ -47,13 +47,13 @@ export const generateCalendarioPDF = async (
   
   // Encabezado
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.setTextColor(11, 44, 94); // Dark blue
-  doc.text(`CALENDARIO DE ACTIVIDADES DE PROTECCIÓN CIVIL - ${data.year}`, pageWidth / 2, 15, { align: 'center' });
+  doc.text(`CALENDARIO DE ACTIVIDADES DE PROTECCIÓN CIVIL - ${data.year}`, pageWidth / 2, 11, { align: 'center' });
   
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setTextColor(100, 100, 100);
-  doc.text(data.commercialName, pageWidth / 2, 22, { align: 'center' });
+  doc.text(data.commercialName, pageWidth / 2, 17, { align: 'center' });
 
   // Tabla
   const head = [['ACTIVIDAD', ...MONTHS_LIST, 'RESPONSABLE', 'EVIDENCIA\nDOCUMENTAL']];
@@ -71,38 +71,39 @@ export const generateCalendarioPDF = async (
   });
 
   autoTable(doc, {
-    startY: 28,
+    startY: 21,
     head: head,
     body: body,
     theme: 'grid',
+    pageBreak: 'avoid',
     headStyles: {
       fillColor: [11, 44, 94], // Dark blue header
       textColor: 255,
       fontStyle: 'bold',
       halign: 'center',
       valign: 'bottom',
-      minCellHeight: 25,
+      minCellHeight: 20,
       fontSize: 7,
       cellPadding: 1,
     },
     bodyStyles: {
-      fontSize: 8,
+      fontSize: 7.5,
       textColor: [0, 0, 0],
       fontStyle: 'bold',
       lineColor: [0, 0, 0],
       lineWidth: 0.3,
-      minCellHeight: 6.8,
+      minCellHeight: 5.8,
       valign: 'middle',
     },
     columnStyles: {
-      0: { cellWidth: 90, halign: 'left', fillColor: [240, 248, 255] }, // Activity col
-      13: { cellWidth: 28, halign: 'center' }, // Responsable
+      0: { cellWidth: 95, halign: 'left', fillColor: [240, 248, 255] }, // Activity col
+      13: { cellWidth: 26, halign: 'center' }, // Responsable
       14: { cellWidth: 25, halign: 'center' } // Evidencia
     },
     styles: {
       lineColor: [0, 0, 0],
       lineWidth: 0.3,
-      cellPadding: 2,
+      cellPadding: 1.2,
     },
     didParseCell: function (data) {
       if (data.section === 'head' && data.column.index > 0 && data.column.index <= 12) {
