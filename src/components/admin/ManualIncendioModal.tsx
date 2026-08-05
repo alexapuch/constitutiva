@@ -163,6 +163,15 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
       return 'lavanderia';
     }
     
+    // Taller de Mueblería / Fabricación y Venta de Muebles
+    if (
+      norm.includes('muebler') || norm.includes('mueble') || norm.includes('carpinteri') || 
+      norm.includes('fabricacion de mueble') || norm.includes('fabricación de mueble') ||
+      norm.includes('taller de mueble') || norm.includes('venta de mueble')
+    ) {
+      return 'taller_muebleria';
+    }
+
     // Tienda de Pinturas
     if (norm.includes('pintura') || norm.includes('barniz') || norm.includes('barnices') || norm.includes('distribuidora de pinturas')) {
       return 'tienda_pinturas';
@@ -342,6 +351,13 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
         liqInf = m2 <= 50 ? 3 : m2 <= 120 ? 10 : 20;
         solidos = Math.round(m2 * 6);
         flotante = Math.ceil(m2 / 15);
+        break;
+      case 'taller_muebleria':
+        gases = 0;
+        liqInf = m2 <= 50 ? 40 : m2 <= 120 ? 100 : 250;
+        liqComb = m2 <= 50 ? 20 : m2 <= 120 ? 50 : 120;
+        solidos = Math.round(m2 * 35);
+        flotante = Math.ceil(m2 / 12);
         break;
       case 'taller_mecanico':
         gases = m2 <= 50 ? 30 : 50;
@@ -755,6 +771,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-red-600 outline-none font-bold text-xs uppercase"
               >
                 <option value="comercio">Comercio General</option>
+                <option value="taller_muebleria">Taller de Mueblería / Fabricación y Venta de Muebles</option>
                 <option value="venta_productos_general">Venta de Productos en General</option>
                 <option value="centros_recreativos">Centros Recreativos (Juegos Infantiles, de Diversión, Club)</option>
                 <option value="oficina">Oficina Administrativa / Corporativo</option>
