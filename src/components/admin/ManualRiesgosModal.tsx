@@ -1369,19 +1369,19 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 border-t pt-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Niveles / Pisos</label>
-                    <input type="number" min="1" value={niveles} onChange={e => setNiveles(e.target.value)} className="w-full border rounded p-2 text-sm bg-white dark:bg-gray-750 dark:text-white" />
+                    <input type="number" min="1" value={niveles} onFocus={e => e.target.select()} onChange={e => setNiveles(e.target.value)} className="w-full border rounded p-2 text-sm bg-white dark:bg-gray-750 dark:text-white" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">M² Construcción</label>
-                    <input type="number" value={m2Construccion} onChange={e => setM2Construccion(e.target.value)} className="w-full border rounded p-2 text-sm" />
+                    <input type="number" value={m2Construccion} onFocus={e => e.target.select()} onChange={e => setM2Construccion(e.target.value)} className="w-full border rounded p-2 text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Población Fija</label>
-                    <input type="number" value={poblacionFija} onChange={e => setPoblacionFija(e.target.value)} className="w-full border rounded p-2 text-sm" />
+                    <input type="number" value={poblacionFija} onFocus={e => e.target.select()} onChange={e => setPoblacionFija(e.target.value)} className="w-full border rounded p-2 text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Población Flotante</label>
-                    <input type="number" value={poblacionFlotante} onChange={e => setPoblacionFlotante(e.target.value)} className="w-full border rounded p-2 text-sm" />
+                    <input type="number" value={poblacionFlotante} onFocus={e => e.target.select()} onChange={e => setPoblacionFlotante(e.target.value)} className="w-full border rounded p-2 text-sm" />
                   </div>
                   <div className="min-w-0">
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Antigüedad (Años)</label>
@@ -1638,6 +1638,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
                             <input
                               type="number"
                               value={item.cantidad}
+                              onFocus={e => e.target.select()}
                               disabled={!item.siNo}
                               onChange={e => setCaer({ ...caer, [key]: { ...item, cantidad: parseInt(e.target.value) || 0 } })}
                               className="w-12 border rounded px-1.5 text-center"
@@ -1687,6 +1688,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
                             <input
                               type="number"
                               value={item.cantidad}
+                              onFocus={e => e.target.select()}
                               disabled={!item.siNo}
                               onChange={e => setDeslizarse({ ...deslizarse, [key]: { ...item, cantidad: parseInt(e.target.value) || 0 } })}
                               className="w-12 border rounded px-1.5 text-center"
@@ -1736,6 +1738,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
                             <input
                               type="number"
                               value={item.cantidad}
+                              onFocus={e => e.target.select()}
                               disabled={!item.siNo}
                               onChange={e => setVolcar({ ...volcar, [key]: { ...item, cantidad: parseInt(e.target.value) || 0 } })}
                               className="w-12 border rounded px-1.5 text-center"

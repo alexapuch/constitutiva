@@ -809,6 +809,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                 type="number"
                 min="1"
                 value={numNiveles}
+                onFocus={e => e.target.select()}
                 onChange={e => handleNivelesChange(e.target.value)}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-red-600 outline-none font-bold"
               />
@@ -821,6 +822,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
               <input
                 type="number"
                 value={m2Construccion}
+                onFocus={e => e.target.select()}
                 onChange={e => {
                   const val = e.target.value;
                   setM2Construccion(val);
@@ -948,27 +950,27 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                   <div className="grid grid-cols-3 items-center">
                     <span className="text-sm font-medium">Sótano</span>
                     <input type="checkbox" checked={sotanoSi} onChange={e => { setSotanoSi(e.target.checked); if (e.target.checked && !sotanoM2) setSotanoM2('50'); }} className="mx-auto w-4 h-4 rounded text-red-600 focus:ring-red-600" />
-                    <input type="number" disabled={!sotanoSi} value={sotanoM2} onChange={e => setSotanoM2(e.target.value)} className="w-full border rounded px-2 py-1 text-right text-xs" placeholder="0" />
+                    <input type="number" disabled={!sotanoSi} value={sotanoM2} onFocus={e => e.target.select()} onChange={e => setSotanoM2(e.target.value)} className="w-full border rounded px-2 py-1 text-right text-xs" placeholder="0" />
                   </div>
                   <div className="grid grid-cols-3 items-center">
                     <span className="text-sm font-medium">1er. Nivel</span>
                     <input type="checkbox" checked={nivel1Si} onChange={e => { setNivel1Si(e.target.checked); if (e.target.checked && !nivel1M2) setNivel1M2(m2Construccion); }} className="mx-auto w-4 h-4 rounded text-red-600 focus:ring-red-600" />
-                    <input type="number" disabled={!nivel1Si} value={nivel1M2} onChange={e => setNivel1M2(e.target.value)} className="w-full border rounded px-2 py-1 text-right text-xs" placeholder="0" />
+                    <input type="number" disabled={!nivel1Si} value={nivel1M2} onFocus={e => e.target.select()} onChange={e => setNivel1M2(e.target.value)} className="w-full border rounded px-2 py-1 text-right text-xs" placeholder="0" />
                   </div>
                   <div className="grid grid-cols-3 items-center">
                     <span className="text-sm font-medium">2do. Nivel</span>
                     <input type="checkbox" checked={nivel2Si} onChange={e => { setNivel2Si(e.target.checked); if (e.target.checked && !nivel2M2) setNivel2M2(m2Construccion); }} className="mx-auto w-4 h-4 rounded text-red-600 focus:ring-red-600" />
-                    <input type="number" disabled={!nivel2Si} value={nivel2M2} onChange={e => setNivel2M2(e.target.value)} className="w-full border rounded px-2 py-1 text-right text-xs" placeholder="0" />
+                    <input type="number" disabled={!nivel2Si} value={nivel2M2} onFocus={e => e.target.select()} onChange={e => setNivel2M2(e.target.value)} className="w-full border rounded px-2 py-1 text-right text-xs" placeholder="0" />
                   </div>
                   <div className="grid grid-cols-3 items-center">
                     <span className="text-sm font-medium">3er. Nivel</span>
                     <input type="checkbox" checked={nivel3Si} onChange={e => { setNivel3Si(e.target.checked); if (e.target.checked && !nivel3M2) setNivel3M2(m2Construccion); }} className="mx-auto w-4 h-4 rounded text-red-600 focus:ring-red-600" />
-                    <input type="number" disabled={!nivel3Si} value={nivel3M2} onChange={e => setNivel3M2(e.target.value)} className="w-full border rounded px-2 py-1 text-right text-xs" placeholder="0" />
+                    <input type="number" disabled={!nivel3Si} value={nivel3M2} onFocus={e => e.target.select()} onChange={e => setNivel3M2(e.target.value)} className="w-full border rounded px-2 py-1 text-right text-xs" placeholder="0" />
                   </div>
                   <div className="grid grid-cols-3 items-center">
                     <span className="text-sm font-medium">Azotea</span>
                     <input type="checkbox" checked={azoteaSi} onChange={e => { setAzoteaSi(e.target.checked); if (e.target.checked && !azoteaM2) setAzoteaM2('50'); }} className="mx-auto w-4 h-4 rounded text-red-600 focus:ring-red-600" />
-                    <input type="number" disabled={!azoteaSi} value={azoteaM2} onChange={e => setAzoteaM2(e.target.value)} className="w-full border rounded px-2 py-1 text-right text-xs" placeholder="0" />
+                    <input type="number" disabled={!azoteaSi} value={azoteaM2} onFocus={e => e.target.select()} onChange={e => setAzoteaM2(e.target.value)} className="w-full border rounded px-2 py-1 text-right text-xs" placeholder="0" />
                   </div>
                 </div>
 
@@ -979,11 +981,11 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-gray-500 uppercase">Pob. Fija</label>
-                    <input type="number" value={poblacionFija} onChange={e => setPoblacionFija(e.target.value)} className="w-full border rounded px-2.5 py-1 text-xs font-semibold" />
+                    <input type="number" value={poblacionFija} onFocus={e => e.target.select()} onChange={e => setPoblacionFija(e.target.value)} className="w-full border rounded px-2.5 py-1 text-xs font-semibold" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-gray-500 uppercase">Pob. Flotante</label>
-                    <input type="number" value={poblacionFlotante} onChange={e => setPoblacionFlotante(e.target.value)} className="w-full border rounded px-2.5 py-1 text-xs font-semibold" />
+                    <input type="number" value={poblacionFlotante} onFocus={e => e.target.select()} onChange={e => setPoblacionFlotante(e.target.value)} className="w-full border rounded px-2.5 py-1 text-xs font-semibold" />
                   </div>
                 </div>
               </div>
@@ -995,23 +997,23 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Gases Inflamables (L)</label>
-                    <input type="number" value={gasesInflamables} onChange={e => setGasesInflamables(e.target.value)} className="w-full border rounded px-3 py-1.5 text-sm" />
+                    <input type="number" value={gasesInflamables} onFocus={e => e.target.select()} onChange={e => setGasesInflamables(e.target.value)} className="w-full border rounded px-3 py-1.5 text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Líquidos Inflamables (L)</label>
-                    <input type="number" value={liquidosInflamables} onChange={e => setLiquidosInflamables(e.target.value)} className="w-full border rounded px-3 py-1.5 text-sm" />
+                    <input type="number" value={liquidosInflamables} onFocus={e => e.target.select()} onChange={e => setLiquidosInflamables(e.target.value)} className="w-full border rounded px-3 py-1.5 text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Líquidos Combustibles (L)</label>
-                    <input type="number" value={liquidosCombustibles} onChange={e => setLiquidosCombustibles(e.target.value)} className="w-full border rounded px-3 py-1.5 text-sm" />
+                    <input type="number" value={liquidosCombustibles} onFocus={e => e.target.select()} onChange={e => setLiquidosCombustibles(e.target.value)} className="w-full border rounded px-3 py-1.5 text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Sólidos Combustibles (kg)</label>
-                    <input type="number" value={solidosCombustibles} onChange={e => setSolidosCombustibles(e.target.value)} className="w-full border rounded px-3 py-1.5 text-sm" />
+                    <input type="number" value={solidosCombustibles} onFocus={e => e.target.select()} onChange={e => setSolidosCombustibles(e.target.value)} className="w-full border rounded px-3 py-1.5 text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Pirofóricos / Explosivos (kg)</label>
-                    <input type="number" value={materialesPiroforicos} onChange={e => setMaterialesPiroforicos(e.target.value)} className="w-full border rounded px-3 py-1.5 text-sm" />
+                    <input type="number" value={materialesPiroforicos} onFocus={e => e.target.select()} onChange={e => setMaterialesPiroforicos(e.target.value)} className="w-full border rounded px-3 py-1.5 text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha Determinación</label>
