@@ -552,6 +552,19 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y = drawInstalacionRow('Cuenta con Dictamen Técnico', data.instalaciones.hidrosanitaria.dictamenTecnico, '—', 'VIGENTE', y);
     y += 4;
 
+    const drawWrappedRecommendation = (title: string, text: string, currentY: number): number => {
+      if (!text || !text.trim()) return currentY;
+      setNormal(7);
+      doc.setTextColor(40, 40, 40);
+      const fullText = `${title.toUpperCase()}: ${text.trim().toUpperCase()}`;
+      const lines: string[] = doc.splitTextToSize(fullText, w);
+      lines.forEach((line: string, idx: number) => {
+        doc.text(line, margin, currentY + 3.5 + (idx * 3.5));
+      });
+      doc.setTextColor(0, 0, 0);
+      return currentY + (lines.length * 3.5) + 2;
+    };
+
     // Gas
     y = drawInstalacionesHeader('INSTALACIÓN DE GAS', y);
     y = drawInstalacionRow('Tanque Estacionario', data.instalaciones.gas.tanqueEstacionario, data.instalaciones.gas.capacidad, data.instalaciones.gas.estado, y);
@@ -572,11 +585,9 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
       y += 13;
     }
     if (data.instalaciones.gas.recomendaciones) {
-      setNormal(7.5);
-      doc.text(`Recomendaciones Gas: ${data.instalaciones.gas.recomendaciones.toUpperCase()}`, margin, y + 3.5);
-      y += 5;
+      y = drawWrappedRecommendation('Recomendaciones Gas', data.instalaciones.gas.recomendaciones, y);
     }
-    y += 4;
+    y += 2;
 
     const electricaHeight = 35 + (data.instalaciones.electrica.dictamenTecnico ? 15 : 0) + (data.instalaciones.electrica.recomendaciones ? 8 : 0);
     if (y + electricaHeight > 265) {
@@ -607,9 +618,7 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
       y += 13;
     }
     if (data.instalaciones.electrica.recomendaciones) {
-      setNormal(7.5);
-      doc.text(`Recomendaciones Electricas: ${data.instalaciones.electrica.recomendaciones.toUpperCase()}`, margin, y + 3.5);
-      y += 5;
+      y = drawWrappedRecommendation('Recomendaciones Eléctricas', data.instalaciones.electrica.recomendaciones, y);
     }
     y += 4;
 
@@ -624,7 +633,10 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y = drawInstalacionRow('Aires Acondicionados', data.instalaciones.especiales.ac, '—', 'BUENO', y);
     y = drawInstalacionRow('Extractores / Ventiladores', data.instalaciones.especiales.extractores || data.instalaciones.especiales.ventiladores, '—', 'BUENO', y);
     y = drawInstalacionRow('Alarma General / Cerca Eléctrica', data.instalaciones.especiales.alarmaGeneral || data.instalaciones.especiales.cercaElectrica, '—', 'BUENO', y);
-    y += 6;
+    if (data.instalaciones.especiales?.recomendaciones) {
+      y = drawWrappedRecommendation('Recomendaciones Instalaciones Especiales', data.instalaciones.especiales.recomendaciones, y);
+    }
+    y += 4;
 
     // 2.5 RIESGOS POR ELEMENTOS NO ESTRUCTURALES
     if (y + 85 > 265) {
@@ -689,11 +701,9 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y = drawNoEstructuralRow('Líquidos Corrosivos', data.caer.liquidosCorrosivos, y);
     y = drawNoEstructuralRow('Otros', data.caer.otros, y);
     if (data.caer.recomendaciones) {
-      setNormal(7.5);
-      doc.text(`Recomendaciones Caer: ${data.caer.recomendaciones.toUpperCase()}`, margin, y + 3.5);
-      y += 5;
+      y = drawWrappedRecommendation('Recomendaciones Objetos a Caer', data.caer.recomendaciones, y);
     }
-    y += 4;
+    y += 2;
     if (y + 35 > 265) {
       doc.addPage();
       y = 15;
@@ -706,11 +716,9 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y = drawNoEstructuralRow('Refrigeradores', data.deslizarse.refrigeradores, y);
     y = drawNoEstructuralRow('Objetos con ruedas', data.deslizarse.ruedas, y);
     if (data.deslizarse.recomendaciones) {
-      setNormal(7.5);
-      doc.text(`Recomendaciones Deslizarse: ${data.deslizarse.recomendaciones.toUpperCase()}`, margin, y + 3.5);
-      y += 5;
+      y = drawWrappedRecommendation('Recomendaciones Objetos a Deslizarse', data.deslizarse.recomendaciones, y);
     }
-    y += 4;
+    y += 2;
     if (y + 55 > 265) {
       doc.addPage();
       y = 15;
@@ -727,9 +735,7 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y = drawNoEstructuralRow('Tanques de gas', data.volcar.tanquesGas, y);
     y = drawNoEstructuralRow('Subdivisiones', data.volcar.subdivisiones, y);
     if (data.volcar.recomendaciones) {
-      setNormal(7.5);
-      doc.text(`Recomendaciones Volcar: ${data.volcar.recomendaciones.toUpperCase()}`, margin, y + 3.5);
-      y += 5;
+      y = drawWrappedRecommendation('Recomendaciones Objetos a Volcar', data.volcar.recomendaciones, y);
     }
 
     // 2.6 ACABADOS
@@ -748,7 +754,10 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y = drawChecklistRow('Pisos con desniveles', data.acabados.pisosDesniveles, y, 140);
     y = drawChecklistRow('Pisos falsos', data.acabados.pisosFalsos, y, 140);
     y = drawChecklistRow('Losetas y azulejos', data.acabados.losetasAzulejos, y, 140);
-    y += 5;
+    if (data.acabados?.recomendaciones) {
+      y = drawWrappedRecommendation('Recomendaciones Acabados', data.acabados.recomendaciones, y);
+    }
+    y += 3;
     if (y + 80 > 265) {
       doc.addPage();
       y = 15;
@@ -810,7 +819,16 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     y = drawChecklistRow('Puertas cerradas con llave', data.otrosRiesgos.obstaculizar.puertasCerradas, y, 140);
     y = drawChecklistRow('Lavadoras', data.otrosRiesgos.obstaculizar.lavadoras, y, 140);
     y = drawChecklistRow('Equipos de bombeo', data.otrosRiesgos.obstaculizar.bombeo, y, 140);
-    y += 6;
+    if (data.otrosRiesgos.inflamar?.recomendaciones) {
+      y = drawWrappedRecommendation('Recomendaciones Inflamables/Solventes', data.otrosRiesgos.inflamar.recomendaciones, y);
+    }
+    if (data.otrosRiesgos.propiciar?.recomendaciones) {
+      y = drawWrappedRecommendation('Recomendaciones Medidas Prevención', data.otrosRiesgos.propiciar.recomendaciones, y);
+    }
+    if (data.otrosRiesgos.obstaculizar?.recomendaciones) {
+      y = drawWrappedRecommendation('Recomendaciones Rutas y Evacuación', data.otrosRiesgos.obstaculizar.recomendaciones, y);
+    }
+    y += 4;
 
     // 3. RIESGOS EXTERNOS
     if (y + 95 > 265) {
