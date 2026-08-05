@@ -737,9 +737,10 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     if (data.volcar.recomendaciones) {
       y = drawWrappedRecommendation('Recomendaciones Objetos a Volcar', data.volcar.recomendaciones, y);
     }
+    y += 6;
 
     // 2.6 ACABADOS
-    if (y + 35 > 265) {
+    if (y + 45 > 255) {
       doc.addPage();
       y = 15;
     }
@@ -757,8 +758,8 @@ export const generateRiesgosPDF = async (data: RiesgosPDFData, preview: boolean 
     if (data.acabados?.recomendaciones) {
       y = drawWrappedRecommendation('Recomendaciones Acabados', data.acabados.recomendaciones, y);
     }
-    y += 3;
-    if (y + 80 > 265) {
+    y += 5;
+    if (y + 85 > 255) {
       doc.addPage();
       y = 15;
     }
