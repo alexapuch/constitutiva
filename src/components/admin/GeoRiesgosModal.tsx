@@ -43,6 +43,7 @@ function GeoAnalyzer({ apiKey }: { apiKey: string }) {
   const [myEstablishment, setMyEstablishment] = useState('');
   const [risks, setRisks] = useState<RiskData[]>([]);
   const [error, setError] = useState('');
+  const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
 
   const placesLib = useMapsLibrary('places');
   const geometryLib = useMapsLibrary('geometry');
@@ -60,6 +61,7 @@ function GeoAnalyzer({ apiKey }: { apiKey: string }) {
     setLoading(true);
     setProgress(5);
     setError('');
+    setImageErrors({});
     
     try {
       const center = { lat: parseFloat(lat), lng: parseFloat(lng) };
@@ -69,9 +71,9 @@ function GeoAnalyzer({ apiKey }: { apiKey: string }) {
         fields: ['displayName', 'location', 'photos', 'types'],
         locationRestriction: {
           center,
-          radius: 200,
+          radius: 250,
         },
-        maxResultCount: 5,
+        maxResultCount: 20,
       });
 
       if (!places || places.length === 0) {
@@ -88,37 +90,51 @@ function GeoAnalyzer({ apiKey }: { apiKey: string }) {
         });
       }
 
-      const finalPlaces = filteredPlaces.slice(0, 4);
-
-      if (finalPlaces.length === 0) {
+      if (filteredPlaces.length === 0) {
         throw new Error('No se encontraron establecimientos circundantes después de filtrar tu negocio.');
       }
 
-      setProgress(40);
+      setProgress(30);
 
-      const placesData = await Promise.all(finalPlaces.map(async p => {
+      // Check image availability for each candidate place
+      const totalCandidates = filteredPlaces.length;
+      let processedCount = 0;
+
+      const candidatesData = await Promise.all(filteredPlaces.map(async p => {
         let distanceMeters = 0;
         if (p.location) {
           distanceMeters = geometryLib.spherical.computeDistanceBetween(center, p.location);
         }
         
-        let placePhoto = undefined;
+        let placePhoto: string | undefined = undefined;
         if (p.photos && p.photos.length > 0) {
-          placePhoto = p.photos[0].getURI({ maxWidth: 400 });
+          try {
+            placePhoto = p.photos[0].getURI({ maxWidth: 400 });
+          } catch (e) {
+            placePhoto = undefined;
+          }
         }
 
-        let photoUri = undefined;
+        let photoUri: string | undefined = undefined;
         if (p.location) {
           const plat = p.location.lat();
           const plng = p.location.lng();
           try {
-            const metaRes = await fetch(`https://maps.googleapis.com/maps/api/streetview/metadata?location=${plat},${plng}&radius=120&key=${apiKey}`);
-            const metaData = await metaRes.json();
+            // First check metadata specifically for outdoor source to match static street view image request
+            const metaResOutdoor = await fetch(`https://maps.googleapis.com/maps/api/streetview/metadata?location=${plat},${plng}&radius=120&source=outdoor&key=${apiKey}`);
+            const metaDataOutdoor = await metaResOutdoor.json();
             
-            if (metaData.status === 'OK') {
+            if (metaDataOutdoor.status === 'OK') {
               photoUri = `https://maps.googleapis.com/maps/api/streetview?size=400x400&location=${plat},${plng}&radius=120&source=outdoor&key=${apiKey}`;
             } else {
-              photoUri = placePhoto;
+              // Fallback check metadata without source outdoor restriction
+              const metaResDefault = await fetch(`https://maps.googleapis.com/maps/api/streetview/metadata?location=${plat},${plng}&radius=120&key=${apiKey}`);
+              const metaDataDefault = await metaResDefault.json();
+              if (metaDataDefault.status === 'OK') {
+                photoUri = `https://maps.googleapis.com/maps/api/streetview?size=400x400&location=${plat},${plng}&radius=120&key=${apiKey}`;
+              } else {
+                photoUri = placePhoto;
+              }
             }
           } catch (e) {
             photoUri = placePhoto;
@@ -127,17 +143,40 @@ function GeoAnalyzer({ apiKey }: { apiKey: string }) {
           photoUri = placePhoto;
         }
 
-        // Increment progress for each checked place
-        const stepPct = Math.round(30 / finalPlaces.length);
-        setProgress(prev => Math.min(70, prev + stepPct));
+        processedCount++;
+        const pct = 30 + Math.round((processedCount / totalCandidates) * 40);
+        setProgress(prev => Math.max(prev, Math.min(70, pct)));
 
         return {
           name: p.displayName || 'Establecimiento desconocido',
           distance: `${Math.round(distanceMeters)} MTS`,
           types: p.types || [],
-          photoUri
+          photoUri: photoUri || null,
+          hasPhoto: Boolean(photoUri)
         };
       }));
+
+      // Filter and prioritize places that have valid photos available
+      const placesWithPhotos = candidatesData.filter(c => c.hasPhoto);
+      const placesWithoutPhotos = candidatesData.filter(c => !c.hasPhoto);
+
+      let selectedPlaces = placesWithPhotos.slice(0, 4);
+      if (selectedPlaces.length < 4) {
+        const remainingNeeded = 4 - selectedPlaces.length;
+        selectedPlaces = [...selectedPlaces, ...placesWithoutPhotos.slice(0, remainingNeeded)];
+      }
+
+      if (selectedPlaces.length === 0) {
+        throw new Error('No se encontraron establecimientos para analizar.');
+      }
+
+      const placesData = selectedPlaces.map(p => ({
+        name: p.name,
+        distance: p.distance,
+        types: p.types,
+        photoUri: p.photoUri || undefined
+      }));
+
 
       setProgress(75);
 
@@ -271,18 +310,19 @@ function GeoAnalyzer({ apiKey }: { apiKey: string }) {
                 {risks.map((risk, index) => (
                   <tr key={index} className="border-b border-black last:border-0">
                     <td className="p-2 text-center align-middle bg-white w-36 border-r border-black">
-                      {risk.photoUri ? (
+                      {risk.photoUri && !imageErrors[index] ? (
                         <div className="w-28 h-28 mx-auto overflow-hidden border border-gray-300 bg-gray-50 flex items-center justify-center rounded">
                           <img
                             src={risk.photoUri}
                             alt={`Foto de ${risk.name}`}
                             className="w-full h-full object-cover"
                             loading="lazy"
+                            onError={() => setImageErrors(prev => ({ ...prev, [index]: true }))}
                           />
                         </div>
                       ) : (
-                        <div className="w-28 h-28 mx-auto bg-gray-200 flex items-center justify-center border border-gray-300 text-gray-500 italic text-xs rounded">
-                          Sin foto
+                        <div className="w-28 h-28 mx-auto bg-gray-200 flex items-center justify-center border border-gray-300 text-gray-500 italic text-xs rounded text-center p-1">
+                          Sin foto disponible
                         </div>
                       )}
                       <p className="text-[11px] font-bold mt-1 text-[#7b1f1c] leading-tight max-w-[130px] mx-auto">{risk.name}</p>
