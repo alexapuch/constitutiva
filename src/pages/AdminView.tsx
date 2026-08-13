@@ -1512,7 +1512,7 @@ export default function AdminView() {
         isOpen={showRiesgosModal}
         onClose={() => setShowRiesgosModal(false)}
         documents={documents}
-        onPreview={(url, name) => { setPreviewUrl(url); setPreviewName(name); setPreviewType('Identificación de Riesgos'); }}
+        onPreview={(url, name) => { setPreviewUrl(url); setPreviewName(name); setPreviewType('Análisis de Riesgo'); }}
       />
 
       <ManualCalendarioModal

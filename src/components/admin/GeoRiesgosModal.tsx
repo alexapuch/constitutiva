@@ -395,7 +395,7 @@ export default function GeoRiesgosModal({ isOpen, onClose }: GeoRiesgosModalProp
           <div className="flex items-center justify-between px-6 py-4 bg-blue-900 rounded-t-xl shrink-0">
             <div className="flex items-center gap-2">
               <ShieldAlert className="w-5 h-5 text-white" />
-              <span className="text-white font-bold text-lg">Analizador de GeoRiesgos</span>
+              <span className="text-white font-bold text-lg">Riesgos Circundantes</span>
             </div>
             <button onClick={onClose} className="p-1 hover:bg-blue-800 rounded-full transition-colors">
               <X className="w-5 h-5 text-white" />

@@ -823,7 +823,7 @@ export default function CroquisRiesgosModal({ isOpen, onClose }: CroquisRiesgosM
           <div className="flex items-center justify-between px-6 py-4 bg-[#0B152A] border-b-4 border-red-700 shrink-0 gap-4">
             <div className="flex items-center gap-2.5 min-w-0">
               <ShieldAlert className="w-6 h-6 text-red-500 shrink-0" />
-              <span className="text-white font-extrabold text-base sm:text-xl tracking-wide uppercase leading-tight">Croquis de Riesgos Circundantes</span>
+              <span className="text-white font-extrabold text-base sm:text-xl tracking-wide uppercase leading-tight">Croquis Riesgos Circundantes</span>
             </div>
             <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-full transition-colors shrink-0">
               <X className="w-6 h-6 text-white" />

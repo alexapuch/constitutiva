@@ -157,7 +157,7 @@ export default function SideMenu({
                 className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium text-left"
               >
                 <ShieldCheck className="w-5 h-5" />
-                Analizador de GeoRiesgos
+                Riesgos Circundantes
               </button>
 
               <button
@@ -173,7 +173,7 @@ export default function SideMenu({
                 className="w-full flex items-center gap-3 px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium text-left"
               >
                 <ShieldCheck className="w-5 h-5 text-blue-700" />
-                Identificación de Riesgos
+                Análisis de Riesgo
               </button>
 
               <button

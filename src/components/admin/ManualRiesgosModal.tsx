@@ -1196,7 +1196,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
         <div className="bg-blue-900 px-6 py-4 text-white flex justify-between items-center shrink-0">
           <h3 className="font-black flex items-center gap-2 text-lg uppercase tracking-wider">
             <ShieldAlert className="w-6 h-6 text-red-500 animate-pulse" />
-            Identificación e Inspección de Riesgos
+            Análisis de Riesgo
           </h3>
           <button
             type="button"
