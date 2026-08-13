@@ -115,12 +115,14 @@ function GeoAnalyzer({ apiKey }: { apiKey: string }) {
           }
         }
 
-        let photoUri: string | undefined = undefined;
-        if (p.location) {
+        let photoUri: string | undefined = placePhoto;
+
+        // Fallback to Street View only if the place has no Google Places photo uploaded
+        if (!photoUri && p.location) {
           const plat = p.location.lat();
           const plng = p.location.lng();
           try {
-            // First check metadata specifically for outdoor source to match static street view image request
+            // Check metadata specifically for outdoor source
             const metaResOutdoor = await fetch(`https://maps.googleapis.com/maps/api/streetview/metadata?location=${plat},${plng}&radius=120&source=outdoor&key=${apiKey}`);
             const metaDataOutdoor = await metaResOutdoor.json();
             
@@ -132,15 +134,11 @@ function GeoAnalyzer({ apiKey }: { apiKey: string }) {
               const metaDataDefault = await metaResDefault.json();
               if (metaDataDefault.status === 'OK') {
                 photoUri = `https://maps.googleapis.com/maps/api/streetview?size=400x400&location=${plat},${plng}&radius=120&key=${apiKey}`;
-              } else {
-                photoUri = placePhoto;
               }
             }
           } catch (e) {
-            photoUri = placePhoto;
+            photoUri = undefined;
           }
-        } else {
-          photoUri = placePhoto;
         }
 
         processedCount++;
