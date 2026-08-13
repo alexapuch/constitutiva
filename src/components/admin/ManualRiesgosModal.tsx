@@ -648,11 +648,11 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
 
     // 3. INSTALACIONES
     setHidrosanitaria({
-      cisterna: m2Val > 80 || category === 'lavanderia' || category === 'plaza_comercial' || category === 'spa' || category === 'hotel' || category === 'gimnasio' || category === 'centros_recreativos',
+      cisterna: m2Val > 70 || category === 'lavanderia' || category === 'plaza_comercial' || category === 'spa' || category === 'hotel' || category === 'gimnasio' || category === 'escuela' || category === 'restaurante',
       tinaco: true,
       danosTuberia: false,
       danosLlaves: false,
-      dictamenTecnico: false,
+      dictamenTecnico: m2Val > 300 || category === 'hotel' || category === 'plaza_comercial',
     });
 
     let gasCapacity = 'N/A';
@@ -666,9 +666,9 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     else if (category === 'panaderia') gasCapacity = '120 L';
 
     setGas({
-      tanqueEstacionario: isSpecialGas && (m2Val >= 100 || category === 'lavanderia' || category === 'tortilleria' || category === 'spa' || category === 'hotel'),
-      tanqueMovil: isSpecialGas && m2Val < 100 && category !== 'lavanderia' && category !== 'tortilleria' && category !== 'spa' && category !== 'hotel',
-      calentadorAgua: isSpecialGas || category === 'lavanderia' || category === 'spa' || category === 'hotel',
+      tanqueEstacionario: isSpecialGas && (m2Val >= 80 || category === 'lavanderia' || category === 'tortilleria' || category === 'spa' || category === 'hotel'),
+      tanqueMovil: isSpecialGas && m2Val < 80 && category !== 'lavanderia' && category !== 'tortilleria' && category !== 'spa' && category !== 'hotel',
+      calentadorAgua: isSpecialGas || category === 'lavanderia' || category === 'spa' || category === 'hotel' || category === 'gimnasio',
       dictamenTecnico: isSpecialGas,
       capacidad: gasCapacity,
       fugas: false,
@@ -695,7 +695,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
       interruptores: true,
       lamparas: true,
       lamparasEmergencia: true,
-      plantaEmergencia: isLarge,
+      plantaEmergencia: isLarge || category === 'hotel' || category === 'plaza_comercial',
       transformador: isLarge && (category === 'taller_mecanico' || isWoodWorkshop || category === 'plaza_comercial' || category === 'hotel' || category === 'gimnasio' || category === 'centros_recreativos'),
       dictamenTecnico: true,
       recomendaciones: isWoodWorkshop
@@ -707,23 +707,23 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     setElectricaDictamenVigencia('ENERO 2026 - ENERO 2027');
 
     setEspeciales({
-      bombasAgua: m2Val > 80 || category === 'lavanderia' || category === 'plaza_comercial' || category === 'spa' || category === 'hotel' || category === 'gimnasio' || category === 'centros_recreativos',
+      bombasAgua: m2Val > 70 || category === 'lavanderia' || category === 'plaza_comercial' || category === 'spa' || category === 'hotel' || category === 'gimnasio' || category === 'centros_recreativos',
       ac: category !== 'bodega',
       extractores: isFood || category === 'taller_mecanico' || isWoodWorkshop || category === 'lavanderia' || category === 'spa' || category === 'gimnasio' || category === 'centros_recreativos',
       ventiladores: true,
       cercaElectrica: false,
-      alarmaGeneral: m2Val > 150 || category === 'plaza_comercial' || category === 'centros_recreativos',
-      presurizadores: false,
+      alarmaGeneral: m2Val > 150 || category === 'plaza_comercial' || category === 'escuela' || category === 'hotel' || category === 'centros_recreativos',
+      presurizadores: category === 'hotel' || category === 'spa' || m2Val > 250,
       recomendaciones: isWoodWorkshop
         ? 'SE RECOMIENDA MANTENIMIENTO PREVENTIVO PERIÓDICO A LOS SISTEMAS DE EXTRACCIÓN DE POLVO Y AIRE ACONDICIONADO.'
         : 'SE RECOMIENDA MANTENIMIENTO PREVENTIVO PERIÓDICO A LOS EQUIPOS DE AIRE ACONDICIONADO.',
     });
 
-    // 4. ELEMENTOS NO ESTRUCTURALES (CANTIDADES REALISTAS Y ACOTADAS SEGÚN M²)
-    const cantLamps = Math.max(2, Math.min(45, Math.round((m2Val / 18) * numNiveles)));
-    const cantFans = Math.max(0, Math.min(8, Math.round((m2Val / 40) * numNiveles)));
-    const cantScreens = (isFood || category === 'bar') ? Math.min(6, Math.max(1, Math.round(m2Val / 35))) : (isOffice ? Math.min(4, Math.max(1, Math.round(m2Val / 40))) : 1);
-    const cantAC = Math.max(1, Math.min(8, Math.round((m2Val / 45) * numNiveles)));
+    // 4. ELEMENTOS NO ESTRUCTURALES (CANTIDADES REALISTAS Y PROPORCIONALES)
+    const cantLamps = Math.max(2, Math.min(40, Math.round((m2Val / 20) * numNiveles)));
+    const cantFans = Math.max(0, Math.min(6, Math.round((m2Val / 45) * numNiveles)));
+    const cantScreens = (isFood || category === 'bar') ? Math.min(6, Math.max(1, Math.round(m2Val / 35))) : (isOffice ? Math.min(3, Math.max(1, Math.round(m2Val / 40))) : 1);
+    const cantAC = Math.max(1, Math.min(6, Math.round((m2Val / 50) * numNiveles)));
 
     const hasEvaporador = category === 'oficina' || category === 'despacho' || category === 'consultorio_medico' || category === 'consultorio_dental' || category === 'plaza_comercial' || category === 'hotel' || category === 'spa' || category === 'restaurante' || category === 'cafeteria' || category === 'veterinaria' || category === 'centros_recreativos';
     const hasCristaleria = isFood || category === 'farmacia' || category === 'estetica';
@@ -740,41 +740,41 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
       ventiladores: { siNo: cantFans > 0, cantidad: cantFans, estado: 'BUENO' },
       pantallas: { siNo: cantScreens > 0, cantidad: cantScreens, estado: 'BUENO' },
       evaporador: { siNo: hasEvaporador, cantidad: hasEvaporador ? cantAC : 0, estado: 'BUENO' },
-      cristaleria: { siNo: hasCristaleria, cantidad: hasCristaleria ? (isFood ? Math.min(30, Math.round(m2Val / 4)) : 8) : 0, estado: 'BUENO' },
-      canceles: { siNo: hasCanceles, cantidad: hasCanceles ? (category === 'plaza_comercial' ? 8 : 2) : 0, estado: 'BUENO' },
+      cristaleria: { siNo: hasCristaleria, cantidad: hasCristaleria ? (isFood ? Math.min(25, Math.round(m2Val / 5)) : 5) : 0, estado: 'BUENO' },
+      canceles: { siNo: hasCanceles, cantidad: hasCanceles ? (category === 'plaza_comercial' ? 6 : 2) : 0, estado: 'BUENO' },
       techos: { siNo: false, cantidad: 0, estado: 'BUENO' },
-      plafones: { siNo: hasPlafones, cantidad: hasPlafones ? Math.max(2, Math.min(25, Math.round(m2Val / 20))) : 0, estado: 'BUENO' },
-      repisas: { siNo: hasRepisas || isWoodWorkshop, cantidad: (hasRepisas || isWoodWorkshop) ? (category === 'tienda_pinturas' ? 8 : (isWoodWorkshop ? 6 : 3)) : 0, estado: 'BUENO' },
-      cuadros: { siNo: hasCuadros, cantidad: hasCuadros ? Math.min(6, Math.max(1, Math.round(m2Val / 30))) : 0, estado: 'BUENO' },
+      plafones: { siNo: hasPlafones, cantidad: hasPlafones ? Math.max(2, Math.min(20, Math.round(m2Val / 20))) : 0, estado: 'BUENO' },
+      repisas: { siNo: hasRepisas || isWoodWorkshop, cantidad: (hasRepisas || isWoodWorkshop) ? (category === 'tienda_pinturas' ? 6 : (isWoodWorkshop ? 4 : 2)) : 0, estado: 'BUENO' },
+      cuadros: { siNo: hasCuadros, cantidad: hasCuadros ? Math.min(4, Math.max(1, Math.round(m2Val / 40))) : 0, estado: 'BUENO' },
       espejos: { siNo: hasEspejos, cantidad: hasEspejos ? (category === 'estetica' ? 4 : (category === 'gimnasio' ? 4 : 2)) : 0, estado: 'BUENO' },
-      liquidosToxicos: { siNo: hasToxicos, cantidad: hasToxicos ? (category === 'tienda_pinturas' ? 15 : (isWoodWorkshop ? 8 : 3)) : 0, estado: 'BUENO' },
-      liquidosCorrosivos: { siNo: false, cantidad: 0, estado: 'BUENO' },
-      liquidosInflamables: { siNo: hasInflamables, cantidad: hasInflamables ? (category === 'tienda_pinturas' ? 25 : (category === 'taller_mecanico' ? 12 : (isWoodWorkshop ? 15 : 2))) : 0, estado: 'BUENO' },
+      liquidosToxicos: { siNo: hasToxicos, cantidad: hasToxicos ? (category === 'tienda_pinturas' ? 12 : (isWoodWorkshop ? 6 : 2)) : 0, estado: 'BUENO' },
+      liquidosCorrosivos: { siNo: isIndustrial || category === 'tienda_pinturas', cantidad: (isIndustrial || category === 'tienda_pinturas') ? 2 : 0, estado: 'BUENO' },
+      liquidosInflamables: { siNo: hasInflamables, cantidad: hasInflamables ? (category === 'tienda_pinturas' ? 20 : (category === 'taller_mecanico' ? 10 : (isWoodWorkshop ? 12 : 2))) : 0, estado: 'BUENO' },
       otros: { siNo: false, cantidad: 0, estado: 'BUENO' },
       recomendaciones: 'ASEGURAR LA CRISTALERÍA Y ELEMENTOS COLGANTES PARA EVITAR CAÍDAS EN CASO DE SISMO.',
     });
 
-    const cantMesas = isFood ? Math.max(2, Math.min(30, Math.round(m2Val / 6))) : (isOffice ? Math.min(4, Math.max(1, Math.round(m2Val / 25))) : 2);
-    const cantSillas = isFood ? cantMesas * 4 : (isOffice ? fixedPop * 2 : 4);
+    const cantMesas = isFood ? Math.max(2, Math.min(25, Math.round(m2Val / 7))) : (isOffice ? Math.min(4, Math.max(1, Math.round(m2Val / 25))) : 2);
+    const cantSillas = isFood ? Math.max(8, Math.min(100, Math.round(m2Val / 1.8))) : (isOffice ? fixedPop * 2 : 4);
 
     setDeslizarse({
-      escritorios: { siNo: isOffice || isWoodWorkshop, cantidad: (isOffice || isWoodWorkshop) ? Math.min(fixedPop, Math.max(1, Math.round(m2Val / 15))) : 0, estado: 'BUENO' },
+      escritorios: { siNo: isOffice || isWoodWorkshop || isComercio, cantidad: (isOffice || isWoodWorkshop) ? Math.min(fixedPop, Math.max(1, Math.round(m2Val / 18))) : (isComercio ? 1 : 0), estado: 'BUENO' },
       mesas: { siNo: isOffice || isFood || category === 'escuela' || isWoodWorkshop, cantidad: cantMesas, estado: 'BUENO' },
       sillas: { siNo: true, cantidad: cantSillas, estado: 'BUENO' },
       refrigeradores: { siNo: isFood || category === 'farmacia' || category === 'minisuper', cantidad: isFood ? 2 : (category === 'minisuper' ? 3 : 1), estado: 'BUENO' },
-      ruedas: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      ruedas: { siNo: isIndustrial || category === 'bodega', cantidad: (isIndustrial || category === 'bodega') ? 2 : 0, estado: 'BUENO' },
       recomendaciones: 'MANTENER LAS SILLAS, MESAS Y BANCOS DE TRABAJO ACOMODADOS SIN OBSTRUIR PASILLOS.',
     });
 
     setVolcar({
-      computo: { siNo: isOffice || category === 'plaza_comercial' || category === 'escuela' || isWoodWorkshop, cantidad: (isOffice || category === 'plaza_comercial' || category === 'escuela' || isWoodWorkshop) ? Math.min(fixedPop, Math.max(1, Math.round(m2Val / 12))) : 0, estado: 'BUENO' },
+      computo: { siNo: isOffice || isComercio || category === 'plaza_comercial' || category === 'escuela' || isWoodWorkshop, cantidad: (isOffice || category === 'plaza_comercial' || category === 'escuela' || isWoodWorkshop) ? Math.min(fixedPop, Math.max(1, Math.round(m2Val / 15))) : 1, estado: 'BUENO' },
       libreros: { siNo: isOffice || category === 'escuela', cantidad: (isOffice || category === 'escuela') ? 2 : 0, estado: 'BUENO' },
-      roperos: { siNo: false, cantidad: 0, estado: 'BUENO' },
+      roperos: { siNo: category === 'hotel', cantidad: category === 'hotel' ? Math.min(10, Math.round(m2Val / 20)) : 0, estado: 'BUENO' },
       lockers: { siNo: category === 'gimnasio' || category === 'escuela' || category === 'taller_mecanico' || isWoodWorkshop || category === 'centros_recreativos', cantidad: (category === 'gimnasio' || category === 'escuela' || category === 'taller_mecanico' || isWoodWorkshop || category === 'centros_recreativos') ? 3 : 0, estado: 'BUENO' },
       archiveros: { siNo: isOffice || isWoodWorkshop, cantidad: (isOffice || isWoodWorkshop) ? Math.max(1, Math.round(fixedPop / 2)) : 0, estado: 'BUENO' },
-      estantes: { siNo: isComercio || isFood || category === 'bodega' || category === 'farmacia' || category === 'centros_recreativos' || isWoodWorkshop, cantidad: (isComercio || isFood || category === 'bodega' || category === 'farmacia' || category === 'centros_recreativos' || isWoodWorkshop) ? (category === 'tienda_pinturas' ? 8 : (category === 'bodega' ? 12 : (isWoodWorkshop ? 6 : 4))) : 0, estado: 'BUENO' },
+      estantes: { siNo: isComercio || isFood || category === 'bodega' || category === 'farmacia' || category === 'centros_recreativos' || isWoodWorkshop, cantidad: (isComercio || isFood || category === 'bodega' || category === 'farmacia' || category === 'centros_recreativos' || isWoodWorkshop) ? (category === 'tienda_pinturas' ? 6 : (category === 'bodega' ? 10 : (isWoodWorkshop ? 5 : 3))) : 0, estado: 'BUENO' },
       vitrinas: { siNo: isComercio || category === 'farmacia' || isWoodWorkshop, cantidad: (isComercio || category === 'farmacia' || isWoodWorkshop) ? 2 : 0, estado: 'BUENO' },
-      tanquesGas: { siNo: isFood, cantidad: isFood ? 2 : 0, estado: 'BUENO' },
+      tanquesGas: { siNo: isFood && gas.tanqueMovil, cantidad: (isFood && gas.tanqueMovil) ? 2 : 0, estado: 'BUENO' },
       subdivisiones: { siNo: isOffice, cantidad: isOffice ? 2 : 0, estado: 'BUENO' },
       recomendaciones: 'FIJAR LOS ESTANTES, VITRINAS Y MUEBLES EXHIBIDOS PESADOS A LOS MUROS PARA EVITAR SU VOLCADURA.',
     });
@@ -782,7 +782,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     // 5. OTROS INTERNOS & ACABADOS
     setAcabados({
       lambrinesIncombustibles: false,
-      lambrinesCombustibles: false,
+      lambrinesCombustibles: isWoodWorkshop,
       pisosDesniveles: false,
       pisosFalsos: isOffice || category === 'plaza_comercial',
       losetasAzulejos: true,
@@ -793,8 +793,8 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
 
     setOtrosRiesgos({
       inflamar: {
-        combustibles: category === 'taller_mecanico' || category === 'taller_muebleria' || category === 'tienda_pinturas' || isFood || category === 'centros_recreativos' || category === 'renta_vehiculos',
-        solventes: category === 'taller_mecanico' || category === 'taller_muebleria' || category === 'tienda_pinturas' || category === 'centros_recreativos' || category === 'renta_vehiculos',
+        combustibles: category === 'taller_mecanico' || isWoodWorkshop || category === 'tienda_pinturas' || isFood || category === 'centros_recreativos' || category === 'renta_vehiculos' || category === 'bodega',
+        solventes: category === 'taller_mecanico' || isWoodWorkshop || category === 'tienda_pinturas' || category === 'centros_recreativos' || category === 'renta_vehiculos',
         papelCarton: isOffice || isComercio || category === 'bodega' || isWoodWorkshop,
         recomendaciones: isWoodWorkshop
           ? 'ALMACENAR SOLVENTES Y BARNICES EN GABINETES METÁLICOS Y REALIZAR LIMPIEZA DIARIA DE ASERRÍN Y VIRUTA DE MADERA.'
@@ -803,7 +803,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
       propiciar: {
         cigarros: false,
         colillas: false,
-        velas: false,
+        velas: category === 'spa' || category === 'restaurante',
         instalacionGas: isSpecialGas,
         cafeteras: isOffice || category === 'gimnasio' || isFood,
         contactos: true,
@@ -815,15 +815,15 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
           : 'DESCONECTAR APARATOS ELÉCTRICOS AL CIERRE DE LA JORNADA.'
       },
       obstaculizar: {
-        tapetes: false,
+        tapetes: isOffice || category === 'hotel',
         macetas: false,
         archiveros: false,
-        pizarrones: false,
-        muebles: isWoodWorkshop,
+        pizarrones: category === 'escuela',
+        muebles: isWoodWorkshop || isComercio,
         equiposLimpieza: false,
-        herramientas: isWoodWorkshop,
+        herramientas: isIndustrial,
         puertasCerradas: false,
-        lavadoras: false,
+        lavadoras: category === 'lavanderia',
         bombeo: false,
         recomendaciones: isWoodWorkshop
           ? 'MANTENER RUTAS DE EVACUACIÓN LIBRES DE MUEBLES EN EXHIBICIÓN, MADERA Y HERRAMIENTAS.'
