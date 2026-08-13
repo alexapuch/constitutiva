@@ -1296,35 +1296,14 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
               </select>
             </div>
             
-            {loadingAi ? (
-              <button
-                type="button"
-                onClick={handleCancelAi}
-                className="w-full md:w-auto bg-red-600 hover:bg-red-700 text-white font-extrabold px-6 py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 h-[42px]"
-              >
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Cancelar IA...</span>
-              </button>
-            ) : (
-              <div className="flex gap-2 w-full md:w-auto">
-                <button
-                  type="button"
-                  onClick={handlePreFillLocal}
-                  className="flex-1 md:flex-none bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold px-6 py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 h-[42px]"
-                >
-                  <ClipboardCheck className="w-4 h-4 text-white" />
-                  <span>Pre-llenar (Giro y M²)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleGetAiSuggestions}
-                  className="flex-1 md:flex-none bg-blue-900 hover:bg-blue-800 text-white font-extrabold px-6 py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 h-[42px]"
-                >
-                  <Sparkles className="w-4 h-4 text-yellow-300 fill-yellow-300" />
-                  <span>Sugerir con IA</span>
-                </button>
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={handlePreFillLocal}
+              className="w-full md:w-auto bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold px-6 py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 h-[42px]"
+            >
+              <ClipboardCheck className="w-4 h-4 text-white" />
+              <span>Pre-llenar (Giro y M²)</span>
+            </button>
           </div>
 
           {activeTab === 'generales' && (
