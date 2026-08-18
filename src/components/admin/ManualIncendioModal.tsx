@@ -96,6 +96,15 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
   const detectCategoryFromGiro = (giroText: string): string => {
     const norm = (giroText || '').toLowerCase();
 
+    // Cenotes / Ecoturismo / Parque Acuático Natural
+    if (
+      norm.includes('cenote') || norm.includes('ecoturismo') || norm.includes('ecotour') ||
+      norm.includes('caverna') || norm.includes('gruta') || norm.includes('subterraneo') ||
+      norm.includes('subterráneo')
+    ) {
+      return 'cenotes';
+    }
+
     // Renta de Vehículos / Alquiler de Grúas y Maquinaria
     if (
       norm.includes('grua') || norm.includes('grúa') || 
@@ -327,6 +336,12 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
         gases = m2 <= 50 ? 200 : m2 <= 120 ? 400 : 800;
         solidos = Math.round(m2 * 8);
         flotante = Math.ceil(m2 / 15);
+        break;
+      case 'cenotes':
+        liqInf = m2 <= 100 ? 10 : m2 <= 500 ? 30 : 100;
+        liqComb = m2 <= 100 ? 20 : m2 <= 500 ? 80 : 250;
+        solidos = Math.round(m2 * 12);
+        flotante = Math.ceil(m2 / 6);
         break;
       case 'centros_recreativos':
         liqInf = m2 <= 100 ? 10 : m2 <= 500 ? 50 : 150;
@@ -771,6 +786,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-red-600 outline-none font-bold text-xs uppercase"
               >
                 <option value="comercio">Comercio General</option>
+                <option value="cenotes">Cenotes / Parque Ecoturístico / Balneario Natural</option>
                 <option value="taller_muebleria">Taller de Mueblería / Fabricación y Venta de Muebles</option>
                 <option value="venta_productos_general">Venta de Productos en General</option>
                 <option value="centros_recreativos">Centros Recreativos (Juegos Infantiles, de Diversión, Club)</option>
