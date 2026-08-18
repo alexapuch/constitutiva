@@ -398,16 +398,6 @@ export default function OSRS() {
               <span>{testingPush ? 'Enviando...' : '🔔 Probar Push'}</span>
             </button>
             <button
-              onClick={() => setDevMode(!devMode)}
-              className={`px-2 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer font-['MedievalSharp',serif] ${devMode
-                  ? 'bg-purple-600/30 border-purple-500 text-purple-200'
-                  : 'bg-amber-950/40 border-amber-500/30 text-amber-400/70 hover:text-amber-200'
-                }`}
-              title="Modo Rápido de Pruebas (Timers de 15 seg)"
-            >
-              {devMode ? '⚡ Modo 15s' : '⚡ 15s'}
-            </button>
-            <button
               onClick={handleSubscribePush}
               disabled={subscribingPush}
               className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 border rounded-xl text-xs md:text-sm font-semibold transition-all cursor-pointer font-['MedievalSharp',serif] ${isPushSubscribed
