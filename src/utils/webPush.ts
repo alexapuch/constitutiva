@@ -109,9 +109,10 @@ export async function subscribeUserToPush(): Promise<{ success: boolean; error?:
 /**
  * Verificación y auto-re-suscripción transparente:
  * 1. Si el permiso está concedido y getSubscription() es null -> auto-re-suscribe en silencio.
- * 2. Si existe la suscripción local -> comprueba si está guardada en Supabase; si falta, la resincroniza.
+ * 2. Si forceRefresh es true o la suscripción fue borrada en Supabase (ej. tras error 410 APNs/FCM por inactividad) -> fuerza una suscripción nueva limpia con el servicio Push.
+ * 3. Si existe la suscripción local y está presente en Supabase -> asegura que esté sincronizada.
  */
-export async function ensurePushSubscriptionSync(): Promise<boolean> {
+export async function ensurePushSubscriptionSync(forceRefresh = false): Promise<boolean> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
   if (typeof Notification === 'undefined') return false;
 
@@ -121,6 +122,12 @@ export async function ensurePushSubscriptionSync(): Promise<boolean> {
   try {
     const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     await navigator.serviceWorker.ready;
+
+    if (forceRefresh) {
+      console.log('🔄 Forzando re-suscripción limpia de Web Push...');
+      const res = await subscribeUserToPush();
+      return res.success;
+    }
 
     let sub = await registration.pushManager.getSubscription();
 
@@ -151,8 +158,15 @@ export async function ensurePushSubscriptionSync(): Promise<boolean> {
       .eq('device_id', deviceId)
       .maybeSingle();
 
-    // Si fue eliminada de Supabase (ej. tras error 410) o el endpoint cambió -> hacer upsert
-    if (error || !data || data.endpoint !== endpoint) {
+    // Si fue eliminada de Supabase (ej. tras error 410 por inactividad de varios días) -> Re-suscribir desde cero
+    if (error || !data) {
+      console.log('🔄 Suscripción eliminada o no encontrada en Supabase. Forzando re-suscripción nueva...');
+      const res = await subscribeUserToPush();
+      return res.success;
+    }
+
+    // Si el endpoint local difiere del de Supabase -> hacer upsert del actual
+    if (data.endpoint !== endpoint) {
       console.log('🔄 Sincronizando suscripción Push existente con Supabase...');
       const nowIso = new Date().toISOString();
       const { error: dbError } = await supabase.from('push_subscriptions').upsert(

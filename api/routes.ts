@@ -1146,7 +1146,16 @@ Generate a JSON object matching this structure:
                 required: ["hidrosanitaria", "gas", "electrica", "especiales"]
             };
         } else if (section === 'no_estructural') {
-            promptText += `Estimate non-structural objects that can fall, slide, or flip. Generate a JSON object matching this structure:
+            promptText += `Estimate non-structural objects that can fall, slide, or flip.
+
+CRITICAL RULES FOR LAMPARAS AND QUANTITIES:
+- "lamparas" refers to ALL ceiling lighting fixtures (paneles LED planos, plafones, luminarias de tubo, lámparas de techo colgadas o empotradas, etc.) across the ENTIRE establishment.
+- DO NOT generate unrealistically low numbers. Estimate roughly 1 ceiling lamp fixture for every 5 to 6 m² of construction space. For example:
+  - A 57 m² office / despacho / plaza commercial unit MUST have around 9 to 12 total lamps (NOT 2 or 3).
+  - A 100 m² space MUST have around 16 to 20 total lamps.
+  - A 250 m² space MUST have around 40 to 50 total lamps.
+
+Generate a JSON object matching this structure:
 {
   "caer": {
     "lamparas": { "siNo": boolean, "cantidad": number, "estado": "BUENO | REGULAR | MALO" },

@@ -174,6 +174,45 @@ export default function OSRS() {
     }
   };
 
+  const [testingPush, setTestingPush] = useState(false);
+
+  // Send an immediate test Push Notification via VAPID backend
+  const handleSendTestPush = async () => {
+    setTestingPush(true);
+    try {
+      // 1. Sync & renew subscription first
+      const isOk = await ensurePushSubscriptionSync(true);
+      setIsPushSubscribed(isOk);
+
+      if (!isOk && typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+        showMedievalAlert('⚠️ Sin Permiso', 'Debes activar los permisos de notificación en tu navegador.', 'error');
+        setTestingPush(false);
+        return;
+      }
+
+      // 2. Call backend test endpoint
+      const res = await fetch('/api/osrs/test', { method: 'POST' });
+      const data = await res.json();
+
+      if (data.success && data.sentCount > 0) {
+        showMedievalAlert(
+          '🔔 ¡Prueba Enviada!',
+          'Se envió una notificación de prueba. Revisa las notificaciones de tu celular o navegador.'
+        );
+      } else {
+        showMedievalAlert(
+          '⚠️ Error de Envío',
+          data.error || 'No se pudo entregar la notificación. Toca "Activar Push PWA" para volver a suscribirte.',
+          'error'
+        );
+      }
+    } catch (e: any) {
+      showMedievalAlert('⚠️ Error', e.message || 'Ocurrió un error al enviar la prueba', 'error');
+    } finally {
+      setTestingPush(false);
+    }
+  };
+
   // Format seconds to mm:ss or hh:mm:ss
   const formatTime = (totalSeconds: number) => {
     if (totalSeconds <= 0) return '00:00';
@@ -213,8 +252,9 @@ export default function OSRS() {
       `Timer configurado a ${devMode ? '15 seg' : '50 minutos'}. ¡Recibirás una notificación cuando esté listo!`
     );
 
-    // Parallel background persistence
+    // Parallel background persistence & push subscription auto-refresh
     Promise.all([
+      ensurePushSubscriptionSync(true).then(setIsPushSubscribed),
       supabase.from('osrs_timers').delete().eq('type', 'bird_run').then(() =>
         supabase.from('osrs_timers').insert({ type: 'bird_run', ends_at: endsAt, notified: false })
       ),
@@ -261,8 +301,9 @@ export default function OSRS() {
       `Timer configurado a ${devMode ? '20 seg' : '80 minutos'}. ¡Recibirás una notificación cuando esté listo!`
     );
 
-    // Parallel background persistence
+    // Parallel background persistence & push subscription auto-refresh
     Promise.all([
+      ensurePushSubscriptionSync(true).then(setIsPushSubscribed),
       supabase.from('osrs_timers').delete().eq('type', 'herb_patch').then(() =>
         supabase.from('osrs_timers').insert({ type: 'herb_patch', ends_at: endsAt, notified: false })
       ),
@@ -346,27 +387,37 @@ export default function OSRS() {
           </div>
 
           {/* Action Controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
+            <button
+              onClick={handleSendTestPush}
+              disabled={testingPush}
+              className="px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer font-['MedievalSharp',serif] bg-amber-500/10 border-amber-500/40 text-amber-300 hover:bg-amber-500/20 active:scale-95 flex items-center gap-1"
+              title="Enviar notificación de prueba inmediata a tu celular"
+            >
+              <BellRing className={`w-3.5 h-3.5 ${testingPush ? 'animate-spin' : ''}`} />
+              <span>{testingPush ? 'Enviando...' : '🔔 Probar Push'}</span>
+            </button>
             <button
               onClick={() => setDevMode(!devMode)}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer font-['MedievalSharp',serif] ${devMode
+              className={`px-2 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer font-['MedievalSharp',serif] ${devMode
                   ? 'bg-purple-600/30 border-purple-500 text-purple-200'
-                  : 'bg-amber-950/40 border-amber-500/30 text-amber-400/80 hover:text-amber-200'
+                  : 'bg-amber-950/40 border-amber-500/30 text-amber-400/70 hover:text-amber-200'
                 }`}
+              title="Modo Rápido de Pruebas (Timers de 15 seg)"
             >
-              {devMode ? '🧪 (15s/20s)' : 'Prueba'}
+              {devMode ? '⚡ Modo 15s' : '⚡ 15s'}
             </button>
             <button
               onClick={handleSubscribePush}
               disabled={subscribingPush}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 border rounded-xl text-xs md:text-sm font-semibold transition-all cursor-pointer font-['MedievalSharp',serif] ${isPushSubscribed
-                  ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+              className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 border rounded-xl text-xs md:text-sm font-semibold transition-all cursor-pointer font-['MedievalSharp',serif] ${isPushSubscribed
+                  ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
                   : 'bg-amber-600/30 hover:bg-amber-600/40 border-amber-500 text-amber-200 animate-pulse'
                 }`}
               title="Suscripción a Notificaciones Web Push (App Cerrada)"
             >
               <BellRing className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${subscribingPush ? 'animate-spin' : ''}`} />
-              <span>{isPushSubscribed ? 'Push Activo' : 'Activar Push PWA'}</span>
+              <span>{isPushSubscribed ? 'Push Activo' : 'Activar Push'}</span>
             </button>
           </div>
         </div>

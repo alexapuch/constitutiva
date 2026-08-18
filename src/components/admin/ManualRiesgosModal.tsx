@@ -720,7 +720,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     });
 
     // 4. ELEMENTOS NO ESTRUCTURALES (CANTIDADES REALISTAS Y PROPORCIONALES)
-    const cantLamps = Math.max(2, Math.min(40, Math.round((m2Val / 20) * numNiveles)));
+    const cantLamps = Math.max(4, Math.min(300, Math.round((m2Val / 5.5) * numNiveles)));
     const cantFans = Math.max(0, Math.min(6, Math.round((m2Val / 45) * numNiveles)));
     const cantScreens = (isFood || category === 'bar') ? Math.min(6, Math.max(1, Math.round(m2Val / 35))) : (isOffice ? Math.min(3, Math.max(1, Math.round(m2Val / 40))) : 1);
     const cantAC = Math.max(1, Math.min(6, Math.round((m2Val / 50) * numNiveles)));
