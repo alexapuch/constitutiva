@@ -779,7 +779,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
       : (isFood ? Math.max(8, Math.min(100, Math.round(m2Val / 1.8))) : (isOffice ? fixedPop * 2 : 4));
 
     setDeslizarse({
-      escritorios: { siNo: (isOffice || isWoodWorkshop || isComercio) && category !== 'cenotes', cantidad: (category === 'cenotes') ? 0 : ((isOffice || isWoodWorkshop) ? Math.min(fixedPop, Math.max(1, Math.round(m2Val / 18))) : (isComercio ? 1 : 0)), estado: 'BUENO' },
+      escritorios: { siNo: isOffice || isWoodWorkshop || isComercio, cantidad: (isOffice || isWoodWorkshop) ? Math.min(fixedPop, Math.max(1, Math.round(m2Val / 18))) : (isComercio ? 1 : 0), estado: 'BUENO' },
       mesas: { siNo: isOffice || isFood || category === 'escuela' || isWoodWorkshop || category === 'cenotes', cantidad: cantMesas, estado: 'BUENO' },
       sillas: { siNo: true, cantidad: cantSillas, estado: 'BUENO' },
       refrigeradores: { siNo: isFood || category === 'farmacia' || category === 'minisuper', cantidad: isFood ? 2 : (category === 'minisuper' ? 3 : 1), estado: 'BUENO' },
