@@ -580,6 +580,15 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
       return 'venta_productos_general';
     }
 
+    // Artesanías / Souvenirs
+    if (
+      norm.includes('artesania') || norm.includes('artesanía') || norm.includes('artesanal') ||
+      norm.includes('souvenir') || norm.includes('recuerdo') || norm.includes('galeria de arte') ||
+      norm.includes('galería de arte') || norm.includes('artesano')
+    ) {
+      return 'artesanias';
+    }
+
     // Comercio General
     if (
       norm.includes('tienda') || norm.includes('boutique') || norm.includes('comercio') || 
@@ -609,7 +618,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
     const isFood = category === 'restaurante' || category === 'cafeteria' || category === 'bar' || category === 'panaderia' || category === 'tortilleria';
     const isSpecialGas = isFood || category === 'lavanderia' || category === 'spa' || category === 'hotel';
     const isOffice = category === 'oficina' || category === 'despacho' || category === 'consultorio_medico' || category === 'consultorio_dental' || category === 'escuela';
-    const isComercio = category === 'comercio' || category === 'tienda_pinturas' || category === 'farmacia' || category === 'zapateria' || category === 'minisuper' || category === 'estetica' || category === 'veterinaria' || category === 'venta_productos_general' || category === 'renta_vehiculos';
+    const isComercio = category === 'comercio' || category === 'artesanias' || category === 'tienda_pinturas' || category === 'farmacia' || category === 'zapateria' || category === 'minisuper' || category === 'estetica' || category === 'veterinaria' || category === 'venta_productos_general' || category === 'renta_vehiculos';
     const isWoodWorkshop = category === 'taller_muebleria';
     const isIndustrial = category === 'taller_mecanico' || category === 'bodega' || isWoodWorkshop;
 
@@ -1261,6 +1270,7 @@ export default function ManualRiesgosModal({ isOpen, onClose, documents, onPrevi
                 <option value="comercio">Comercio General</option>
                 <option value="cenotes">Cenotes / Parque Ecoturístico / Balneario Natural</option>
                 <option value="taller_muebleria">Taller de Mueblería / Fabricación y Venta de Muebles</option>
+                <option value="artesanias">Artesanías / Souvenirs / Regalos Artesanales</option>
                 <option value="venta_productos_general">Venta de Productos en General</option>
                 <option value="centros_recreativos">Centros Recreativos (Juegos Infantiles, de Diversión, Club)</option>
                 <option value="oficina">Oficina Administrativa / Corporativo</option>

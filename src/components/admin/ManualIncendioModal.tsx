@@ -285,6 +285,15 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
       return 'venta_productos_general';
     }
 
+    // Artesanías / Souvenirs
+    if (
+      norm.includes('artesania') || norm.includes('artesanía') || norm.includes('artesanal') ||
+      norm.includes('souvenir') || norm.includes('recuerdo') || norm.includes('galeria de arte') ||
+      norm.includes('galería de arte') || norm.includes('artesano')
+    ) {
+      return 'artesanias';
+    }
+
     // Comercio General
     if (
       norm.includes('tienda') || norm.includes('boutique') || norm.includes('comercio') || 
@@ -463,6 +472,10 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
         liqComb = m2 <= 50 ? 100 : m2 <= 120 ? 300 : 650;
         solidos = Math.round(m2 * 15);
         flotante = Math.ceil(m2 / 15);
+        break;
+      case 'artesanias':
+        solidos = Math.round(m2 * 18);
+        flotante = Math.ceil(m2 / 8);
         break;
       case 'comercio':
       default:
@@ -788,6 +801,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                 <option value="comercio">Comercio General</option>
                 <option value="cenotes">Cenotes / Parque Ecoturístico / Balneario Natural</option>
                 <option value="taller_muebleria">Taller de Mueblería / Fabricación y Venta de Muebles</option>
+                <option value="artesanias">Artesanías / Souvenirs / Regalos Artesanales</option>
                 <option value="venta_productos_general">Venta de Productos en General</option>
                 <option value="centros_recreativos">Centros Recreativos (Juegos Infantiles, de Diversión, Club)</option>
                 <option value="oficina">Oficina Administrativa / Corporativo</option>
