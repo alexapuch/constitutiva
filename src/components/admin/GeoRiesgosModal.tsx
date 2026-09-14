@@ -160,13 +160,13 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
         };
       }));
 
-      // Filter and prioritize places that have valid photos available
+      // Filter and prioritize places that have valid photos available (top 5 establishments)
       const placesWithPhotos = candidatesData.filter(c => c.hasPhoto);
       const placesWithoutPhotos = candidatesData.filter(c => !c.hasPhoto);
 
-      let selectedPlaces = placesWithPhotos.slice(0, 4);
-      if (selectedPlaces.length < 4) {
-        const remainingNeeded = 4 - selectedPlaces.length;
+      let selectedPlaces = placesWithPhotos.slice(0, 5);
+      if (selectedPlaces.length < 5) {
+        const remainingNeeded = 5 - selectedPlaces.length;
         selectedPlaces = [...selectedPlaces, ...placesWithoutPhotos.slice(0, remainingNeeded)];
       }
 

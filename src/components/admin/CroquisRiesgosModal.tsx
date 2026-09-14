@@ -44,19 +44,21 @@ const RISK_CATEGORIES: RiskCategory[] = [
   }
 ];
 
-// Fixed 4-color palette requested by user:
+// Fixed 5-color palette for the 5 establishments:
 // 1. Verde (#16a34a)
 // 2. Azul fuerte (#1d4ed8)
 // 3. Rojo (#dc2626)
 // 4. Amarillo fuerte tirando a naranja (#f59e0b)
+// 5. Morado / Violeta (#7c3aed)
 export const ESTABLISHMENT_PALETTE = [
   '#16a34a', // 1. Verde vibrante / esmeralda
   '#1d4ed8', // 2. Azul fuerte / marino royal
   '#dc2626', // 3. Rojo vivo
   '#f59e0b', // 4. Amarillo fuerte tirando a naranja (ámbar intenso)
+  '#7c3aed', // 5. Morado / Violeta vibrante
 ];
 
-// Always return one of the 4 exact colors strictly in order: Verde, Azul fuerte, Rojo, Amarillo fuerte
+// Always return one of the 5 exact colors strictly in order
 export const getEstablishmentColor = (_name: string = '', index: number = 0): string => {
   return ESTABLISHMENT_PALETTE[Math.abs(index) % ESTABLISHMENT_PALETTE.length];
 };
