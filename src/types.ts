@@ -31,5 +31,8 @@ export interface RiskData {
   photoUri?: string;
   riskLevel: 'Alto' | 'Medio' | 'Bajo';
   riskDescription: string;
+  lat?: number;
+  lng?: number;
+  types?: string[];
 }
 

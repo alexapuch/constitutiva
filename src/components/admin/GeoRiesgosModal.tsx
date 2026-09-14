@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { APIProvider, useMapsLibrary } from '@vis.gl/react-google-maps';
-import { X, MapPin, ShieldAlert, AlertCircle } from 'lucide-react';
+import { X, MapPin, ShieldAlert, AlertCircle, Map as MapIcon } from 'lucide-react';
 import { RiskData } from '../../types';
 
 const HEADER_COLORS = [
@@ -12,9 +12,8 @@ const HEADER_COLORS = [
   { name: 'Púrpura', value: '#6b21a8' },
   { name: 'Negro', value: '#000000' }
 ];
-
 // GeoAnalyzer inside modal
-function GeoAnalyzer({ apiKey }: { apiKey: string }) {
+function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?: () => void }) {
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
   const [headerColor, setHeaderColor] = useState('#7b1f1c');
@@ -102,8 +101,13 @@ function GeoAnalyzer({ apiKey }: { apiKey: string }) {
 
       const candidatesData = await Promise.all(filteredPlaces.map(async p => {
         let distanceMeters = 0;
+        let placeLat = center.lat;
+        let placeLng = center.lng;
+
         if (p.location) {
           distanceMeters = geometryLib.spherical.computeDistanceBetween(center, p.location);
+          placeLat = p.location.lat();
+          placeLng = p.location.lng();
         }
         
         let placePhoto: string | undefined = undefined;
@@ -149,6 +153,8 @@ function GeoAnalyzer({ apiKey }: { apiKey: string }) {
           name: p.displayName || 'Establecimiento desconocido',
           distance: `${Math.round(distanceMeters)} MTS`,
           types: p.types || [],
+          lat: placeLat,
+          lng: placeLng,
           photoUri: photoUri || null,
           hasPhoto: Boolean(photoUri)
         };
@@ -172,6 +178,8 @@ function GeoAnalyzer({ apiKey }: { apiKey: string }) {
         name: p.name,
         distance: p.distance,
         types: p.types,
+        lat: p.lat,
+        lng: p.lng,
         photoUri: p.photoUri || undefined
       }));
 
@@ -192,8 +200,31 @@ function GeoAnalyzer({ apiKey }: { apiKey: string }) {
         throw new Error(data.error || 'Ocurrió un error al analizar los riesgos.');
       }
 
+      // Re-attach exact coordinates & types to each risk item
+      const enrichedResults = (data.results || []).map((r: any) => {
+        const matched = placesData.find(p => p.name === r.name);
+        return {
+          ...r,
+          lat: matched?.lat,
+          lng: matched?.lng,
+          types: matched?.types || r.types || []
+        };
+      });
+
       setProgress(100);
-      setRisks(data.results);
+      setRisks(enrichedResults);
+
+      // Save exact analysis data to localStorage for Croquis synchronization
+      try {
+        localStorage.setItem('circundantes_places_cache', JSON.stringify({
+          center: { lat: parseFloat(lat), lng: parseFloat(lng) },
+          establishment: myEstablishment,
+          places: enrichedResults,
+          updatedAt: Date.now()
+        }));
+      } catch (e) {
+        console.error('Error caching circundantes places', e);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -274,9 +305,21 @@ function GeoAnalyzer({ apiKey }: { apiKey: string }) {
       {risks.length > 0 && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 dark:border-gray-700 pb-2">
-            <h3 className="text-lg font-black uppercase text-gray-800 dark:text-gray-200 underline underline-offset-4 decoration-2">
-              RIESGOS CIRCUNDANTES
-            </h3>
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-black uppercase text-gray-800 dark:text-gray-200 underline underline-offset-4 decoration-2">
+                RIESGOS CIRCUNDANTES
+              </h3>
+              {onOpenCroquis && (
+                <button
+                  onClick={onOpenCroquis}
+                  className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-extrabold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow transition-colors"
+                  title="Abrir estos lugares directamente en el croquis"
+                >
+                  <MapIcon className="w-3.5 h-3.5" />
+                  Ver en Croquis de Riesgos
+                </button>
+              )}
+            </div>
             
             {/* Color Picker circles */}
             <div className="flex items-center gap-2">
@@ -350,9 +393,10 @@ function GeoAnalyzer({ apiKey }: { apiKey: string }) {
 interface GeoRiesgosModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenCroquis?: () => void;
 }
 
-export default function GeoRiesgosModal({ isOpen, onClose }: GeoRiesgosModalProps) {
+export default function GeoRiesgosModal({ isOpen, onClose, onOpenCroquis }: GeoRiesgosModalProps) {
   const [apiKey, setApiKey] = useState('');
   const [loadingKey, setLoadingKey] = useState(true);
 
@@ -418,7 +462,7 @@ export default function GeoRiesgosModal({ isOpen, onClose }: GeoRiesgosModalProp
               </div>
             ) : (
               <APIProvider apiKey={apiKey} version="weekly">
-                <GeoAnalyzer apiKey={apiKey} />
+                <GeoAnalyzer apiKey={apiKey} onOpenCroquis={onOpenCroquis} />
               </APIProvider>
             )}
           </div>

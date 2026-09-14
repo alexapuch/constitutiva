@@ -1489,6 +1489,10 @@ export default function AdminView() {
       <GeoRiesgosModal
         isOpen={showGeoRiesgosModal}
         onClose={() => setShowGeoRiesgosModal(false)}
+        onOpenCroquis={() => {
+          setShowGeoRiesgosModal(false);
+          setShowCroquisRiesgosModal(true);
+        }}
       />
 
       <CroquisRiesgosModal

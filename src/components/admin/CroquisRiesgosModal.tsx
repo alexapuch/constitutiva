@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { APIProvider, Map, Marker, InfoWindow, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
-import { X, MapPin, ShieldAlert, AlertCircle, Trash2, Plus, Download, RefreshCw, Compass, Search } from 'lucide-react';
+import { X, MapPin, ShieldAlert, AlertCircle, Trash2, Plus, Download, RefreshCw, Compass, Search, Sparkles } from 'lucide-react';
 import Swal from 'sweetalert2';
 import html2canvas from 'html2canvas';
 
@@ -22,13 +22,6 @@ const RISK_CATEGORIES: RiskCategory[] = [
     iconSvg: `<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/><path d="M5 12h14"/>`
   },
   {
-    id: 'comercial',
-    name: 'Locales varios / zona comercial',
-    color: '#1d4ed8', // Blue
-    symbolLabel: '🏪',
-    iconSvg: `<path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M30 7H0"/><path d="M22 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/><path d="M14 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/><path d="M6 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/>`
-  },
-  {
     id: 'personas',
     name: 'Afluencia de personas',
     color: '#7c3aed', // Purple
@@ -36,20 +29,37 @@ const RISK_CATEGORIES: RiskCategory[] = [
     iconSvg: `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`
   },
   {
-    id: 'maniobras',
-    name: 'Maniobras y accesos',
-    color: '#16a34a', // Green
-    symbolLabel: '↔️',
-    iconSvg: `<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>`
-  },
-  {
     id: 'habitacional',
     name: 'Zona habitacional / área urbana',
     color: '#4b5563', // Grey
     symbolLabel: '🏠',
     iconSvg: `<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>`
+  },
+  {
+    id: 'comercial',
+    name: 'Locales y comercios generales',
+    color: '#1d4ed8', // Blue
+    symbolLabel: '🏪',
+    iconSvg: `<path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M30 7H0"/><path d="M22 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/><path d="M14 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/><path d="M6 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/>`
   }
 ];
+
+// Fixed 4-color palette requested by user:
+// 1. Verde (#16a34a)
+// 2. Azul fuerte (#1d4ed8)
+// 3. Rojo (#dc2626)
+// 4. Amarillo fuerte tirando a naranja (#f59e0b)
+export const ESTABLISHMENT_PALETTE = [
+  '#16a34a', // 1. Verde vibrante / esmeralda
+  '#1d4ed8', // 2. Azul fuerte / marino royal
+  '#dc2626', // 3. Rojo vivo
+  '#f59e0b', // 4. Amarillo fuerte tirando a naranja (ámbar intenso)
+];
+
+// Always return one of the 4 exact colors strictly in order: Verde, Azul fuerte, Rojo, Amarillo fuerte
+export const getEstablishmentColor = (_name: string = '', index: number = 0): string => {
+  return ESTABLISHMENT_PALETTE[Math.abs(index) % ESTABLISHMENT_PALETTE.length];
+};
 
 interface SavedMarker {
   id: string;
@@ -57,7 +67,24 @@ interface SavedMarker {
   lng: number;
   categoryId: string;
   customName?: string;
+  distance?: string;
+  isCircundantePlace?: boolean;
+  color?: string;
 }
+
+// Map Google Places types to internal risk category
+export const mapPlacesTypesToCategory = (types: string[] = []): string => {
+  if (types.some(t => ['bus_station', 'transit_station', 'gas_station', 'intersection', 'subway_station', 'train_station'].includes(t))) {
+    return 'trafico';
+  }
+  if (types.some(t => ['school', 'park', 'church', 'place_of_worship', 'tourist_attraction', 'museum', 'university', 'stadium', 'event_venue'].includes(t))) {
+    return 'personas';
+  }
+  if (types.some(t => ['lodging', 'hotel', 'real_estate_agency', 'condominium', 'apartment_building', 'neighborhood'].includes(t))) {
+    return 'habitacional';
+  }
+  return 'comercial';
+};
 
 // Function to generate the data URI of the custom marker pin (centered vector)
 const createMarkerIcon = (color: string, iconSvg: string) => {
@@ -259,17 +286,22 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
         }}
       />
 
-      {/* 200m Circle Overlay */}
-      <MapCircle center={center} radius={200} />
+      {/* 250m Circle Overlay */}
+      <MapCircle center={center} radius={250} />
 
       {/* Placed Custom Risk Markers */}
-      {markers.map(m => {
+      {markers.map((m, idx) => {
         const cat = RISK_CATEGORIES.find(c => c.id === m.categoryId);
+        // Find index among named establishments for consistent color matching with sidebar
+        const estList = markers.filter(item => item.customName);
+        const estIndex = estList.findIndex(item => item.id === m.id);
+        const markerColor = m.color || (estIndex >= 0 ? getEstablishmentColor(m.customName, estIndex) : (cat?.color || '#1d4ed8'));
         return (
           <Marker
             key={m.id}
             position={{ lat: m.lat, lng: m.lng }}
             draggable={true}
+            title={m.customName ? `${m.customName} (${cat?.name || 'Riesgo'})` : (cat?.name || 'Riesgo')}
             onDragEnd={(e) => handleMarkerDragEnd(m.id, e)}
             onClick={(e) => {
               if (e.domEvent) {
@@ -278,7 +310,7 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
               setSelectedMarkerId(m.id);
             }}
             icon={{
-              url: cat ? createMarkerIcon(cat.color, cat.iconSvg) : '',
+              url: cat ? createMarkerIcon(markerColor, cat.iconSvg) : '',
               size: new google.maps.Size(36, 36),
               scaledSize: new google.maps.Size(36, 36),
               anchor: new google.maps.Point(18, 18)
@@ -287,7 +319,7 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
         );
       })}
 
-      {/* InfoWindow popup to delete selected marker */}
+      {/* InfoWindow popup to view and delete selected marker */}
       {selectedMarkerId && (() => {
         const activeMarker = markers.find(m => m.id === selectedMarkerId);
         if (!activeMarker) return null;
@@ -298,7 +330,7 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
             onCloseClick={() => setSelectedMarkerId(null)}
           >
             <div 
-              className="p-1.5 text-gray-900 flex flex-col items-center gap-1.5 min-w-[130px]"
+              className="p-1.5 text-gray-900 flex flex-col items-center gap-1.5 min-w-[150px] max-w-[220px]"
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -308,8 +340,19 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
                 e.preventDefault();
               }}
             >
-              <span className="font-extrabold text-[11px] text-blue-900 uppercase text-center leading-tight">
-                {cat?.name || 'Marcador'}
+              <div className="flex items-center gap-1.5 justify-center">
+                <span className="text-sm">{cat?.symbolLabel}</span>
+                <span className="font-black text-[12px] text-blue-950 uppercase text-center leading-tight">
+                  {activeMarker.customName || cat?.name || 'Marcador'}
+                </span>
+              </div>
+              {activeMarker.distance && (
+                <span className="text-[10px] font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+                  Distancia: {activeMarker.distance}
+                </span>
+              )}
+              <span className="text-[10px] font-semibold text-gray-500 uppercase text-center">
+                Tipo: {cat?.name}
               </span>
               <button
                 onClick={(e) => {
@@ -318,8 +361,7 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
                   handleRemoveMarker(activeMarker.id);
                   setSelectedMarkerId(null);
                 }}
-                className="bg-red-650 text-white text-[11px] font-bold px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors hover:bg-red-750"
-                style={{ backgroundColor: '#dc2626' }}
+                className="bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors mt-1"
               >
                 <Trash2 className="w-3.5 h-3.5 text-white" />
                 Eliminar
@@ -482,29 +524,16 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
         if (distance > 200) return;
 
         const types = p.types || [];
-        let categoryId = 'comercial'; // default to commercial
-
-        // Mapping logic based on types
-        if (types.some(t => ['bus_station', 'transit_station', 'gas_station', 'intersection', 'subway_station', 'train_station'].includes(t))) {
-          categoryId = 'trafico';
-        } else if (types.some(t => ['school', 'park', 'church', 'place_of_worship', 'tourist_attraction', 'museum', 'hospital', 'university'].includes(t))) {
-          categoryId = 'personas';
-        } else if (types.some(t => ['parking', 'warehouse', 'car_repair', 'storage'].includes(t))) {
-          categoryId = 'maniobras';
-        } else if (types.some(t => ['lodging', 'real_estate_agency', 'condominium', 'apartment_building', 'neighborhood'].includes(t))) {
-          categoryId = 'habitacional';
-        } else if (types.some(t => ['store', 'restaurant', 'food', 'cafe', 'bar', 'shopping_mall', 'bakery', 'convenience_store', 'supermarket', 'pharmacy'].includes(t))) {
-          categoryId = 'comercial';
-        }
-
-        // Apply spacing/de-cluttering relative to existing newMarkers
-        const adjusted = adjustOverlap(pLat, pLng, [...newMarkers]);
+        const categoryId = mapPlacesTypesToCategory(types);
 
         newMarkers.push({
           id: `auto-${p.displayName || 'place'}-${Math.random()}`,
-          lat: adjusted.lat,
-          lng: adjusted.lng,
-          categoryId
+          lat: pLat,
+          lng: pLng,
+          categoryId,
+          customName: p.displayName || undefined,
+          distance: `${Math.round(distance)} m`,
+          isCircundantePlace: true
         });
       });
 
@@ -517,9 +546,7 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
         { lat: centerPos.lat + 0.0008, lng: centerPos.lng - 0.0008, categoryId: 'habitacional' },
         { lat: centerPos.lat - 0.0008, lng: centerPos.lng + 0.0008, categoryId: 'habitacional' },
         // Afluencia de personas (Purple) - Placed near corners/domos
-        { lat: centerPos.lat - 0.0003, lng: centerPos.lng + 0.0009, categoryId: 'personas' },
-        // Maniobras y accesos (Green) - Placed near streets/driveways
-        { lat: centerPos.lat + 0.0004, lng: centerPos.lng - 0.0003, categoryId: 'maniobras' }
+        { lat: centerPos.lat - 0.0003, lng: centerPos.lng + 0.0009, categoryId: 'personas' }
       ];
 
       baseProgrammatic.forEach((bp, index) => {
@@ -554,6 +581,117 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
     }
   };
 
+  // Import analyzed places from Riesgos Circundantes (exact coordinates & types)
+  const handleImportFromRiesgosCircundantes = () => {
+    try {
+      const cachedStr = localStorage.getItem('circundantes_places_cache');
+      if (!cachedStr) {
+        Swal.fire({
+          title: 'Sin datos previos',
+          text: 'No se encontraron análisis previos en "Riesgos Circundantes". Primero ejecuta el análisis de coordenadas en esa sección.',
+          icon: 'info'
+        });
+        return;
+      }
+
+      const cachedData = JSON.parse(cachedStr);
+      if (!cachedData.places || cachedData.places.length === 0) {
+        Swal.fire('Atención', 'No hay lugares guardados en el análisis.', 'warning');
+        return;
+      }
+
+      // Update Center coordinates if available
+      if (cachedData.center?.lat && cachedData.center?.lng) {
+        const cLat = cachedData.center.lat.toString();
+        const cLng = cachedData.center.lng.toString();
+        setLat(cLat);
+        setLng(cLng);
+        setCenter({ lat: cachedData.center.lat, lng: cachedData.center.lng });
+      }
+
+      // Build markers with EXACT coordinates and mapped categories, strictly excluding user business
+      const userBizName = (cachedData.establishment || '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+      const importedMarkers: SavedMarker[] = cachedData.places
+        .filter((place: any) => typeof place.lat === 'number' && typeof place.lng === 'number')
+        .filter((place: any) => {
+          if (!userBizName) return true;
+          const pName = (place.name || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          return !pName.includes(userBizName) && !userBizName.includes(pName);
+        })
+        .map((place: any, index: number) => {
+          const categoryId = mapPlacesTypesToCategory(place.types || []);
+          const assignedColor = getEstablishmentColor(place.name, index);
+          return {
+            id: `circundante-${index}-${Date.now()}`,
+            lat: place.lat,
+            lng: place.lng,
+            categoryId,
+            customName: place.name,
+            distance: place.distance,
+            isCircundantePlace: true,
+            color: assignedColor
+          };
+        });
+
+      // Keep existing manual markers and replace previous imported ones
+      setMarkers(prev => {
+        const manualMarkers = prev.filter(m => !m.id.startsWith('circundante-') && !m.id.startsWith('auto-'));
+        return [...manualMarkers, ...importedMarkers];
+      });
+
+      Swal.fire({
+        title: '¡Lugares Importados!',
+        html: `Se marcaron <b>${importedMarkers.length} establecimientos</b> con sus <b>coordenadas exactas</b> e iconos correspondientes.`,
+        icon: 'success',
+        timer: 2500,
+        showConfirmButton: false
+      });
+    } catch (e) {
+      console.error(e);
+      Swal.fire('Error', 'No se pudieron importar los lugares.', 'error');
+    }
+  };
+
+  // Check on mount if there are recent cached places from clicking "Ver en Croquis de Riesgos"
+  useEffect(() => {
+    try {
+      const cachedStr = localStorage.getItem('circundantes_places_cache');
+      if (cachedStr) {
+        const cachedData = JSON.parse(cachedStr);
+        // If updated recently (within the last 15 minutes) and markers is empty
+        if (cachedData?.places?.length > 0 && Date.now() - (cachedData.updatedAt || 0) < 15 * 60 * 1000) {
+          if (cachedData.center?.lat && cachedData.center?.lng) {
+            setLat(cachedData.center.lat.toString());
+            setLng(cachedData.center.lng.toString());
+            setCenter({ lat: cachedData.center.lat, lng: cachedData.center.lng });
+          }
+          const userBizName = (cachedData.establishment || '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const importedMarkers: SavedMarker[] = cachedData.places
+            .filter((place: any) => typeof place.lat === 'number' && typeof place.lng === 'number')
+            .filter((place: any) => {
+              if (!userBizName) return true;
+              const pName = (place.name || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+              return !pName.includes(userBizName) && !userBizName.includes(pName);
+            })
+            .map((place: any, index: number) => ({
+              id: `circundante-${index}-${Date.now()}`,
+              lat: place.lat,
+              lng: place.lng,
+              categoryId: mapPlacesTypesToCategory(place.types || []),
+              customName: place.name,
+              distance: place.distance,
+              isCircundantePlace: true,
+              color: getEstablishmentColor(place.name, index)
+            }));
+          setMarkers(importedMarkers);
+        }
+      }
+    } catch (e) {
+      // quiet catch
+    }
+  }, []);
+
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-full">
       {/* Sidebar Controls */}
@@ -576,18 +714,30 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
               <RefreshCw className="w-5 h-5" />
             </button>
           </div>
-          <button
-            onClick={handleAutoLoad}
-            disabled={loadingAuto || !placesLib}
-            className="w-full bg-[#7b1f1c] hover:bg-[#5c1614] text-white py-2 rounded-lg font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5 h-[36px] disabled:opacity-50"
-          >
-            {loadingAuto ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Search className="w-4 h-4" />
-            )}
-            DETECTAR RIESGOS CERCANOS
-          </button>
+
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={handleImportFromRiesgosCircundantes}
+              className="w-full bg-purple-700 hover:bg-purple-800 text-white py-2 rounded-lg font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5 h-[36px]"
+              title="Cargar los 4 establecimientos analizados con sus coordenadas reales"
+            >
+              <Sparkles className="w-4 h-4 text-yellow-300" />
+              IMPORTAR DE RIESGOS CIRCUNDANTES
+            </button>
+
+            <button
+              onClick={handleAutoLoad}
+              disabled={loadingAuto || !placesLib}
+              className="w-full bg-[#7b1f1c] hover:bg-[#5c1614] text-white py-2 rounded-lg font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5 h-[36px] disabled:opacity-50"
+            >
+              {loadingAuto ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Search className="w-4 h-4" />
+              )}
+              DETECTAR RIESGOS CERCANOS
+            </button>
+          </div>
         </div>
 
         {/* Zoom Controls */}
@@ -665,9 +815,14 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
                       <div className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[10px]" style={{ backgroundColor: cat?.color || '#333' }}>
                         {cat?.symbolLabel}
                       </div>
-                      <span className="font-semibold text-gray-700 dark:text-gray-300 truncate">
-                        Punto #{i + 1} ({cat?.name})
-                      </span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-gray-800 dark:text-gray-200 truncate">
+                          {m.customName || `Punto #${i + 1}`}
+                        </span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
+                          {cat?.name} {m.distance ? `• ${m.distance}` : ''}
+                        </span>
+                      </div>
                     </div>
                     <button
                       onClick={() => handleRemoveMarker(m.id)}
@@ -691,13 +846,13 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
           <div 
             ref={captureAreaRef}
             id="croquis-capture-area"
-            className="w-[900px] h-[675px] bg-[#0c1a30] text-white flex flex-col relative overflow-hidden shrink-0 border border-black shadow-lg"
-            style={{ width: '900px', height: '675px' }} // Lock dimensions for canvas generation quality consistency
+            className="w-[960px] h-[680px] bg-[#0c1a30] text-white flex flex-col relative overflow-hidden shrink-0 border border-black shadow-lg"
+            style={{ width: '960px', height: '680px' }} // Lock dimensions for canvas generation quality consistency
           >
           {/* Header Banner */}
           <div className="bg-[#0B152A] py-3 text-center border-b-4 border-red-700 shrink-0 z-10">
             <h2 className="text-2xl font-black tracking-widest text-white uppercase">
-              RIESGOS CIRCUNDANTES A 200 M A LA REDONDA
+              RIESGOS CIRCUNDANTES A 250 M A LA REDONDA
             </h2>
           </div>
 
@@ -736,29 +891,75 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
               </div>
             </div>
 
-            {/* Simbología Panel */}
-            <div className="w-[260px] bg-white text-gray-900 border-l-4 border-red-700 p-5 flex flex-col justify-start gap-4 shrink-0 z-10">
-              <div className="border-2 border-blue-900 rounded-xl p-3 flex flex-col gap-4 shadow-sm h-full">
-                <h3 className="text-center font-black text-xl text-blue-950 uppercase border-b-2 border-blue-900 pb-2 tracking-wide shrink-0">
-                  SIMBOLOGÍA
+            {/* Simbología & Establecimientos Panel */}
+            <div className="w-[330px] bg-white text-gray-900 border-l-4 border-red-700 p-3 flex flex-col justify-between gap-3 shrink-0 z-10 overflow-hidden">
+              
+              {/* Sección 1: Establecimientos Identificados */}
+              <div className="border-2 border-blue-900 rounded-lg p-2.5 flex flex-col gap-1.5 shadow-sm bg-blue-50/20 shrink-0">
+                <div className="flex items-center justify-between border-b-2 border-blue-900 pb-1">
+                  <h3 className="font-black text-xs text-blue-950 uppercase tracking-wide">
+                    ESTABLECIMIENTOS (250 M)
+                  </h3>
+                  <span className="text-[10px] bg-blue-900 text-white font-black px-2 py-0.5 rounded-full">
+                    {markers.filter(m => m.customName).length}
+                  </span>
+                </div>
+                
+                <div className="flex flex-col gap-1.5 text-left py-0.5">
+                  {markers.filter(m => m.customName).length === 0 ? (
+                    <p className="text-[11px] text-gray-400 italic text-center py-2">
+                      Sin lugares detectados con nombre. Pulsa "Importar de Riesgos Circundantes".
+                    </p>
+                  ) : (
+                    markers.filter(m => m.customName).map((m, idx) => {
+                      const cat = RISK_CATEGORIES.find(c => c.id === m.categoryId);
+                      const markerColor = m.color || getEstablishmentColor(m.customName, idx);
+                      return (
+                        <div key={m.id || idx} className="flex items-center gap-2 bg-white px-2.5 py-1.5 rounded-md border border-blue-100 shadow-2xs">
+                          <div 
+                            className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 shadow text-white font-bold"
+                            style={{ backgroundColor: markerColor }}
+                          >
+                            <span className="text-xs leading-none">{cat?.symbolLabel || '🏪'}</span>
+                          </div>
+                          <div className="flex flex-col min-w-0 flex-1 leading-tight">
+                            <span className="text-xs font-black text-gray-900 truncate">
+                              {m.customName}
+                            </span>
+                            <span className="text-[10px] font-bold text-gray-500 flex items-center gap-1">
+                              {cat?.name} {m.distance ? `• ${m.distance}` : ''}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Sección 2: Simbología de Riesgos (Más grande y legible) */}
+              <div className="border-2 border-blue-900 rounded-lg p-3 flex flex-col gap-2.5 shadow-sm bg-white flex-1 justify-center">
+                <h3 className="text-center font-black text-xs text-blue-950 uppercase border-b-2 border-blue-900 pb-1 tracking-wide">
+                  SIMBOLOGÍA DE RIESGOS
                 </h3>
                 
-                <div className="flex-1 flex flex-col justify-around py-2 gap-3 overflow-hidden">
+                <div className="flex flex-col gap-2.5">
                   {RISK_CATEGORIES.map(cat => (
-                    <div key={cat.id} className="flex items-center gap-3">
+                    <div key={cat.id} className="flex items-center gap-2.5">
                       <div 
-                        className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-md text-white border-2 border-white"
+                        className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow text-white border-2 border-white text-sm"
                         style={{ backgroundColor: cat.color }}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" dangerouslySetInnerHTML={{ __html: cat.iconSvg }} />
+                        <span className="leading-none">{cat.symbolLabel}</span>
                       </div>
-                      <span className="text-xs font-extrabold text-blue-950 leading-snug">
+                      <span className="text-[11.5px] font-extrabold text-gray-900 leading-tight">
                         {cat.name}
                       </span>
                     </div>
                   ))}
                 </div>
               </div>
+
             </div>
 
           </div>
