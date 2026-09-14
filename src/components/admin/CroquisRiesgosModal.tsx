@@ -844,12 +844,12 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
       <div className="flex-1 bg-white p-4 rounded-xl border border-gray-200 overflow-auto flex items-center justify-center min-h-[500px] w-full">
         
         {/* Responsive scaling container to avoid clipping */}
-        <div className="scale-[0.55] sm:scale-[0.65] md:scale-[0.75] lg:scale-[0.8] xl:scale-95 origin-center transition-transform shrink-0">
+        <div className="scale-[0.55] sm:scale-[0.65] md:scale-[0.75] lg:scale-[0.85] xl:scale-100 origin-center transition-transform shrink-0">
           <div 
             ref={captureAreaRef}
             id="croquis-capture-area"
-            className="w-[960px] h-[680px] bg-[#0c1a30] text-white flex flex-col relative overflow-hidden shrink-0 border border-black shadow-lg"
-            style={{ width: '960px', height: '680px' }} // Lock dimensions for canvas generation quality consistency
+            className="w-[980px] h-[740px] bg-[#0c1a30] text-white flex flex-col relative overflow-hidden shrink-0 border border-black shadow-lg"
+            style={{ width: '980px', height: '740px' }} // Lock dimensions for canvas generation quality consistency
           >
           {/* Header Banner */}
           <div className="bg-[#0B152A] py-3 text-center border-b-4 border-red-700 shrink-0 z-10">
@@ -1011,7 +1011,7 @@ export default function CroquisRiesgosModal({ isOpen, onClose }: CroquisRiesgosM
 
       {/* Modal Container */}
       <div 
-        className="fixed inset-0 z-[9999] flex items-center justify-center p-4" 
+        className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4" 
         onMouseDown={(e) => {
           if (e.target === e.currentTarget) {
             onClose();
@@ -1019,11 +1019,11 @@ export default function CroquisRiesgosModal({ isOpen, onClose }: CroquisRiesgosM
         }}
       >
         <div 
-          className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-[1300px] flex flex-col h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-800"
+          className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-[1450px] flex flex-col h-[94vh] max-h-[96vh] overflow-hidden border border-gray-200 dark:border-gray-800"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 bg-[#0B152A] border-b-4 border-red-700 shrink-0 gap-4">
+          <div className="flex items-center justify-between px-6 py-3.5 bg-[#0B152A] border-b-4 border-red-700 shrink-0 gap-4">
             <div className="flex items-center gap-2.5 min-w-0">
               <ShieldAlert className="w-6 h-6 text-red-500 shrink-0" />
               <span className="text-white font-extrabold text-base sm:text-xl tracking-wide uppercase leading-tight">Croquis Riesgos Circundantes</span>
@@ -1034,7 +1034,7 @@ export default function CroquisRiesgosModal({ isOpen, onClose }: CroquisRiesgosM
           </div>
 
           {/* Content */}
-          <div className="p-6 overflow-y-auto flex-1 bg-gray-100 dark:bg-gray-950">
+          <div className="p-4 sm:p-5 overflow-y-auto flex-1 bg-gray-100 dark:bg-gray-950">
             {loadingKey ? (
               <div className="flex items-center justify-center py-20">
                 <div className="w-12 h-12 border-4 border-blue-900 border-t-transparent rounded-full animate-spin" />
