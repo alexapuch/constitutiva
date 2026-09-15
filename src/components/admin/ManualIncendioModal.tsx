@@ -37,8 +37,8 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
   const [azoteaSi, setAzoteaSi] = useState(false);
   const [azoteaM2, setAzoteaM2] = useState('');
 
-  const [m2Construccion, setM2Construccion] = useState('50');
-  const [m2Superficie, setM2Superficie] = useState('50');
+  const [m2Construccion, setM2Construccion] = useState('');
+  const [m2Superficie, setM2Superficie] = useState('');
   
   const [antiguedad, setAntiguedad] = useState('N.D.');
   const [poblacionFija, setPoblacionFija] = useState('1');
@@ -566,8 +566,8 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
     setNivel3M2('');
     setAzoteaSi(false);
     setAzoteaM2('');
-    setM2Construccion('50');
-    setM2Superficie('50');
+    setM2Construccion('');
+    setM2Superficie('');
     setAntiguedad('N.D.');
     setPoblacionFija('1');
     setPoblacionFlotante('3');
@@ -643,25 +643,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
     await generateIncendioPDF(getPDFData(), false);
   };
 
-  // Sync construction total on level change if empty
-  useEffect(() => {
-    let sum = 0;
-    if (sotanoSi) sum += parseFloat(sotanoM2) || 0;
-    if (nivel1Si) sum += parseFloat(nivel1M2) || 0;
-    if (nivel2Si) sum += parseFloat(nivel2M2) || 0;
-    if (nivel3Si) sum += parseFloat(nivel3M2) || 0;
-    if (azoteaSi) sum += parseFloat(azoteaM2) || 0;
-    
-    if (sum > 0) {
-      setM2Construccion(String(sum));
-      setM2Superficie(String(sum));
-    }
-  }, [sotanoSi, sotanoM2, nivel1Si, nivel1M2, nivel2Si, nivel2M2, nivel3Si, nivel3M2, azoteaSi, azoteaM2]);
-
-  // Sync estimates whenever category or m2 changes
-  useEffect(() => {
-    applyLocalEstimates(businessCategory, m2Construccion);
-  }, [businessCategory, m2Construccion]);
+  // Live Factor Preview Calculations
 
   if (!isOpen) return null;
 
@@ -790,14 +772,14 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                 Metros Cuadrados *
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={m2Construccion}
                 onFocus={e => e.target.select()}
                 onChange={e => {
-                  const val = e.target.value;
+                  const val = e.target.value.replace(/[^0-9.]/g, '');
                   setM2Construccion(val);
                   setM2Superficie(val);
-                  if (nivel1Si) setNivel1M2(val);
                 }}
                 placeholder="m²"
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-red-600 outline-none font-bold"
