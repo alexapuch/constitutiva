@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, Eye, Download, ShieldAlert, ClipboardCheck } from 'lucide-react';
+import { X, Trash2, Eye, Download, ShieldAlert, ClipboardCheck, AlertTriangle } from 'lucide-react';
 import { DocumentInfo } from '../../types';
 import { generateIncendioPDF } from '../../utils/generateIncendioPDF';
 import Swal from 'sweetalert2';
@@ -69,22 +69,44 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
     setBusinessCategory(cat);
     
     // Set level states based on numNiveles
-    const n = parseInt(numNiveles) || 1;
+    const n = Math.max(1, parseInt(numNiveles) || 1);
     setNivel1Si(n >= 1);
     setNivel2Si(n >= 2);
     setNivel3Si(n >= 3);
+    setSotanoSi(false);
+    setSotanoM2('');
+    setAzoteaSi(false);
+    setAzoteaM2('');
 
-    // Apply values to level inputs
-    setNivel1M2(m2Construccion);
-    setNivel2M2(n >= 2 ? m2Construccion : '');
-    setNivel3M2(n >= 3 ? m2Construccion : '');
+    // Distribute total m2Construccion among active levels without duplicating
+    const totalM2Val = parseFloat(m2Construccion) || 0;
+    if (totalM2Val > 0) {
+      if (n === 1) {
+        setNivel1M2(m2Construccion);
+        setNivel2M2('');
+        setNivel3M2('');
+      } else {
+        const porNivel = parseFloat((totalM2Val / n).toFixed(2));
+        // Ensure rounding differences match the exact total on the first level
+        const sumaOtros = porNivel * (n - 1);
+        const primerNivel = parseFloat((totalM2Val - sumaOtros).toFixed(2));
+
+        setNivel1M2(primerNivel.toString());
+        setNivel2M2(n >= 2 ? porNivel.toString() : '');
+        setNivel3M2(n >= 3 ? porNivel.toString() : '');
+      }
+    } else {
+      setNivel1M2('');
+      setNivel2M2('');
+      setNivel3M2('');
+    }
 
     applyLocalEstimates(cat, m2Construccion);
 
     Swal.fire({
       icon: 'success',
       title: 'Pre-llenado Local Exitoso',
-      text: `Se estimaron los inventarios de riesgo para el giro "${giro || 'comercio'}" y ${numNiveles} nivel(es).`,
+      text: `Se distribuyeron los ${m2Construccion ? m2Construccion + ' m²' : 'm²'} entre ${n} nivel(es) y se estimaron los inventarios para "${giro || 'comercio'}".`,
       timer: 2000,
       showConfirmButton: false
     });
@@ -603,6 +625,18 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
   const totalGrado = parseFloat((f1 + f2 + f3 + f4 + f5 + f6).toFixed(2));
   const esRiesgoAlto = totalGrado >= 1.0;
 
+  // Suma de los m2 de todos los niveles activos
+  const sotanoM2Num = sotanoSi ? (parseFloat(sotanoM2) || 0) : 0;
+  const nivel1M2Num = nivel1Si ? (parseFloat(nivel1M2) || 0) : 0;
+  const nivel2M2Num = nivel2Si ? (parseFloat(nivel2M2) || 0) : 0;
+  const nivel3M2Num = nivel3Si ? (parseFloat(nivel3M2) || 0) : 0;
+  const azoteaM2Num = azoteaSi ? (parseFloat(azoteaM2) || 0) : 0;
+
+  const sumaNivelesM2 = parseFloat((sotanoM2Num + nivel1M2Num + nivel2M2Num + nivel3M2Num + azoteaM2Num).toFixed(2));
+  const totalConstruidoNum = parseFloat(m2Construccion) || 0;
+  // Solo se evalúa discrepancia si se especificó m2Construccion y/o hay niveles activos
+  const hayDiscrepanciaM2 = totalConstruidoNum > 0 && Math.abs(sumaNivelesM2 - totalConstruidoNum) > 0.05;
+
   const getPDFData = (): any => ({
     companyName: companyName.trim().toUpperCase(),
     representativeName: representativeName.trim().toUpperCase() || companyName.trim().toUpperCase(),
@@ -611,15 +645,15 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
     fecha: fecha.trim().toUpperCase(),
     direccion,
     sotanoSi,
-    sotanoM2: sotanoSi ? (sotanoM2 || m2Construccion) : '',
+    sotanoM2: sotanoSi ? sotanoM2 : '',
     nivel1Si,
-    nivel1M2: nivel1Si ? (nivel1M2 || m2Construccion) : '',
+    nivel1M2: nivel1Si ? nivel1M2 : '',
     nivel2Si,
-    nivel2M2: nivel2Si ? (nivel2M2 || m2Construccion) : '',
+    nivel2M2: nivel2Si ? nivel2M2 : '',
     nivel3Si,
-    nivel3M2: nivel3Si ? (nivel3M2 || m2Construccion) : '',
+    nivel3M2: nivel3Si ? nivel3M2 : '',
     azoteaSi,
-    azoteaM2: azoteaSi ? (azoteaM2 || m2Construccion) : '',
+    azoteaM2: azoteaSi ? azoteaM2 : '',
     m2Construccion,
     m2Superficie,
     antiguedad,
@@ -632,14 +666,45 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
     materialesPiroforicos
   });
 
+  const validarSumaMetraje = async (): Promise<boolean> => {
+    if (hayDiscrepanciaM2) {
+      const result = await Swal.fire({
+        icon: 'warning',
+        title: 'Discrepancia en Metros Cuadrados',
+        html: `
+          <div class="text-left text-sm space-y-2">
+            <p>La <b>suma de los niveles activos</b> no coincide con los <b>Metros Cuadrados Totales Construidos</b>:</p>
+            <div class="bg-amber-50 p-3 rounded border border-amber-200 text-amber-900 font-mono text-xs">
+              <div>• Suma niveles: <b>${sumaNivelesM2} m²</b></div>
+              <div>• Total construido: <b>${totalConstruidoNum} m²</b></div>
+              <div>• Diferencia: <b>${Math.abs(sumaNivelesM2 - totalConstruidoNum).toFixed(2)} m²</b></div>
+            </div>
+            <p class="text-xs text-gray-500 pt-1">¿Deseas continuar generando el reporte o prefieres ajustar los valores?</p>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Continuar de todos modos',
+        cancelButtonText: 'Ajustar metraje',
+        confirmButtonColor: '#7b1f1c',
+        cancelButtonColor: '#4b5563'
+      });
+      return result.isConfirmed;
+    }
+    return true;
+  };
+
   const handlePreview = async () => {
     if (!commercialName.trim()) return;
+    const ok = await validarSumaMetraje();
+    if (!ok) return;
     const url = await generateIncendioPDF(getPDFData(), true);
     if (url) onPreview(url as string, `ANALISIS INCENDIO - ${commercialName.toUpperCase()}`);
   };
 
   const handleDescargar = async () => {
     if (!commercialName.trim()) return;
+    const ok = await validarSumaMetraje();
+    if (!ok) return;
     await generateIncendioPDF(getPDFData(), false);
   };
 
@@ -767,9 +832,9 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
               />
             </div>
             
-            <div className="w-full md:w-36">
-              <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">
-                Metros Cuadrados *
+            <div className="w-full md:w-44">
+              <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5" title="Superficie total construida del inmueble">
+                M² Totales Const. *
               </label>
               <input
                 type="text"
@@ -781,7 +846,7 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                   setM2Construccion(val);
                   setM2Superficie(val);
                 }}
-                placeholder="m²"
+                placeholder="Total const. m²"
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-red-600 outline-none font-bold"
               />
             </div>
@@ -881,29 +946,95 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                 <div className="space-y-2.5">
                   <div className="grid grid-cols-3 items-center">
                     <span className="text-sm font-medium">Sótano</span>
-                    <input type="checkbox" checked={sotanoSi} onChange={e => { setSotanoSi(e.target.checked); if (e.target.checked && !sotanoM2) setSotanoM2('50'); }} className="mx-auto w-4 h-4 rounded text-red-600 focus:ring-red-600" />
+                    <input 
+                      type="checkbox" 
+                      checked={sotanoSi} 
+                      onChange={e => { 
+                        setSotanoSi(e.target.checked); 
+                        if (!e.target.checked) setSotanoM2('');
+                      }} 
+                      className="mx-auto w-4 h-4 rounded text-red-600 focus:ring-red-600" 
+                    />
                     <input type="number" disabled={!sotanoSi} value={sotanoM2} onFocus={e => e.target.select()} onChange={e => setSotanoM2(e.target.value)} className="w-full border rounded px-2 py-1 text-right text-xs" placeholder="0" />
                   </div>
                   <div className="grid grid-cols-3 items-center">
                     <span className="text-sm font-medium">1er. Nivel</span>
-                    <input type="checkbox" checked={nivel1Si} onChange={e => { setNivel1Si(e.target.checked); if (e.target.checked && !nivel1M2) setNivel1M2(m2Construccion); }} className="mx-auto w-4 h-4 rounded text-red-600 focus:ring-red-600" />
+                    <input 
+                      type="checkbox" 
+                      checked={nivel1Si} 
+                      onChange={e => { 
+                        setNivel1Si(e.target.checked); 
+                        if (!e.target.checked) setNivel1M2('');
+                      }} 
+                      className="mx-auto w-4 h-4 rounded text-red-600 focus:ring-red-600" 
+                    />
                     <input type="number" disabled={!nivel1Si} value={nivel1M2} onFocus={e => e.target.select()} onChange={e => setNivel1M2(e.target.value)} className="w-full border rounded px-2 py-1 text-right text-xs" placeholder="0" />
                   </div>
                   <div className="grid grid-cols-3 items-center">
                     <span className="text-sm font-medium">2do. Nivel</span>
-                    <input type="checkbox" checked={nivel2Si} onChange={e => { setNivel2Si(e.target.checked); if (e.target.checked && !nivel2M2) setNivel2M2(m2Construccion); }} className="mx-auto w-4 h-4 rounded text-red-600 focus:ring-red-600" />
+                    <input 
+                      type="checkbox" 
+                      checked={nivel2Si} 
+                      onChange={e => { 
+                        setNivel2Si(e.target.checked); 
+                        if (!e.target.checked) setNivel2M2('');
+                      }} 
+                      className="mx-auto w-4 h-4 rounded text-red-600 focus:ring-red-600" 
+                    />
                     <input type="number" disabled={!nivel2Si} value={nivel2M2} onFocus={e => e.target.select()} onChange={e => setNivel2M2(e.target.value)} className="w-full border rounded px-2 py-1 text-right text-xs" placeholder="0" />
                   </div>
                   <div className="grid grid-cols-3 items-center">
                     <span className="text-sm font-medium">3er. Nivel</span>
-                    <input type="checkbox" checked={nivel3Si} onChange={e => { setNivel3Si(e.target.checked); if (e.target.checked && !nivel3M2) setNivel3M2(m2Construccion); }} className="mx-auto w-4 h-4 rounded text-red-600 focus:ring-red-600" />
+                    <input 
+                      type="checkbox" 
+                      checked={nivel3Si} 
+                      onChange={e => { 
+                        setNivel3Si(e.target.checked); 
+                        if (!e.target.checked) setNivel3M2('');
+                      }} 
+                      className="mx-auto w-4 h-4 rounded text-red-600 focus:ring-red-600" 
+                    />
                     <input type="number" disabled={!nivel3Si} value={nivel3M2} onFocus={e => e.target.select()} onChange={e => setNivel3M2(e.target.value)} className="w-full border rounded px-2 py-1 text-right text-xs" placeholder="0" />
                   </div>
                   <div className="grid grid-cols-3 items-center">
                     <span className="text-sm font-medium">Azotea</span>
-                    <input type="checkbox" checked={azoteaSi} onChange={e => { setAzoteaSi(e.target.checked); if (e.target.checked && !azoteaM2) setAzoteaM2('50'); }} className="mx-auto w-4 h-4 rounded text-red-600 focus:ring-red-600" />
+                    <input 
+                      type="checkbox" 
+                      checked={azoteaSi} 
+                      onChange={e => { 
+                        setAzoteaSi(e.target.checked); 
+                        if (!e.target.checked) setAzoteaM2('');
+                      }} 
+                      className="mx-auto w-4 h-4 rounded text-red-600 focus:ring-red-600" 
+                    />
                     <input type="number" disabled={!azoteaSi} value={azoteaM2} onFocus={e => e.target.select()} onChange={e => setAzoteaM2(e.target.value)} className="w-full border rounded px-2 py-1 text-right text-xs" placeholder="0" />
                   </div>
+                </div>
+
+                {/* Subtotales y alerta de validación */}
+                <div className="border-t pt-2.5 space-y-2">
+                  <div className="flex justify-between items-center text-xs font-bold">
+                    <span className="text-gray-500">Suma Niveles:</span>
+                    <span className={hayDiscrepanciaM2 ? 'text-amber-600 dark:text-amber-400 font-mono text-sm' : 'text-emerald-700 dark:text-emerald-400 font-mono text-sm'}>
+                      {sumaNivelesM2} m²
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs font-semibold text-gray-500">
+                    <span>Total Construido requerido:</span>
+                    <span className="font-mono">{totalConstruidoNum > 0 ? `${totalConstruidoNum} m²` : 'Sin definir'}</span>
+                  </div>
+
+                  {hayDiscrepanciaM2 && (
+                    <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold">Discrepancia en metraje</p>
+                        <p className="text-[11px] leading-tight mt-0.5">
+                          La suma de los niveles ({sumaNivelesM2} m²) no coincide con la superficie total construida ({totalConstruidoNum} m²). Diferencia: {Math.abs(sumaNivelesM2 - totalConstruidoNum).toFixed(2)} m².
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 border-t pt-3 mt-3">
