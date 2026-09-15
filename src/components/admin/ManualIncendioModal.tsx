@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, Eye, Download, ShieldAlert, Sparkles, Loader2, ClipboardCheck } from 'lucide-react';
+import { X, Trash2, Eye, Download, ShieldAlert, ClipboardCheck } from 'lucide-react';
 import { DocumentInfo } from '../../types';
 import { generateIncendioPDF } from '../../utils/generateIncendioPDF';
 import Swal from 'sweetalert2';
@@ -52,7 +52,6 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
   const [materialesPiroforicos, setMaterialesPiroforicos] = useState('0');
 
   // UI state
-  const [loadingAi, setLoadingAi] = useState(false);
   const [businessCategory, setBusinessCategory] = useState<string>('comercio');
   const [numNiveles, setNumNiveles] = useState('1');
 
@@ -550,65 +549,6 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
     }
   };
 
-  // Trigger Gemini AI suggestion
-  const handleGetAiSuggestions = async () => {
-    setLoadingAi(true);
-    try {
-      const selectedDoc = documents.find(d => String(d.id) === selectedDocId);
-      const res = await fetch('/api/generate-fire-risk-data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          company_name: companyName || selectedDoc?.company_name,
-          commercial_name: commercialName || selectedDoc?.commercial_name,
-          address: selectedDoc?.address || direccion,
-          activity: giro || selectedDoc?.activity,
-          m2: m2Construccion,
-          usuarios: parseInt(poblacionFija) || undefined,
-          visitantes: parseInt(poblacionFlotante) || undefined
-        })
-      });
-      
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        throw new Error('El servidor retornó una respuesta que no es JSON válido. Verifica la consola.');
-      }
-      
-      if (!res.ok) throw new Error(data.error || 'Error al conectar con la IA.');
-
-      setDireccion(data.direccion || '');
-      setAntiguedad('N.D.');
-      setPoblacionFija(String(data.poblacionFija || 1));
-      setPoblacionFlotante(String(data.poblacionFlotante || 3));
-      setGasesInflamables(String(data.gasesInflamables || 0));
-      setLiquidosInflamables(String(data.liquidosInflamables || 0));
-      setLiquidosCombustibles(String(data.liquidosCombustibles || 0));
-      setSolidosCombustibles(String(data.solidosCombustibles || 100));
-      setMaterialesPiroforicos(String(data.materialesPiroforicos || 0));
-
-      Swal.fire({
-        icon: 'success',
-        title: '¡Sugerencias aplicadas!',
-        text: 'Los campos se han rellenado usando lógica de IA basada en tu negocio.',
-        timer: 2000,
-        showConfirmButton: false
-      });
-    } catch (err: any) {
-      console.error(err);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error de IA',
-        text: err.message || 'No se pudo obtener la estimación de la IA.',
-        confirmButtonColor: '#722F37'
-      });
-    } finally {
-      setLoadingAi(false);
-    }
-  };
-
   const handleLimpiar = () => {
     setSelectedDocId('');
     setCompanyName('');
@@ -858,41 +798,22 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                   setM2Construccion(val);
                   setM2Superficie(val);
                   if (nivel1Si) setNivel1M2(val);
-                  applyLocalEstimates(businessCategory, val);
                 }}
                 placeholder="m²"
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-red-600 outline-none font-bold"
               />
             </div>
 
-            {loadingAi ? (
+            <div className="flex gap-2 w-full md:w-auto">
               <button
                 type="button"
-                className="w-full md:w-auto bg-red-600 hover:bg-red-700 text-white font-extrabold px-6 py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 h-[42px] disabled:opacity-50"
+                onClick={handlePreFillLocal}
+                className="w-full md:w-auto bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold px-6 py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 h-[42px]"
               >
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Estimando...</span>
+                <ClipboardCheck className="w-4 h-4 text-white" />
+                <span>Pre-llenar (Giro y M²)</span>
               </button>
-            ) : (
-              <div className="flex gap-2 w-full md:w-auto">
-                <button
-                  type="button"
-                  onClick={handlePreFillLocal}
-                  className="flex-1 md:flex-none bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold px-6 py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 h-[42px]"
-                >
-                  <ClipboardCheck className="w-4 h-4 text-white" />
-                  <span>Pre-llenar (Giro y M²)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleGetAiSuggestions}
-                  className="flex-1 md:flex-none bg-blue-900 hover:bg-blue-800 text-white font-extrabold px-6 py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 h-[42px]"
-                >
-                  <Sparkles className="w-4 h-4 text-yellow-300 fill-yellow-300" />
-                  <span>Sugerir con IA</span>
-                </button>
-              </div>
-            )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -941,7 +862,6 @@ export default function ManualIncendioModal({ isOpen, onClose, documents, onPrev
                       setGiro(val);
                       const cat = detectCategoryFromGiro(val);
                       setBusinessCategory(cat);
-                      applyLocalEstimates(cat, m2Construccion);
                     }}
                     placeholder="Giro Comercial"
                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-gray-50 dark:bg-gray-700 dark:text-white uppercase text-sm"
