@@ -749,17 +749,22 @@ router.post('/analyze-risks', async (req, res) => {
             },
         });
 
-        const placesData = places.map((p: any) => `- ${p.name} (Tipo: ${p.types?.join(', ')})`).join('\n');
+        const placesData = places.map((p: any) => `- ${p.name} (Distancia: ${p.distance || 'cercana'}, Tipos/Giro: ${p.types?.join(', ') || 'comercio'})`).join('\n');
 
         const response = await callGeminiWithRetry(() => ai.models.generateContent({
             model: "gemini-2.5-flash-lite",
-            contents: `I have the following real establishments located near the user's coordinates:
+            contents: `Eres un perito experto en Protección Civil en México evaluando la sección de "Riesgos Circundantes" (radio de 250 m) para un Programa Interno de Protección Civil (PIPC).
+Tengo los siguientes establecimientos reales identificados cerca del inmueble del usuario:
 ${placesData}
 
-For each establishment, please provide:
-1. A risk level ("Alto", "Medio", or "Bajo").
-2. A realistic civil protection risk description based on the nature of the establishment (e.g. for a restaurant, "Posible incendio por el uso de gas...", for a bank, "Riesgo de asaltos...", for a cinema, "Alta concentración de personas en horarios pico...").
-3. Make sure to return them in the exact same order and use the identical name provided.
+Para cada establecimiento, proporciona una evaluación técnica rigurosa de acuerdo con la normatividad de Protección Civil mexicana:
+1. "riskLevel": Nivel de riesgo ("Alto", "Medio", o "Bajo"):
+   - Gasolineras, estaciones de gas L.P., subestaciones eléctricas, almacenes de químicos, talleres de soldadura/hojalatería: SIEMPRE "Alto" (riesgo químico-tecnológico / incendio y explosión).
+   - Plazas comerciales, supermercados, hospitales, escuelas (alta afluencia de personas o población vulnerable): "Alto" o "Medio" (riesgo socio-organizativo / evacuación).
+   - Restaurantes, taquerías, panaderías (uso de gas L.P. comercial, líneas de gas, flama abierta y freidoras): "Medio" (o "Alto" si son colindantes inmediatos < 20 m).
+   - Comercios menores, farmacias, oficinas, tiendas de conveniencia: "Bajo" o "Medio" dependiendo de su cercanía.
+2. "riskDescription": Redacta una descripción técnica y formal con terminología oficial de Protección Civil (ej. "Riesgo químico-tecnológico por almacenamiento y despacho de hidrocarburos con potencial de fuga, incendio o explosión...", "Riesgo de incendio por instalaciones de gas L.P. y cocción...", "Riesgo socio-organizativo y de tráfico vehicular por alta afluencia de personas..."). Haz mención de su cercanía si se encuentra a pocos metros.
+3. Devuelve los establecimientos exactamente en el mismo orden y con el mismo nombre proporcionado.
 
 Return ONLY a JSON array.`,
             config: {

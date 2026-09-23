@@ -12,6 +12,138 @@ const HEADER_COLORS = [
   { name: 'Púrpura', value: '#6b21a8' },
   { name: 'Negro', value: '#000000' }
 ];
+export interface EvaluatedCandidate {
+  rawPlace: any;
+  name: string;
+  types: string[];
+  lat: number;
+  lng: number;
+  distanceMeters: number;
+  isGasStation: boolean;
+  isHighImpact: boolean;
+  isFood: boolean;
+  score: number;
+}
+
+export function evaluatePlaceCandidate(
+  rawPlace: any,
+  center: { lat: number; lng: number },
+  geometryLib: any
+): EvaluatedCandidate | null {
+  if (!rawPlace || !rawPlace.location) return null;
+
+  const distanceMeters = Math.round(geometryLib.spherical.computeDistanceBetween(center, rawPlace.location));
+  // Limitar estrictamente dentro de ~260m (250m con pequeña tolerancia de GPS)
+  if (distanceMeters > 260) return null;
+
+  const name = rawPlace.displayName || 'Establecimiento desconocido';
+  const types: string[] = rawPlace.types || [];
+  const normName = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  // 1. Gasolinera / Combustibles / Gas L.P. (Máximo riesgo tecnológico en Protección Civil)
+  const isGasStation = types.includes('gas_station') ||
+    /gasolinera|gasolin|combustible|pemex|oxxo\s*gas|bp\b|shell\b|mobil\b|g500|hidrosina|totalenergies|gas\s*lp|gasera|estacion\s*de\s*servicio/i.test(normName);
+
+  // 2. Gran afluencia / Plaza comercial / Supermercado / Hospital / Escuela / Taller mecánico
+  const isHighImpact = types.some(t => ['shopping_mall', 'supermarket', 'school', 'hospital', 'car_repair', 'hardware_store'].includes(t)) ||
+    /plaza|mall|comercial|galeria|supermercado|bodega\s*aurrera|walmart|soriana|chedraui|taller|mecanic|hojalater|soldadur|ferreter|maderer|hospital|clinica|colegio|escuela|instituto|universidad/i.test(normName);
+
+  // 3. Restaurantes y preparación de alimentos con gas L.P. comercial / flama abierta
+  const isFood = types.some(t => ['restaurant', 'bakery', 'cafe', 'bar', 'meal_takeaway'].includes(t)) ||
+    /restaurante|cocina|fonda|taqueria|pizzeria|panaderia|cafe|mariscos|asador|carnitas|burguer|burger|tacos|comida/i.test(normName);
+
+  let hazardBonus = 40; // Comercio general base
+  if (isGasStation) {
+    hazardBonus = 700; // Prioridad garantizada dentro del radio de 250m
+  } else if (isHighImpact) {
+    hazardBonus = 250;
+  } else if (isFood) {
+    hazardBonus = 120;
+  }
+
+  // Factor de cercanía estricto: la distancia inmediata (5m-30m) supera fuertemente a distancias lejanas (>100m)
+  // (250 - d) * 3 pts
+  const proximityScore = Math.max(0, 250 - distanceMeters) * 3;
+  const score = hazardBonus + proximityScore;
+
+  return {
+    rawPlace,
+    name,
+    types,
+    lat: rawPlace.location.lat(),
+    lng: rawPlace.location.lng(),
+    distanceMeters,
+    isGasStation,
+    isHighImpact,
+    isFood,
+    score
+  };
+}
+
+export function selectTopRisks(candidates: EvaluatedCandidate[], limit = 5): EvaluatedCandidate[] {
+  if (candidates.length <= limit) {
+    return [...candidates].sort((a, b) => a.distanceMeters - b.distanceMeters);
+  }
+
+  // Ordenar todos los candidatos por puntaje descendente
+  const sorted = [...candidates].sort((a, b) => b.score - a.score);
+
+  const selected: EvaluatedCandidate[] = [];
+  const selectedKeys = new Set<string>();
+
+  // Regla A: Si hay CUALQUIER gasolinera dentro de los 250m, incluir OBLIGATORIAMENTE la gasolinera más cercana
+  const gasStations = sorted.filter(c => c.isGasStation).sort((a, b) => a.distanceMeters - b.distanceMeters);
+  if (gasStations.length > 0) {
+    const bestGasStation = gasStations[0];
+    selected.push(bestGasStation);
+    selectedKeys.add(bestGasStation.name.toLowerCase());
+  }
+
+  // Regla B: Si hay una plaza comercial o sitio de gran afluencia/alto impacto, asegurar el mejor
+  const plazas = sorted.filter(c => c.isHighImpact && !selectedKeys.has(c.name.toLowerCase())).sort((a, b) => a.distanceMeters - b.distanceMeters);
+  if (plazas.length > 0 && selected.length < limit) {
+    const bestPlaza = plazas[0];
+    selected.push(bestPlaza);
+    selectedKeys.add(bestPlaza.name.toLowerCase());
+  }
+
+  // Regla C: Llenar los lugares restantes con los puntajes más altos (beneficiando fuertemente a vecinos a 5m-30m)
+  // Limitar alimentos/restaurantes a máximo 2 para mantener diversidad de riesgos
+  let foodCount = selected.filter(s => s.isFood).length;
+
+  for (const cand of sorted) {
+    if (selected.length >= limit) break;
+    const key = cand.name.toLowerCase();
+    if (selectedKeys.has(key)) continue;
+
+    if (cand.isFood && foodCount >= 2) {
+      const remainingNonFood = sorted.filter(c => !c.isFood && !selectedKeys.has(c.name.toLowerCase()));
+      if (remainingNonFood.length > 0) {
+        continue;
+      }
+    }
+
+    selected.push(cand);
+    selectedKeys.add(key);
+    if (cand.isFood) foodCount++;
+  }
+
+  // Si aún faltan para llegar al límite, agregar los siguientes disponibles
+  if (selected.length < limit) {
+    for (const cand of sorted) {
+      if (selected.length >= limit) break;
+      const key = cand.name.toLowerCase();
+      if (!selectedKeys.has(key)) {
+        selected.push(cand);
+        selectedKeys.add(key);
+      }
+    }
+  }
+
+  // Presentación final: ordenados de menor a mayor distancia (el más cercano primero)
+  return selected.sort((a, b) => a.distanceMeters - b.distanceMeters);
+}
+
 // GeoAnalyzer inside modal
 function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?: () => void }) {
   const [lat, setLat] = useState('');
@@ -66,24 +198,79 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
       const center = { lat: parseFloat(lat), lng: parseFloat(lng) };
       setProgress(15);
       
-      const { places } = await placesLib.Place.searchNearby({
-        fields: ['displayName', 'location', 'photos', 'types'],
-        locationRestriction: {
-          center,
-          radius: 250,
-        },
-        maxResultCount: 20,
-      });
+      // 1. Búsqueda específica de Riesgos Críticos de Protección Civil (gasolineras, plazas, talleres, escuelas, hospitales)
+      let criticalPlaces: any[] = [];
+      try {
+        const critRes = await placesLib.Place.searchNearby({
+          fields: ['displayName', 'location', 'photos', 'types'],
+          locationRestriction: { center, radius: 250 },
+          includedTypes: [
+            'gas_station',
+            'shopping_mall',
+            'supermarket',
+            'school',
+            'hospital',
+            'car_repair',
+            'hardware_store'
+          ],
+          maxResultCount: 20,
+        });
+        criticalPlaces = critRes.places || [];
+      } catch (e) {
+        console.warn('Búsqueda de tipos específicos omitida:', e);
+      }
 
-      if (!places || places.length === 0) {
+      setProgress(25);
+
+      // 2. Búsqueda general para capturar establecimientos vecinos inmediatos
+      let generalPlaces: any[] = [];
+      try {
+        const genRes = await placesLib.Place.searchNearby({
+          fields: ['displayName', 'location', 'photos', 'types'],
+          locationRestriction: { center, radius: 250 },
+          maxResultCount: 20,
+        });
+        generalPlaces = genRes.places || [];
+      } catch (e) {
+        console.warn('Búsqueda general omitida:', e);
+      }
+
+      // 3. Búsqueda de respaldo por texto para asegurar gasolineras con etiquetas no estándar
+      let textGasPlaces: any[] = [];
+      try {
+        if (typeof placesLib.Place.searchByText === 'function') {
+          const textRes = await placesLib.Place.searchByText({
+            textQuery: 'gasolinera',
+            locationBias: { center, radius: 250 },
+            fields: ['displayName', 'location', 'photos', 'types'],
+            maxResultCount: 5,
+          });
+          textGasPlaces = textRes.places || [];
+        }
+      } catch (e) {
+        console.warn('Búsqueda por texto omitida:', e);
+      }
+
+      // Consolidar y deduplicar todos los candidatos encontrados
+      const mergedMap = new Map<string, any>();
+      [...criticalPlaces, ...textGasPlaces, ...generalPlaces].forEach(p => {
+        if (!p || !p.location) return;
+        const key = `${(p.displayName || '').toLowerCase().trim()}_${p.location.lat().toFixed(4)}_${p.location.lng().toFixed(4)}`;
+        if (!mergedMap.has(key)) {
+          mergedMap.set(key, p);
+        }
+      });
+      const combinedPlaces = Array.from(mergedMap.values());
+
+      if (combinedPlaces.length === 0) {
         throw new Error('No se encontraron establecimientos cerca de estas coordenadas.');
       }
 
-      // Filter out user's own business if name is provided
-      let filteredPlaces = places;
+      // Filtrar el propio negocio del usuario si se especificó
+      let filteredPlaces = combinedPlaces;
       if (myEstablishment.trim()) {
         const query = myEstablishment.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        filteredPlaces = places.filter(p => {
+        filteredPlaces = combinedPlaces.filter(p => {
           const name = (p.displayName || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
           return !name.includes(query) && !query.includes(name);
         });
@@ -93,51 +280,55 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
         throw new Error('No se encontraron establecimientos circundantes después de filtrar tu negocio.');
       }
 
-      setProgress(30);
+      setProgress(40);
 
-      // Check image availability for each candidate place
-      const totalCandidates = filteredPlaces.length;
-      let processedCount = 0;
+      // Evaluar y ponderar todos los candidatos con la fórmula de cercanía y riesgo
+      const evaluatedCandidates = filteredPlaces
+        .map(p => evaluatePlaceCandidate(p, center, geometryLib))
+        .filter((c): c is EvaluatedCandidate => c !== null);
 
-      const candidatesData = await Promise.all(filteredPlaces.map(async p => {
-        let distanceMeters = 0;
-        let placeLat = center.lat;
-        let placeLng = center.lng;
+      if (evaluatedCandidates.length === 0) {
+        throw new Error('No se encontraron establecimientos dentro del radio de 250 metros.');
+      }
 
-        if (p.location) {
-          distanceMeters = geometryLib.spherical.computeDistanceBetween(center, p.location);
-          placeLat = p.location.lat();
-          placeLng = p.location.lng();
-        }
-        
-        let placePhoto: string | undefined = undefined;
-        if (p.photos && p.photos.length > 0) {
+      // Seleccionar los 5 mejores riesgos (priorizando gasolineras, plazas y vecinos más cercanos)
+      const selectedCandidates = selectTopRisks(evaluatedCandidates, 5);
+
+      setProgress(55);
+
+      // Obtener fotografías ÚNICAMENTE para los 5 establecimientos seleccionados
+      const totalSelected = selectedCandidates.length;
+      let photoProcessed = 0;
+
+      const placesData = await Promise.all(selectedCandidates.map(async (c) => {
+        let photoUri: string | undefined = undefined;
+
+        // A. Fotografía subida a Google Places
+        if (c.rawPlace.photos && c.rawPlace.photos.length > 0) {
           try {
-            placePhoto = p.photos[0].getURI({ maxWidth: 400 });
+            photoUri = c.rawPlace.photos[0].getURI({ maxWidth: 400 });
           } catch (e) {
-            placePhoto = undefined;
+            photoUri = undefined;
           }
         }
 
-        let photoUri: string | undefined = placePhoto;
-
-        // Fallback to Street View only if the place has no Google Places photo uploaded
-        if (!photoUri && p.location) {
-          const plat = p.location.lat();
-          const plng = p.location.lng();
+        // B. Respaldo Street View (Exterior)
+        if (!photoUri) {
           try {
-            // Check metadata specifically for outdoor source
-            const metaResOutdoor = await fetch(`https://maps.googleapis.com/maps/api/streetview/metadata?location=${plat},${plng}&radius=120&source=outdoor&key=${apiKey}`);
+            const metaResOutdoor = await fetch(
+              `https://maps.googleapis.com/maps/api/streetview/metadata?location=${c.lat},${c.lng}&radius=120&source=outdoor&key=${apiKey}`
+            );
             const metaDataOutdoor = await metaResOutdoor.json();
-            
             if (metaDataOutdoor.status === 'OK') {
-              photoUri = `https://maps.googleapis.com/maps/api/streetview?size=400x400&location=${plat},${plng}&radius=120&source=outdoor&key=${apiKey}`;
+              photoUri = `https://maps.googleapis.com/maps/api/streetview?size=400x400&location=${c.lat},${c.lng}&radius=120&source=outdoor&key=${apiKey}`;
             } else {
-              // Fallback check metadata without source outdoor restriction
-              const metaResDefault = await fetch(`https://maps.googleapis.com/maps/api/streetview/metadata?location=${plat},${plng}&radius=120&key=${apiKey}`);
+              // Respaldo Street View sin restricción
+              const metaResDefault = await fetch(
+                `https://maps.googleapis.com/maps/api/streetview/metadata?location=${c.lat},${c.lng}&radius=120&key=${apiKey}`
+              );
               const metaDataDefault = await metaResDefault.json();
               if (metaDataDefault.status === 'OK') {
-                photoUri = `https://maps.googleapis.com/maps/api/streetview?size=400x400&location=${plat},${plng}&radius=120&key=${apiKey}`;
+                photoUri = `https://maps.googleapis.com/maps/api/streetview?size=400x400&location=${c.lat},${c.lng}&radius=120&key=${apiKey}`;
               }
             }
           } catch (e) {
@@ -145,42 +336,23 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
           }
         }
 
-        processedCount++;
-        const pct = 30 + Math.round((processedCount / totalCandidates) * 40);
-        setProgress(prev => Math.max(prev, Math.min(70, pct)));
+        // C. Respaldo Satelital: Evita que ningún establecimiento quede sin imagen
+        if (!photoUri) {
+          photoUri = `https://maps.googleapis.com/maps/api/staticmap?center=${c.lat},${c.lng}&zoom=19&size=400x400&maptype=satellite&markers=color:red%7C${c.lat},${c.lng}&key=${apiKey}`;
+        }
+
+        photoProcessed++;
+        const pct = 55 + Math.round((photoProcessed / totalSelected) * 20);
+        setProgress(pct);
 
         return {
-          name: p.displayName || 'Establecimiento desconocido',
-          distance: `${Math.round(distanceMeters)} MTS`,
-          types: p.types || [],
-          lat: placeLat,
-          lng: placeLng,
-          photoUri: photoUri || null,
-          hasPhoto: Boolean(photoUri)
+          name: c.name,
+          distance: `${c.distanceMeters} MTS`,
+          types: c.types,
+          lat: c.lat,
+          lng: c.lng,
+          photoUri: photoUri || undefined
         };
-      }));
-
-      // Filter and prioritize places that have valid photos available (top 5 establishments)
-      const placesWithPhotos = candidatesData.filter(c => c.hasPhoto);
-      const placesWithoutPhotos = candidatesData.filter(c => !c.hasPhoto);
-
-      let selectedPlaces = placesWithPhotos.slice(0, 5);
-      if (selectedPlaces.length < 5) {
-        const remainingNeeded = 5 - selectedPlaces.length;
-        selectedPlaces = [...selectedPlaces, ...placesWithoutPhotos.slice(0, remainingNeeded)];
-      }
-
-      if (selectedPlaces.length === 0) {
-        throw new Error('No se encontraron establecimientos para analizar.');
-      }
-
-      const placesData = selectedPlaces.map(p => ({
-        name: p.name,
-        distance: p.distance,
-        types: p.types,
-        lat: p.lat,
-        lng: p.lng,
-        photoUri: p.photoUri || undefined
       }));
 
 

@@ -3,6 +3,7 @@ import { APIProvider, Map, Marker, InfoWindow, useMap, useMapsLibrary } from '@v
 import { X, MapPin, ShieldAlert, AlertCircle, Trash2, Plus, Download, RefreshCw, Compass, Search, Sparkles } from 'lucide-react';
 import Swal from 'sweetalert2';
 import html2canvas from 'html2canvas';
+import { evaluatePlaceCandidate, selectTopRisks, EvaluatedCandidate } from './GeoRiesgosModal';
 
 // Categories definitions with colors, names, and icons
 interface RiskCategory {
@@ -79,7 +80,7 @@ export const mapPlacesTypesToCategory = (types: string[] = []): string => {
   if (types.some(t => ['bus_station', 'transit_station', 'gas_station', 'intersection', 'subway_station', 'train_station'].includes(t))) {
     return 'trafico';
   }
-  if (types.some(t => ['school', 'park', 'church', 'place_of_worship', 'tourist_attraction', 'museum', 'university', 'stadium', 'event_venue'].includes(t))) {
+  if (types.some(t => ['school', 'park', 'church', 'place_of_worship', 'tourist_attraction', 'museum', 'university', 'stadium', 'event_venue', 'shopping_mall', 'supermarket'].includes(t))) {
     return 'personas';
   }
   if (types.some(t => ['lodging', 'hotel', 'real_estate_agency', 'condominium', 'apartment_building', 'neighborhood'].includes(t))) {
@@ -496,46 +497,102 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
     try {
       const centerPos = { lat: parsedLat, lng: parsedLng };
       
-      const { places } = await placesLib.Place.searchNearby({
-        fields: ['displayName', 'location', 'types'],
-        locationRestriction: {
-          center: centerPos,
-          radius: 200,
-        },
-        maxResultCount: 20,
-      });
+      // 1. Búsqueda de Riesgos Críticos (gasolineras, plazas, talleres, hospitales, escuelas)
+      let criticalPlaces: any[] = [];
+      try {
+        const critRes = await placesLib.Place.searchNearby({
+          fields: ['displayName', 'location', 'types'],
+          locationRestriction: { center: centerPos, radius: 250 },
+          includedTypes: [
+            'gas_station',
+            'shopping_mall',
+            'supermarket',
+            'school',
+            'hospital',
+            'car_repair',
+            'hardware_store'
+          ],
+          maxResultCount: 20,
+        });
+        criticalPlaces = critRes.places || [];
+      } catch (e) {
+        console.warn('Error en búsqueda de riesgos críticos:', e);
+      }
 
-      if (!places || places.length === 0) {
-        Swal.fire('Info', 'No se encontraron establecimientos en un radio de 200m.', 'info');
+      // 2. Búsqueda general para capturar establecimientos vecinos inmediatos
+      let generalPlaces: any[] = [];
+      try {
+        const genRes = await placesLib.Place.searchNearby({
+          fields: ['displayName', 'location', 'types'],
+          locationRestriction: { center: centerPos, radius: 250 },
+          maxResultCount: 20,
+        });
+        generalPlaces = genRes.places || [];
+      } catch (e) {
+        console.warn('Error en búsqueda general:', e);
+      }
+
+      // 3. Búsqueda por texto para gasolineras con categorías no estándar
+      let textGasPlaces: any[] = [];
+      try {
+        if (typeof placesLib.Place.searchByText === 'function') {
+          const textRes = await placesLib.Place.searchByText({
+            textQuery: 'gasolinera',
+            locationBias: { center: centerPos, radius: 250 },
+            fields: ['displayName', 'location', 'types'],
+            maxResultCount: 5,
+          });
+          textGasPlaces = textRes.places || [];
+        }
+      } catch (e) {
+        console.warn('Error en búsqueda por texto:', e);
+      }
+
+      // Consolidar y deduplicar establecimientos
+      const mergedMap = new Map<string, any>();
+      [...criticalPlaces, ...textGasPlaces, ...generalPlaces].forEach(p => {
+        if (!p || !p.location) return;
+        const key = `${(p.displayName || '').toLowerCase().trim()}_${p.location.lat().toFixed(4)}_${p.location.lng().toFixed(4)}`;
+        if (!mergedMap.has(key)) {
+          mergedMap.set(key, p);
+        }
+      });
+      const combinedPlaces = Array.from(mergedMap.values());
+
+      if (combinedPlaces.length === 0) {
+        Swal.fire('Info', 'No se encontraron establecimientos en un radio de 250m.', 'info');
         setLoadingAuto(false);
         return;
       }
 
-      // Limit commercial markers to 6 to prevent overcrowding
-      const limitedPlaces = places.slice(0, 6);
+      // Evaluar candidatos con lógica inteligente de Protección Civil y cercanía
+      const evaluated = combinedPlaces
+        .map(p => evaluatePlaceCandidate(p, centerPos, geometryLib))
+        .filter((c): c is EvaluatedCandidate => c !== null);
+
+      if (evaluated.length === 0) {
+        Swal.fire('Info', 'No se encontraron establecimientos dentro de 250m.', 'info');
+        setLoadingAuto(false);
+        return;
+      }
+
+      // Seleccionar los 5 riesgos prioritarios (gasolineras, plazas y vecinos más cercanos)
+      const topPlaces = selectTopRisks(evaluated, 5);
       const newMarkers: SavedMarker[] = [];
       
-      limitedPlaces.forEach(p => {
-        if (!p.location) return;
-
-        const pLat = p.location.lat();
-        const pLng = p.location.lng();
-
-        // Calculate distance from center to make sure it is within 200m
-        const distance = geometryLib.spherical.computeDistanceBetween(centerPos, p.location);
-        if (distance > 200) return;
-
-        const types = p.types || [];
-        const categoryId = mapPlacesTypesToCategory(types);
+      topPlaces.forEach((p, idx) => {
+        const categoryId = mapPlacesTypesToCategory(p.types);
+        const markerColor = getEstablishmentColor(p.name, idx);
 
         newMarkers.push({
-          id: `auto-${p.displayName || 'place'}-${Math.random()}`,
-          lat: pLat,
-          lng: pLng,
+          id: `auto-${p.name}-${Math.random()}`,
+          lat: p.lat,
+          lng: p.lng,
           categoryId,
-          customName: p.displayName || undefined,
-          distance: `${Math.round(distance)} m`,
-          isCircundantePlace: true
+          customName: p.name,
+          distance: `${p.distanceMeters} m`,
+          isCircundantePlace: true,
+          color: markerColor
         });
       });
 
