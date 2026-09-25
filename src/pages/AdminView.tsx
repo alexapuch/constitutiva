@@ -61,6 +61,7 @@ export default function AdminView() {
       '/constancia_evacuacion.png',
       '/constancia_extintores.png',
       '/constancia_primeros_auxilios.png',
+      '/constancia_primeros_auxilios_p.png',
     ]);
     localStorage.removeItem('pdfHistory');
   }, []);

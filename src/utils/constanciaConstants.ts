@@ -3,6 +3,7 @@ export const CONSTANCIA_PDF_PREFIX: Record<string, string> = {
   'evacuacion':              'CONSTANCIA EVA',
   'extintores':              'CONSTANCIA UYME',
   'primeros_auxilios':       'CONSTANCIA P.A.',
+  'primeros_auxilios_p':     'CONSTANCIA P.A. PEDIÁTRICOS',
   'pa_extintores':           'CONSTANCIA P.A.-UYME',
   'completa_tulum':          'CONSTANCIAS',
   'evacuacion_tulum':        'CONSTANCIA EVA',
@@ -12,11 +13,12 @@ export const CONSTANCIA_PDF_PREFIX: Record<string, string> = {
 };
 
 export const CONSTANCIA_TYPES = [
-  { id: 'completa',           label: 'Completa (todos los rubros)',    image: '/constancia_vacia.png',                  location: 'pdc' },
-  { id: 'evacuacion',         label: 'Evacuación',                     image: '/constancia_evacuacion.png',             location: 'pdc' },
-  { id: 'extintores',         label: 'Uso y Manejo de Extintores',     image: '/constancia_extintores.png',             location: 'pdc' },
-  { id: 'primeros_auxilios',  label: 'Primeros Auxilios',              image: '/constancia_primeros_auxilios.png',      location: 'pdc' },
-  { id: 'pa_extintores',      label: 'Primeros Auxilios + Extintores', image: '/constancia_pa_extintores.png',          location: 'pdc' },
+  { id: 'completa',            label: 'Completa (todos los rubros)',    image: '/constancia_vacia.png',                   location: 'pdc' },
+  { id: 'evacuacion',          label: 'Evacuación',                     image: '/constancia_evacuacion.png',              location: 'pdc' },
+  { id: 'extintores',          label: 'Uso y Manejo de Extintores',     image: '/constancia_extintores.png',              location: 'pdc' },
+  { id: 'primeros_auxilios',   label: 'Primeros Auxilios',              image: '/constancia_primeros_auxilios.png',       location: 'pdc' },
+  { id: 'primeros_auxilios_p', label: 'Primeros Auxilios Pediátricos',  image: '/constancia_primeros_auxilios_p.png',     location: 'pdc' },
+  { id: 'pa_extintores',       label: 'Primeros Auxilios + Extintores', image: '/constancia_pa_extintores.png',           location: 'pdc' },
   { id: 'completa_tulum',          label: 'Completa (todos los rubros)',    image: '/constancia_vacia_tulum.png',             location: 'tulum' },
   { id: 'evacuacion_tulum',        label: 'Evacuación',                     image: '/constancia_evacuacion_tulum.png',        location: 'tulum' },
   { id: 'extintores_tulum',        label: 'Uso y Manejo de Extintores',     image: '/constancias_extintores_tulum.png',       location: 'tulum' },
