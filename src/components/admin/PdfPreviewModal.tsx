@@ -172,13 +172,14 @@ export default function PdfPreviewModal({
       </div>
       <div ref={pdfContainerRef} className="flex-1 w-full bg-gray-200 overflow-y-auto p-4 flex flex-col items-center">
         <Document
+          key={previewUrl}
           file={previewUrl}
           onLoadSuccess={({ numPages }) => setNumPages(numPages)}
           loading={<div className="text-gray-500 py-10 font-bold">Cargando documento...</div>}
           className="flex flex-col items-center"
         >
           {Array.from(new Array(numPages || 0), (_, index) => (
-            <LazyPage key={`page_${index + 1}`} pageNumber={index + 1} containerWidth={pdfWidth} isLandscape={isLandscape} />
+            <LazyPage key={`${previewUrl}_page_${index + 1}`} pageNumber={index + 1} containerWidth={pdfWidth} isLandscape={isLandscape} />
           ))}
         </Document>
       </div>

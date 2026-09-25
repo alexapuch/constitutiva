@@ -34,6 +34,10 @@ export const generateCartaResponsivaPDF = async (data: CartaResponsivaData, prev
         // 9pt ≈ 3.17mm, × 1.4 ≈ 4.4mm per line
         const lh = 4.4;
 
+        // Ensure solid white background for the entire page
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, docWidth, pageHeight, 'F');
+
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(fs);
 
@@ -73,27 +77,42 @@ export const generateCartaResponsivaPDF = async (data: CartaResponsivaData, prev
         // First paragraph (FVU in bold at the end)
         y += 20;
         doc.setFont('helvetica', 'normal');
+        const cleanFvu = (data.fvu || '').trim();
+        const fvuToken = cleanFvu ? `FVU-2026-${cleanFvu}` : 'FVU-2026-';
         const p1Text = `POR MEDIO DE LA PRESENTE MANIFIESTO QUE LOS DATOS, INFORMES Y DOCUMENTACIÓN QUE INTEGRAN LA CARPETA DEL PROGRAMA INTERNO DE PROTECCIÓN CIVIL A NOMBRE DE "${data.razonSocial.toUpperCase()}" DE NOMBRE COMERCIAL "${data.nombreComercial.toUpperCase()}" GIRO COMERCIAL "${data.giroComercial.toUpperCase()}" Y DIRECCIÓN: ${baseAddress.toUpperCase()}, ${cityPrefix}, QUINTANA ROO, MÉXICO. SON VERÍDICOS. CON`;
-        const fvuText = ` FVU-2026-${data.fvu}`;
-        const p1Full = p1Text + fvuText;
-        const lines1 = doc.splitTextToSize(p1Full, usableWidth);
-        // Draw all lines normal first
-        doc.text(lines1, margin, y, { align: 'justify', maxWidth: usableWidth, lineHeightFactor: 1.4 });
-        // Now overlay the FVU part in bold on the last line
-        const lastLine: string = lines1[lines1.length - 1];
-        const fvuMatch = lastLine.match(/(FVU-2026-\S*)/);
-        if (fvuMatch) {
-            const lastLineY = y + (lines1.length - 1) * lh;
-            const beforeFvu = lastLine.substring(0, lastLine.indexOf(fvuMatch[1]));
-            const beforeWidth = doc.getTextWidth(beforeFvu);
-            // White out the FVU text area and redraw in bold
-            doc.setFillColor(255, 255, 255);
-            doc.rect(margin + beforeWidth, lastLineY - 3, doc.getTextWidth(fvuMatch[1]) + 1, 4, 'F');
-            doc.setFont('helvetica', 'bold');
-            doc.text(fvuMatch[1], margin + beforeWidth, lastLineY);
-            doc.setFont('helvetica', 'normal');
+        const p1Full = `${p1Text} ${fvuToken}`;
+        const lines1: string[] = doc.splitTextToSize(p1Full, usableWidth);
+
+        const allExceptLast = lines1.slice(0, lines1.length - 1);
+        const lastLine = lines1[lines1.length - 1] || '';
+
+        // Draw preceding lines justified if any
+        if (allExceptLast.length > 0) {
+            doc.text(allExceptLast, margin, y, { align: 'justify', maxWidth: usableWidth, lineHeightFactor: 1.4 });
         }
-        y += lines1.length * lh + 4;
+
+        // Exact line spacing in mm
+        const lineSpacing = (fs * 1.4 * 25.4) / 72;
+        const lastLineY = y + allExceptLast.length * lineSpacing;
+
+        // Render the last line cleanly: regular text followed by bold FVU (no whiteout hack)
+        const fvuIdx = lastLine.lastIndexOf(fvuToken);
+        if (fvuIdx !== -1) {
+            const beforeFvu = lastLine.substring(0, fvuIdx);
+            doc.setFont('helvetica', 'normal');
+            if (beforeFvu) {
+                doc.text(beforeFvu, margin, lastLineY);
+            }
+            const beforeWidth = beforeFvu ? doc.getTextWidth(beforeFvu) : 0;
+            doc.setFont('helvetica', 'bold');
+            doc.text(fvuToken, margin + beforeWidth, lastLineY);
+            doc.setFont('helvetica', 'normal');
+        } else {
+            doc.setFont('helvetica', 'normal');
+            doc.text(lastLine, margin, lastLineY);
+        }
+
+        y = lastLineY + lineSpacing + 4;
 
         // Second paragraph
         const p2 = 'DICHO PROGRAMA FUE ELABORADO POR UN SERVIDOR DE ACUERDO CON LAS NORMAS Y LEYES EN MATERIA DE PROTECCIÓN CIVIL. EL USB CONTIENE LO SIGUIENTE:';
@@ -142,27 +161,27 @@ export const generateCartaResponsivaPDF = async (data: CartaResponsivaData, prev
         doc.text('SIN OTRO EN PARTICULAR QUEDO A SUS ÓRDENES.', margin, y);
 
         // Check remaining space and scale signature area if needed
-        const signatureNeeded = 38; // firma(18) + gap + text
-        const remaining = pageHeight - y - 10; // 10mm bottom margin
+        const signatureNeeded = 48; // enlarged signature + gap + text
+        const remaining = pageHeight - y - 12; // 12mm bottom margin
         const sigScale = remaining < signatureNeeded ? remaining / signatureNeeded : 1;
 
-        // Signature image
+        // Signature image - enlarged for prominent and legible look
         y += 4 * sigScale;
-        const sigW = 38 * sigScale;
-        const sigH = 18 * sigScale;
+        const sigW = 52 * sigScale;
+        const sigH = 26 * sigScale;
         doc.addImage(FIRMA_JORGE_BASE64, 'PNG', margin, y, sigW, sigH);
 
-        y += sigH + 1;
-        doc.setFontSize(Math.max(7, 9 * sigScale));
+        y += sigH + 1.5;
+        doc.setFontSize(Math.max(7.5, 9.5 * sigScale));
         doc.setFont('helvetica', 'normal');
         doc.text('A T E N T A M E N T E', margin, y);
 
-        y += 5 * sigScale;
+        y += 5.5 * sigScale;
         doc.setFont('helvetica', 'bold');
         doc.text('JORGE HUMBERTO MEZA CONTRERAS', margin, y);
-        y += 4 * sigScale;
+        y += 4.5 * sigScale;
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(Math.max(6.5, 8 * sigScale));
+        doc.setFontSize(Math.max(6.5, 8.5 * sigScale));
         const registro = cityPrefix === 'TULUM' ? 'REGISTRO: DGPCYB/DPC/PS/044/26' : 'REGISTRO: MPDC/SPCPRyB/AUT-DT/RPS/028/2026';
         doc.text(registro, margin, y);
 

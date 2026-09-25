@@ -241,6 +241,7 @@ export default function CartaResponsivaView({
                             e.preventDefault(); // Evita que el input pierda el foco
                             setSearchTerm('');
                             setCartaDocId(null);
+                            setCartaFvu('');
                             setDropdownOpen(true);
                           }}
                           className="text-gray-400 hover:text-gray-600 p-0.5"
@@ -274,6 +275,9 @@ export default function CartaResponsivaView({
                               key={doc.id} 
                               onMouseDown={(e) => {
                                 e.preventDefault(); // Evita que se dispare el onBlur antes del click
+                                if (cartaDocId !== doc.id) {
+                                  setCartaFvu('');
+                                }
                                 setCartaDocId(doc.id);
                                 setSearchTerm(doc.commercial_name || doc.company_name || '');
                                 setDropdownOpen(false);
