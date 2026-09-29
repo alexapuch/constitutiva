@@ -157,7 +157,7 @@ export default function OSRS() {
   // Handle subscribing device to VAPID Web Push
   const handleSubscribePush = async () => {
     setSubscribingPush(true);
-    const res = await subscribeUserToPush();
+    const res = await subscribeUserToPush(true);
     setSubscribingPush(false);
     if (res.success) {
       setIsPushSubscribed(true);
@@ -180,8 +180,8 @@ export default function OSRS() {
   const handleSendTestPush = async () => {
     setTestingPush(true);
     try {
-      // 1. Sync & renew subscription first
-      const isOk = await ensurePushSubscriptionSync(true);
+      // 1. Non-destructive sync check
+      const isOk = await ensurePushSubscriptionSync();
       setIsPushSubscribed(isOk);
 
       if (!isOk && typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
@@ -202,7 +202,7 @@ export default function OSRS() {
       } else {
         showMedievalAlert(
           '⚠️ Error de Envío',
-          data.error || 'No se pudo entregar la notificación. Toca "Activar Push PWA" para volver a suscribirte.',
+          data.error || 'No se pudo entregar la notificación. Toca "Activar Push" para volver a suscribirte.',
           'error'
         );
       }
@@ -252,11 +252,12 @@ export default function OSRS() {
       `Timer configurado a ${devMode ? '15 seg' : '50 minutos'}. ¡Recibirás una notificación cuando esté listo!`
     );
 
-    // Parallel background persistence & push subscription auto-refresh
+    // Parallel background persistence & non-destructive push sync
     Promise.all([
-      ensurePushSubscriptionSync(true).then(setIsPushSubscribed),
-      supabase.from('osrs_timers').delete().eq('type', 'bird_run').then(() =>
-        supabase.from('osrs_timers').insert({ type: 'bird_run', ends_at: endsAt, notified: false })
+      ensurePushSubscriptionSync().then(setIsPushSubscribed),
+      supabase.from('osrs_timers').upsert(
+        { type: 'bird_run', ends_at: endsAt, notified: false, last_reminder_at: null },
+        { onConflict: 'type' }
       ),
       fetch('/api/osrs/start', {
         method: 'POST',
@@ -301,11 +302,12 @@ export default function OSRS() {
       `Timer configurado a ${devMode ? '20 seg' : '80 minutos'}. ¡Recibirás una notificación cuando esté listo!`
     );
 
-    // Parallel background persistence & push subscription auto-refresh
+    // Parallel background persistence & non-destructive push sync
     Promise.all([
-      ensurePushSubscriptionSync(true).then(setIsPushSubscribed),
-      supabase.from('osrs_timers').delete().eq('type', 'herb_patch').then(() =>
-        supabase.from('osrs_timers').insert({ type: 'herb_patch', ends_at: endsAt, notified: false })
+      ensurePushSubscriptionSync().then(setIsPushSubscribed),
+      supabase.from('osrs_timers').upsert(
+        { type: 'herb_patch', ends_at: endsAt, notified: false, last_reminder_at: null },
+        { onConflict: 'type' }
       ),
       fetch('/api/osrs/start', {
         method: 'POST',

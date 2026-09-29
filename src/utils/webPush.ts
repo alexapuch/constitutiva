@@ -36,7 +36,7 @@ export async function checkPushSubscriptionStatus(): Promise<boolean> {
   }
 }
 
-export async function subscribeUserToPush(): Promise<{ success: boolean; error?: string }> {
+export async function subscribeUserToPush(forceUnsubscribe = false): Promise<{ success: boolean; error?: string }> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     return { success: false, error: 'Este navegador o dispositivo no soporta notificaciones Web Push PWA.' };
   }
@@ -52,21 +52,26 @@ export async function subscribeUserToPush(): Promise<{ success: boolean; error?:
     await registration.update();
     await navigator.serviceWorker.ready;
 
-    // Unsubscribe existing stale subscription to force a fresh VAPID subscription
     let subscription = await registration.pushManager.getSubscription();
-    if (subscription) {
+
+    // Solo desuscribir si se fuerza explícitamente (ej. botón manual de reinicio)
+    if (subscription && forceUnsubscribe) {
       try {
         await subscription.unsubscribe();
+        subscription = null;
       } catch (e) {
         /* ignore */
       }
     }
 
-    const convertedKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY);
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: convertedKey
-    });
+    // Si no hay suscripción activa, suscribir con la clave VAPID pública
+    if (!subscription) {
+      const convertedKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY);
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedKey
+      });
+    }
 
     const subJson = subscription.toJSON();
     const endpoint = subJson.endpoint;
@@ -107,10 +112,10 @@ export async function subscribeUserToPush(): Promise<{ success: boolean; error?:
 }
 
 /**
- * Verificación y auto-re-suscripción transparente:
- * 1. Si el permiso está concedido y getSubscription() es null -> auto-re-suscribe en silencio.
- * 2. Si forceRefresh es true o la suscripción fue borrada en Supabase (ej. tras error 410 APNs/FCM por inactividad) -> fuerza una suscripción nueva limpia con el servicio Push.
- * 3. Si existe la suscripción local y está presente en Supabase -> asegura que esté sincronizada.
+ * Verificación y auto-sincronización transparente (100% no destructiva):
+ * 1. Si no hay permiso concedido -> requiere interacción del usuario.
+ * 2. Si getSubscription() es null -> auto-suscribe silenciosamente sin destruir nada.
+ * 3. Si existe suscripción local -> verifica que coincida con la de Supabase; si falta o difiere, la actualiza.
  */
 export async function ensurePushSubscriptionSync(forceRefresh = false): Promise<boolean> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
@@ -125,16 +130,16 @@ export async function ensurePushSubscriptionSync(forceRefresh = false): Promise<
 
     if (forceRefresh) {
       console.log('🔄 Forzando re-suscripción limpia de Web Push...');
-      const res = await subscribeUserToPush();
+      const res = await subscribeUserToPush(true);
       return res.success;
     }
 
     let sub = await registration.pushManager.getSubscription();
 
-    // Caso A: El token expiró o iOS lo borró (getSubscription() == null) PERO permiso sigue concedido
+    // Caso A: El token expiró o getSubscription() es null pero el permiso sigue concedido
     if (!sub) {
       console.log('🔄 Re-suscribiendo automáticamente en silencio (Permiso previamente concedido)...');
-      const res = await subscribeUserToPush();
+      const res = await subscribeUserToPush(false);
       return res.success;
     }
 
@@ -145,7 +150,7 @@ export async function ensurePushSubscriptionSync(forceRefresh = false): Promise<
     const auth = subJson.keys?.auth;
 
     if (!endpoint || !p256dh || !auth) {
-      const res = await subscribeUserToPush();
+      const res = await subscribeUserToPush(true);
       return res.success;
     }
 
@@ -158,14 +163,14 @@ export async function ensurePushSubscriptionSync(forceRefresh = false): Promise<
       .eq('device_id', deviceId)
       .maybeSingle();
 
-    // Si fue eliminada de Supabase (ej. tras error 410 por inactividad de varios días) -> Re-suscribir desde cero
+    // Si fue eliminada de Supabase (ej. tras error 410 por inactividad de varios días) -> guardar local actual
     if (error || !data) {
-      console.log('🔄 Suscripción eliminada o no encontrada en Supabase. Forzando re-suscripción nueva...');
-      const res = await subscribeUserToPush();
+      console.log('🔄 Suscripción no encontrada en Supabase. Guardando suscripción activa...');
+      const res = await subscribeUserToPush(false);
       return res.success;
     }
 
-    // Si el endpoint local difiere del de Supabase -> hacer upsert del actual
+    // Si el endpoint local difiere del de Supabase -> sincronizar con el actual
     if (data.endpoint !== endpoint) {
       console.log('🔄 Sincronizando suscripción Push existente con Supabase...');
       const nowIso = new Date().toISOString();

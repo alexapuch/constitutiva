@@ -76,7 +76,7 @@ self.addEventListener('pushsubscriptionchange', (event) => {
         const supabaseUrl = 'https://hdpqihtbueodtermrqbm.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkcHFpaHRidWVvZHRlcm1ycWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NzUzNzYsImV4cCI6MjA4NzQ1MTM3Nn0.a1O7rfEnktapsaTb-8xi8aQxuDABYXLLD9VK2DSjcdI';
 
-        await fetch(`${supabaseUrl}/rest/v1/push_subscriptions`, {
+        await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?on_conflict=endpoint`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
