@@ -760,10 +760,11 @@ ${placesData}
 Para cada establecimiento, proporciona una evaluación técnica rigurosa de acuerdo con la normatividad de Protección Civil mexicana:
 1. "riskLevel": Nivel de riesgo ("Alto", "Medio", o "Bajo"):
    - Gasolineras, estaciones de gas L.P., subestaciones eléctricas, almacenes de químicos, talleres de soldadura/hojalatería: SIEMPRE "Alto" (riesgo químico-tecnológico / incendio y explosión).
-   - Plazas comerciales, supermercados, hospitales, escuelas (alta afluencia de personas o población vulnerable): "Alto" o "Medio" (riesgo socio-organizativo / evacuación).
-   - Restaurantes, taquerías, panaderías (uso de gas L.P. comercial, líneas de gas, flama abierta y freidoras): "Medio" (o "Alto" si son colindantes inmediatos < 20 m).
-   - Comercios menores, farmacias, oficinas, tiendas de conveniencia: "Bajo" o "Medio" dependiendo de su cercanía.
-2. "riskDescription": Redacta una descripción técnica y formal con terminología oficial de Protección Civil (ej. "Riesgo químico-tecnológico por almacenamiento y despacho de hidrocarburos con potencial de fuga, incendio o explosión...", "Riesgo de incendio por instalaciones de gas L.P. y cocción...", "Riesgo socio-organizativo y de tráfico vehicular por alta afluencia de personas..."). Haz mención de su cercanía si se encuentra a pocos metros.
+   - Plazas comerciales, centros comerciales, supermercados, escuelas, hospitales: "Alto" o "Medio" (riesgo socio-organizativo / evacuación masiva).
+   - Restaurantes, establecimientos de comida rápida, taquerías, panaderías (uso de gas L.P. comercial, líneas de gas, freidoras industriales y flama abierta): "Medio" (o "Alto" si son colindantes inmediatos < 30 m por riesgo directo de incendio y explosión contigua).
+   - Comercios menores, farmacias, tiendas de conveniencia: "Bajo" o "Medio" dependiendo de su cercanía.
+   - Consultorios médicos o dentales particulares, despachos, psicólogos, oficinas administrativas: "Bajo" (riesgo ordinario, sin manejo de materiales peligrosos ni flama abierta).
+2. "riskDescription": Redacta una descripción técnica y formal con terminología oficial de Protección Civil (ej. "Riesgo químico-tecnológico por almacenamiento y despacho de hidrocarburos con potencial de fuga, incendio o explosión...", "Riesgo de incendio por instalaciones de gas L.P. comercial, freidoras y cocción a flama abierta...", "Riesgo socio-organizativo y de tráfico vehicular por alta afluencia de personas en plaza comercial..."). Haz mención expresa de su cercanía si se encuentra a pocos metros.
 3. Devuelve los establecimientos exactamente en el mismo orden y con el mismo nombre proporcionado.
 
 Return ONLY a JSON array.`,

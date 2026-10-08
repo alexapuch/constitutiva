@@ -496,6 +496,7 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
 
     try {
       const centerPos = { lat: parsedLat, lng: parsedLng };
+      const distanceRank = (placesLib.SearchNearbyRankPreference && placesLib.SearchNearbyRankPreference.DISTANCE) || 'DISTANCE';
       
       // 1. Búsqueda de Riesgos Críticos (gasolineras, plazas, talleres, hospitales, escuelas)
       let criticalPlaces: any[] = [];
@@ -503,10 +504,12 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
         const critRes = await placesLib.Place.searchNearby({
           fields: ['displayName', 'location', 'types'],
           locationRestriction: { center: centerPos, radius: 250 },
+          rankPreference: distanceRank,
           includedTypes: [
             'gas_station',
             'shopping_mall',
             'supermarket',
+            'department_store',
             'school',
             'hospital',
             'car_repair',
@@ -519,12 +522,35 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
         console.warn('Error en búsqueda de riesgos críticos:', e);
       }
 
-      // 2. Búsqueda general para capturar establecimientos vecinos inmediatos
+      // 2. Búsqueda prioritaria de Restaurantes y Alimentos (Gas L.P. y cocinas)
+      let foodPlaces: any[] = [];
+      try {
+        const foodRes = await placesLib.Place.searchNearby({
+          fields: ['displayName', 'location', 'types'],
+          locationRestriction: { center: centerPos, radius: 250 },
+          rankPreference: distanceRank,
+          includedTypes: [
+            'restaurant',
+            'fast_food_restaurant',
+            'meal_takeaway',
+            'bakery',
+            'cafe',
+            'bar'
+          ],
+          maxResultCount: 20,
+        });
+        foodPlaces = foodRes.places || [];
+      } catch (e) {
+        console.warn('Error en búsqueda de alimentos:', e);
+      }
+
+      // 3. Búsqueda general para capturar establecimientos vecinos inmediatos
       let generalPlaces: any[] = [];
       try {
         const genRes = await placesLib.Place.searchNearby({
           fields: ['displayName', 'location', 'types'],
           locationRestriction: { center: centerPos, radius: 250 },
+          rankPreference: distanceRank,
           maxResultCount: 20,
         });
         generalPlaces = genRes.places || [];
@@ -532,8 +558,9 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
         console.warn('Error en búsqueda general:', e);
       }
 
-      // 3. Búsqueda por texto para gasolineras con categorías no estándar
+      // 4. Búsqueda por texto para gasolineras y plazas comerciales
       let textGasPlaces: any[] = [];
+      let textPlazaPlaces: any[] = [];
       try {
         if (typeof placesLib.Place.searchByText === 'function') {
           const textRes = await placesLib.Place.searchByText({
@@ -545,12 +572,26 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
           textGasPlaces = textRes.places || [];
         }
       } catch (e) {
-        console.warn('Error en búsqueda por texto:', e);
+        console.warn('Error en búsqueda por texto gasolinera:', e);
+      }
+
+      try {
+        if (typeof placesLib.Place.searchByText === 'function') {
+          const plazaRes = await placesLib.Place.searchByText({
+            textQuery: 'plaza comercial',
+            locationBias: { center: centerPos, radius: 250 },
+            fields: ['displayName', 'location', 'types'],
+            maxResultCount: 5,
+          });
+          textPlazaPlaces = plazaRes.places || [];
+        }
+      } catch (e) {
+        console.warn('Error en búsqueda por texto plaza:', e);
       }
 
       // Consolidar y deduplicar establecimientos
-      const mergedMap = new Map<string, any>();
-      [...criticalPlaces, ...textGasPlaces, ...generalPlaces].forEach(p => {
+      const mergedMap = new globalThis.Map<string, any>();
+      [...criticalPlaces, ...foodPlaces, ...textGasPlaces, ...textPlazaPlaces, ...generalPlaces].forEach(p => {
         if (!p || !p.location) return;
         const key = `${(p.displayName || '').toLowerCase().trim()}_${p.location.lat().toFixed(4)}_${p.location.lng().toFixed(4)}`;
         if (!mergedMap.has(key)) {

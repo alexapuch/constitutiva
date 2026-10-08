@@ -22,6 +22,8 @@ export interface EvaluatedCandidate {
   isGasStation: boolean;
   isHighImpact: boolean;
   isFood: boolean;
+  isPlaza: boolean;
+  isConsultorioOrOffice: boolean;
   score: number;
 }
 
@@ -40,28 +42,72 @@ export function evaluatePlaceCandidate(
   const types: string[] = rawPlace.types || [];
   const normName = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-  // 1. Gasolinera / Combustibles / Gas L.P. (Máximo riesgo tecnológico en Protección Civil)
+  // 1. Detección de consultorios privados / doctores / psicólogos / oficinas administrativas
+  // En Protección Civil mexicana estos son giros de BAJO RIESGO ordinario (sin Gas LP, sin químicos, sin flama abierta, afluencia mínima).
+  // Google Places suele clasificarlos bajo 'hospital' o 'health', lo que provocaba falsos positivos de alto impacto.
+  const isConsultorioOrOffice =
+    /psicolog|psiquiatr|dentist|dental|consultorio|dr\b|dra\b|doctor\b|doctora\b|nutriolog|podolog|terapia|optica|pediatra|ginecolog|cardiolog|dermatolog|homeopat|notaria|despacho|abogad|contador/i.test(normName) &&
+    !/hospital|sanatorio|cruz\s*roja|urgencias|centro\s*medico|clinica\s*de\s*especialidades|clinica\s*hospital/i.test(normName);
+
+  // 2. Gasolinera / Combustibles / Gas L.P. / Subestaciones (Máximo riesgo tecnológico en Protección Civil)
   const isGasStation = types.includes('gas_station') ||
-    /gasolinera|gasolin|combustible|pemex|oxxo\s*gas|bp\b|shell\b|mobil\b|g500|hidrosina|totalenergies|gas\s*lp|gasera|estacion\s*de\s*servicio/i.test(normName);
+    /gasolinera|gasolin|combustible|pemex|oxxo\s*gas|bp\b|shell\b|mobil\b|g500|hidrosina|totalenergies|gas\s*lp|gasera|estacion\s*de\s*servicio|subestacion/i.test(normName);
 
-  // 2. Gran afluencia / Plaza comercial / Supermercado / Hospital / Escuela / Taller mecánico
-  const isHighImpact = types.some(t => ['shopping_mall', 'supermarket', 'school', 'hospital', 'car_repair', 'hardware_store'].includes(t)) ||
-    /plaza|mall|comercial|galeria|supermercado|bodega\s*aurrera|walmart|soriana|chedraui|taller|mecanic|hojalater|soldadur|ferreter|maderer|hospital|clinica|colegio|escuela|instituto|universidad/i.test(normName);
+  // 3. Plazas Comerciales / Centros Comerciales / Malls (Alto riesgo socio-organizativo, evacuación masiva, subestación y gas central)
+  const isPlaza = (types.includes('shopping_mall') ||
+    /plaza\b|plazita|centro\s*comercial|mall\b|galeria|galerias|pabellon|pasaje\s*comercial|gran\s*plaza|macroplaza|paseo\b|portal\b/i.test(normName)) &&
+    !isConsultorioOrOffice;
 
-  // 3. Restaurantes y preparación de alimentos con gas L.P. comercial / flama abierta
-  const isFood = types.some(t => ['restaurant', 'bakery', 'cafe', 'bar', 'meal_takeaway'].includes(t)) ||
-    /restaurante|cocina|fonda|taqueria|pizzeria|panaderia|cafe|mariscos|asador|carnitas|burguer|burger|tacos|comida/i.test(normName);
+  // 4. Restaurantes / Comida rápida / Taquerías / Alimentos (Riesgo Químico-Tecnológico e Incendio por líneas de Gas L.P., freidoras, campanas y flama abierta)
+  const isFood = (types.some(t => [
+    'restaurant',
+    'fast_food_restaurant',
+    'hamburger_restaurant',
+    'pizza_restaurant',
+    'mexican_restaurant',
+    'bakery',
+    'cafe',
+    'bar',
+    'meal_takeaway',
+    'meal_delivery',
+    'food_court'
+  ].includes(t)) ||
+    /restaurante|cocina|fonda|taqueria|pizzeria|panaderia|cafe|mariscos|asador|carnitas|burguer|burger|tacos|comida|alitas|papas|subway|domino|kfc|pizza|mcdonald|chostic|tortas|antojitos|hamburgues/i.test(normName)) &&
+    !isConsultorioOrOffice;
 
-  let hazardBonus = 40; // Comercio general base
+  // 5. Verdaderos Hospitales / Clínicas con hospitalización / Urgencias (Población vulnerable / Evacuación compleja)
+  const isTrueHospital = types.includes('hospital') &&
+    !isConsultorioOrOffice &&
+    /hospital|sanatorio|cruz\s*roja|urgencias|centro\s*medico|clinica\s*de\s*especialidades|clinica\s*hospital|imss|issste/i.test(normName);
+
+  // 6. Gran afluencia / Alto Impacto: Plazas, Supermercados, Hospitales reales, Escuelas, Talleres mecánicos, Ferreterías
+  const isHighImpact = isPlaza || isTrueHospital ||
+    types.some(t => ['supermarket', 'school', 'car_repair', 'hardware_store'].includes(t)) ||
+    (!isConsultorioOrOffice && /supermercado|bodega\s*aurrera|walmart|soriana|chedraui|taller|mecanic|hojalater|soldadur|ferreter|maderer|colegio|escuela|instituto|universidad/i.test(normName));
+
+  // Ponderación de Riesgo según Normatividad de Protección Civil:
+  let hazardBonus = 50; // Comercio / retail general base
   if (isGasStation) {
-    hazardBonus = 700; // Prioridad garantizada dentro del radio de 250m
-  } else if (isHighImpact) {
-    hazardBonus = 250;
+    hazardBonus = 800; // Máxima prioridad técnica (Riesgo Químico-Tecnológico)
+  } else if (isPlaza) {
+    hazardBonus = 420; // Concentración masiva socio-organizativa
   } else if (isFood) {
-    hazardBonus = 120;
+    // Restaurantes: gran carga de fuego y Gas LP comercial.
+    // Si es colindante inmediato (< 35m, ej. Burger King a 5m), el riesgo de propagación e incendio es crítico
+    if (distanceMeters <= 35) {
+      hazardBonus = 460;
+    } else {
+      hazardBonus = 320;
+    }
+  } else if (isHighImpact) {
+    hazardBonus = 260;
+  } else if (isConsultorioOrOffice) {
+    // Consultorios privados / psicólogos / doctores individuales:
+    // Riesgo bajo ordinario. Se mantiene un puntaje mínimo (15 pts) para que NUNCA desplacen riesgos reales.
+    hazardBonus = 15;
   }
 
-  // Factor de cercanía estricto: la distancia inmediata (5m-30m) supera fuertemente a distancias lejanas (>100m)
+  // Factor de cercanía estricto: la distancia inmediata (5m-30m) pondera fuertemente
   // (250 - d) * 3 pts
   const proximityScore = Math.max(0, 250 - distanceMeters) * 3;
   const score = hazardBonus + proximityScore;
@@ -76,6 +122,8 @@ export function evaluatePlaceCandidate(
     isGasStation,
     isHighImpact,
     isFood,
+    isPlaza,
+    isConsultorioOrOffice,
     score
   };
 }
@@ -85,58 +133,74 @@ export function selectTopRisks(candidates: EvaluatedCandidate[], limit = 5): Eva
     return [...candidates].sort((a, b) => a.distanceMeters - b.distanceMeters);
   }
 
-  // Ordenar todos los candidatos por puntaje descendente
+  // Ordenar todos los candidatos por puntaje de riesgo descendente
   const sorted = [...candidates].sort((a, b) => b.score - a.score);
 
   const selected: EvaluatedCandidate[] = [];
   const selectedKeys = new Set<string>();
 
-  // Regla A: Si hay CUALQUIER gasolinera dentro de los 250m, incluir OBLIGATORIAMENTE la gasolinera más cercana
+  const addCandidate = (c: EvaluatedCandidate) => {
+    const key = c.name.toLowerCase().trim();
+    if (!selectedKeys.has(key)) {
+      selected.push(c);
+      selectedKeys.add(key);
+      return true;
+    }
+    return false;
+  };
+
+  // Regla 1: Si hay CUALQUIER gasolinera dentro de los 250m, incluir obligatoriamente la más cercana (riesgo químico-tecnológico crítico)
   const gasStations = sorted.filter(c => c.isGasStation).sort((a, b) => a.distanceMeters - b.distanceMeters);
   if (gasStations.length > 0) {
-    const bestGasStation = gasStations[0];
-    selected.push(bestGasStation);
-    selectedKeys.add(bestGasStation.name.toLowerCase());
+    addCandidate(gasStations[0]);
   }
 
-  // Regla B: Si hay una plaza comercial o sitio de gran afluencia/alto impacto, asegurar el mejor
-  const plazas = sorted.filter(c => c.isHighImpact && !selectedKeys.has(c.name.toLowerCase())).sort((a, b) => a.distanceMeters - b.distanceMeters);
+  // Regla 2: Si el inmueble está en o colindante a una Plaza Comercial / Centro Comercial, incluir obligatoriamente la plaza más cercana
+  const plazas = sorted.filter(c => c.isPlaza).sort((a, b) => a.distanceMeters - b.distanceMeters);
   if (plazas.length > 0 && selected.length < limit) {
-    const bestPlaza = plazas[0];
-    selected.push(bestPlaza);
-    selectedKeys.add(bestPlaza.name.toLowerCase());
+    addCandidate(plazas[0]);
   }
 
-  // Regla C: Llenar los lugares restantes con los puntajes más altos (beneficiando fuertemente a vecinos a 5m-30m)
-  // Limitar alimentos/restaurantes a máximo 2 para mantener diversidad de riesgos
+  // Regla 3: Si hay restaurantes o establecimientos de comida con Gas L.P. inmediatos (< 60m, ej. Burger King contiguo), asegurar el más cercano
+  const closeFood = sorted.filter(c => c.isFood && c.distanceMeters <= 60).sort((a, b) => a.distanceMeters - b.distanceMeters);
+  if (closeFood.length > 0 && selected.length < limit) {
+    addCandidate(closeFood[0]);
+  }
+
+  // Regla 4: Llenar los lugares restantes por mayor puntaje, priorizando riesgos reales (comercios, restaurantes, talleres, plazas)
+  // sobre consultorios privados o despachos administrativos
   let foodCount = selected.filter(s => s.isFood).length;
 
   for (const cand of sorted) {
     if (selected.length >= limit) break;
-    const key = cand.name.toLowerCase();
-    if (selectedKeys.has(key)) continue;
+    if (selectedKeys.has(cand.name.toLowerCase().trim())) continue;
 
+    // Si es un consultorio/oficina de bajo riesgo, sólo tomarlo si no hay otros establecimientos disponibles
+    if (cand.isConsultorioOrOffice) {
+      const remainingRealRisks = sorted.filter(c => !c.isConsultorioOrOffice && !selectedKeys.has(c.name.toLowerCase().trim()));
+      if (remainingRealRisks.length > 0) {
+        continue; // Dejar para el final
+      }
+    }
+
+    // Limitar restaurantes a máximo 2 a menos que no haya otros comercios en la zona
     if (cand.isFood && foodCount >= 2) {
-      const remainingNonFood = sorted.filter(c => !c.isFood && !selectedKeys.has(c.name.toLowerCase()));
+      const remainingNonFood = sorted.filter(c => !c.isFood && !c.isConsultorioOrOffice && !selectedKeys.has(c.name.toLowerCase().trim()));
       if (remainingNonFood.length > 0) {
         continue;
       }
     }
 
-    selected.push(cand);
-    selectedKeys.add(key);
-    if (cand.isFood) foodCount++;
+    if (addCandidate(cand)) {
+      if (cand.isFood) foodCount++;
+    }
   }
 
-  // Si aún faltan para llegar al límite, agregar los siguientes disponibles
+  // Respaldo de llenado si aún faltan cupos para llegar a 5
   if (selected.length < limit) {
     for (const cand of sorted) {
       if (selected.length >= limit) break;
-      const key = cand.name.toLowerCase();
-      if (!selectedKeys.has(key)) {
-        selected.push(cand);
-        selectedKeys.add(key);
-      }
+      addCandidate(cand);
     }
   }
 
@@ -198,16 +262,20 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
       const center = { lat: parseFloat(lat), lng: parseFloat(lng) };
       setProgress(15);
       
+      const distanceRank = (placesLib.SearchNearbyRankPreference && placesLib.SearchNearbyRankPreference.DISTANCE) || 'DISTANCE';
+
       // 1. Búsqueda específica de Riesgos Críticos de Protección Civil (gasolineras, plazas, talleres, escuelas, hospitales)
       let criticalPlaces: any[] = [];
       try {
         const critRes = await placesLib.Place.searchNearby({
           fields: ['displayName', 'location', 'photos', 'types'],
           locationRestriction: { center, radius: 250 },
+          rankPreference: distanceRank,
           includedTypes: [
             'gas_station',
             'shopping_mall',
             'supermarket',
+            'department_store',
             'school',
             'hospital',
             'car_repair',
@@ -220,14 +288,39 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
         console.warn('Búsqueda de tipos específicos omitida:', e);
       }
 
-      setProgress(25);
+      setProgress(20);
 
-      // 2. Búsqueda general para capturar establecimientos vecinos inmediatos
+      // 2. Búsqueda prioritaria de Restaurantes y Alimentos (Riesgo de Gas L.P., freidoras, campanas y flama abierta)
+      let foodPlaces: any[] = [];
+      try {
+        const foodRes = await placesLib.Place.searchNearby({
+          fields: ['displayName', 'location', 'photos', 'types'],
+          locationRestriction: { center, radius: 250 },
+          rankPreference: distanceRank,
+          includedTypes: [
+            'restaurant',
+            'fast_food_restaurant',
+            'meal_takeaway',
+            'bakery',
+            'cafe',
+            'bar'
+          ],
+          maxResultCount: 20,
+        });
+        foodPlaces = foodRes.places || [];
+      } catch (e) {
+        console.warn('Búsqueda de alimentos omitida:', e);
+      }
+
+      setProgress(30);
+
+      // 3. Búsqueda general para capturar establecimientos vecinos inmediatos
       let generalPlaces: any[] = [];
       try {
         const genRes = await placesLib.Place.searchNearby({
           fields: ['displayName', 'location', 'photos', 'types'],
           locationRestriction: { center, radius: 250 },
+          rankPreference: distanceRank,
           maxResultCount: 20,
         });
         generalPlaces = genRes.places || [];
@@ -235,8 +328,9 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
         console.warn('Búsqueda general omitida:', e);
       }
 
-      // 3. Búsqueda de respaldo por texto para asegurar gasolineras con etiquetas no estándar
+      // 4. Búsquedas de respaldo por texto: gasolineras y plazas comerciales
       let textGasPlaces: any[] = [];
+      let textPlazaPlaces: any[] = [];
       try {
         if (typeof placesLib.Place.searchByText === 'function') {
           const textRes = await placesLib.Place.searchByText({
@@ -248,12 +342,26 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
           textGasPlaces = textRes.places || [];
         }
       } catch (e) {
-        console.warn('Búsqueda por texto omitida:', e);
+        console.warn('Búsqueda por texto gasolinera omitida:', e);
+      }
+
+      try {
+        if (typeof placesLib.Place.searchByText === 'function') {
+          const plazaRes = await placesLib.Place.searchByText({
+            textQuery: 'plaza comercial',
+            locationBias: { center, radius: 250 },
+            fields: ['displayName', 'location', 'photos', 'types'],
+            maxResultCount: 5,
+          });
+          textPlazaPlaces = plazaRes.places || [];
+        }
+      } catch (e) {
+        console.warn('Búsqueda por texto plaza omitida:', e);
       }
 
       // Consolidar y deduplicar todos los candidatos encontrados
-      const mergedMap = new Map<string, any>();
-      [...criticalPlaces, ...textGasPlaces, ...generalPlaces].forEach(p => {
+      const mergedMap = new globalThis.Map<string, any>();
+      [...criticalPlaces, ...foodPlaces, ...textGasPlaces, ...textPlazaPlaces, ...generalPlaces].forEach(p => {
         if (!p || !p.location) return;
         const key = `${(p.displayName || '').toLowerCase().trim()}_${p.location.lat().toFixed(4)}_${p.location.lng().toFixed(4)}`;
         if (!mergedMap.has(key)) {
