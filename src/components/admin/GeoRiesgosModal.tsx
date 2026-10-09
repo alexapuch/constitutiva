@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { APIProvider, useMapsLibrary } from '@vis.gl/react-google-maps';
 import { 
   X, 
@@ -14,9 +14,14 @@ import {
   Flame,
   Plus,
   Compass,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Eye,
+  EyeOff,
+  Copy,
+  RotateCcw
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import html2canvas from 'html2canvas';
 import { RiskData } from '../../types';
 
 const HEADER_COLORS = [
@@ -368,30 +373,93 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
     photoUri: ''
   });
 
+  // Estados para modo de captura limpia (ocultar botones con icono de Ojo) y copiar imagen
+  const [cleanViewMode, setCleanViewMode] = useState(false);
+  const [copyingImage, setCopyingImage] = useState(false);
+
   const placesLib = useMapsLibrary('places');
   const geometryLib = useMapsLibrary('geometry');
 
-  // Cargar análisis previo guardado en caché al abrir
-  useEffect(() => {
+  // Limpiar completamente el formulario y los resultados
+  const handleReset = () => {
+    setLat('');
+    setLng('');
+    setMyEstablishment('');
+    setRisks([]);
+    setAvailableCandidates([]);
+    setError(null);
+    setProgress(0);
+    setCleanViewMode(false);
     try {
-      const cachedStr = localStorage.getItem('circundantes_places_cache');
-      if (cachedStr) {
-        const cachedData = JSON.parse(cachedStr);
-        if (cachedData?.places?.length > 0) {
-          setRisks(cachedData.places);
-          if (cachedData.center?.lat && cachedData.center?.lng) {
-            setLat(cachedData.center.lat.toString());
-            setLng(cachedData.center.lng.toString());
+      localStorage.removeItem('circundantes_places_cache');
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  // Copiar imagen limpia de la tabla directamente al portapapeles (o descargar)
+  const handleCopyTableImage = async () => {
+    const tableEl = document.getElementById('circundantes-capture-table');
+    if (!tableEl) return;
+    setCopyingImage(true);
+    try {
+      const wasClean = cleanViewMode;
+      if (!wasClean) setCleanViewMode(true);
+
+      // Esperar a que el DOM se actualice sin botones
+      await new Promise(r => setTimeout(r, 120));
+
+      const canvas = await html2canvas(tableEl, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
+
+      let copied = false;
+      if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+        try {
+          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+          if (blob) {
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ]);
+            copied = true;
+            Swal.fire({
+              toast: true,
+              position: 'top-end',
+              icon: 'success',
+              title: '¡Tabla copiada como imagen! Puedes pegarla con Ctrl+V',
+              timer: 3000,
+              showConfirmButton: false
+            });
           }
-          if (cachedData.establishment) {
-            setMyEstablishment(cachedData.establishment);
-          }
+        } catch (clipErr) {
+          console.warn('Clipboard write fallback:', clipErr);
         }
       }
-    } catch (e) {
-      console.warn('Error loading cached circundantes', e);
+
+      if (!copied) {
+        const link = document.createElement('a');
+        link.download = `riesgos_circundantes_${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Imagen descargada exitosamente',
+          timer: 2500,
+          showConfirmButton: false
+        });
+      }
+    } catch (err: any) {
+      console.error('Error al capturar tabla:', err);
+      Swal.fire('Error', 'No se pudo generar la imagen de la tabla.', 'error');
+    } finally {
+      setCopyingImage(false);
     }
-  }, []);
+  };
 
   // Asegura que todos los candidatos estén cargados si el usuario abre "Cambiar" desde datos en caché
   const ensureCandidatesLoaded = async () => {
@@ -938,6 +1006,16 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
               "VISUALIZAR"
             )}
           </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            disabled={loading || (!lat && !lng && !myEstablishment && risks.length === 0)}
+            className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 px-4 py-2 rounded-lg font-bold shadow-sm transition-colors flex items-center justify-center gap-1.5 h-[42px] disabled:opacity-40"
+            title="Limpiar coordenadas y comenzar una nueva búsqueda"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>Limpiar</span>
+          </button>
         </div>
         </div>
         {loading && (
@@ -956,8 +1034,8 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
       {/* Results */}
       {risks.length > 0 && (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 dark:border-gray-700 pb-2">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 dark:border-gray-700 pb-2">
+            <div className="flex flex-wrap items-center gap-2.5">
               <h3 className="text-lg font-black uppercase text-gray-800 dark:text-gray-200 underline underline-offset-4 decoration-2">
                 RIESGOS CIRCUNDANTES
               </h3>
@@ -969,37 +1047,69 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
               {onOpenCroquis && (
                 <button
                   onClick={onOpenCroquis}
-                  className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-extrabold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow transition-colors"
+                  className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-extrabold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow transition-colors"
                   title="Abrir estos lugares directamente en el croquis"
                 >
                   <MapIcon className="w-3.5 h-3.5" />
-                  Ver en Croquis de Riesgos
+                  <span>Ver en Croquis</span>
                 </button>
               )}
             </div>
             
-            {/* Color Picker circles */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Color cabecera:</span>
-              <div className="flex items-center gap-1.5">
-                {HEADER_COLORS.map(color => (
-                  <button
-                    key={color.value}
-                    onClick={() => setHeaderColor(color.value)}
-                    className={`w-5 h-5 rounded-full border transition-all duration-150 ${headerColor === color.value ? 'border-black dark:border-white scale-110 shadow-md ring-2 ring-blue-500/20' : 'border-gray-300 dark:border-gray-600 hover:scale-105'}`}
-                    style={{ backgroundColor: color.value }}
-                    title={color.name}
-                  />
-                ))}
+            {/* Action buttons and Color Picker */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Botón OJO - Modo Captura */}
+              <button
+                type="button"
+                onClick={() => setCleanViewMode(!cleanViewMode)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs border ${
+                  cleanViewMode
+                    ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 ring-2 ring-amber-400/50'
+                    : 'bg-white hover:bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600'
+                }`}
+                title={cleanViewMode ? "Desactivar modo captura (mostrar botones Cambiar/Editar)" : "Ocultar botones de 'Cambiar' y 'Editar' para tomar captura de pantalla limpia"}
+              >
+                {cleanViewMode ? <EyeOff className="w-4 h-4 text-white" /> : <Eye className="w-4 h-4 text-blue-700 dark:text-blue-400" />}
+                <span>{cleanViewMode ? 'Modo Captura Activo' : 'Modo Captura'}</span>
+              </button>
+
+              {/* Botón directo Copiar Imagen */}
+              <button
+                type="button"
+                onClick={handleCopyTableImage}
+                disabled={copyingImage}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
+                title="Copiar tabla limpia como imagen directamente al portapapeles"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>{copyingImage ? 'Copiando...' : 'Copiar Imagen'}</span>
+              </button>
+
+              {/* Color Picker circles */}
+              <div className="flex items-center gap-1.5 pl-1.5 border-l border-gray-200 dark:border-gray-700">
+                <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Color:</span>
+                <div className="flex items-center gap-1">
+                  {HEADER_COLORS.map(color => (
+                    <button
+                      key={color.value}
+                      onClick={() => setHeaderColor(color.value)}
+                      className={`w-4 h-4 rounded-full border transition-all duration-150 ${headerColor === color.value ? 'border-black dark:border-white scale-125 shadow-md ring-2 ring-blue-500/20' : 'border-gray-300 dark:border-gray-600 hover:scale-110'}`}
+                      style={{ backgroundColor: color.value }}
+                      title={color.name}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="overflow-x-auto border border-black rounded-lg">
+          <div id="circundantes-capture-table" className="overflow-x-auto border border-black rounded-lg bg-white">
             <table className="w-full border-collapse bg-white text-xs md:text-sm text-left">
               <thead>
                 <tr className="text-white text-sm border-b border-black" style={{ backgroundColor: headerColor }}>
-                  <th className="py-2 px-3 text-center w-40 font-bold border-r border-black uppercase">FOTO / ACCIONES</th>
+                  <th className="py-2 px-3 text-center w-40 font-bold border-r border-black uppercase">
+                    {cleanViewMode ? 'FOTO' : 'FOTO / ACCIONES'}
+                  </th>
                   <th className="py-2 px-3 text-center w-24 font-bold border-r border-black uppercase">DISTANCIA</th>
                   <th className="py-2 px-3 text-center w-auto font-bold uppercase">RIESGO</th>
                 </tr>
@@ -1027,25 +1137,27 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
                         {risk.name}
                       </p>
 
-                      {/* Botones de acción: Cambiar establecimiento y Editar texto */}
-                      <div className="flex items-center justify-center gap-1.5 mt-2">
-                        <button
-                          onClick={() => handleOpenSwap(index)}
-                          className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[10px] font-bold flex items-center gap-1 transition-colors shadow-xs"
-                          title="Cambiar por otro establecimiento detectado o buscar en Google"
-                        >
-                          <RefreshCw className="w-3 h-3" />
-                          Cambiar
-                        </button>
-                        <button
-                          onClick={() => handleOpenEdit(index)}
-                          className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded text-[10px] font-bold flex items-center gap-1 transition-colors shadow-xs"
-                          title="Editar texto, distancia o nivel de riesgo"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                          Editar
-                        </button>
-                      </div>
+                      {/* Botones de acción: Ocultos automáticamente en Modo Captura */}
+                      {!cleanViewMode && (
+                        <div className="flex items-center justify-center gap-1.5 mt-2">
+                          <button
+                            onClick={() => handleOpenSwap(index)}
+                            className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[10px] font-bold flex items-center gap-1 transition-colors shadow-xs"
+                            title="Cambiar por otro establecimiento detectado o buscar en Google"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            Cambiar
+                          </button>
+                          <button
+                            onClick={() => handleOpenEdit(index)}
+                            className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded text-[10px] font-bold flex items-center gap-1 transition-colors shadow-xs"
+                            title="Editar texto, distancia o nivel de riesgo"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                            Editar
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td className="p-2 text-center align-middle font-bold text-gray-800 bg-white border-r border-black whitespace-nowrap">
                       {risk.distance}
