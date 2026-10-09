@@ -18,7 +18,9 @@ import {
   Eye,
   EyeOff,
   Copy,
-  RotateCcw
+  RotateCcw,
+  FileText,
+  Image as ImageIcon
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import html2canvas from 'html2canvas';
@@ -438,6 +440,66 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
     return url;
   };
 
+  // Copiar tabla directamente formateada en HTML para pegar en Word, Excel o Docs
+  const handleCopyTableHtml = async () => {
+    const tableEl = document.getElementById('circundantes-capture-table');
+    if (!tableEl) return;
+    try {
+      const wasClean = cleanViewMode;
+      if (!wasClean) setCleanViewMode(true);
+      await new Promise(r => setTimeout(r, 80));
+
+      let copied = false;
+
+      // Método 1: Selección y copiado nativo del navegador (100% compatible con Word)
+      try {
+        const range = document.createRange();
+        range.selectNode(tableEl);
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(range);
+          copied = document.execCommand('copy');
+          sel.removeAllRanges();
+        }
+      } catch (e) {
+        console.warn('execCommand copy fallback:', e);
+      }
+
+      // Método 2: Clipboard API moderna con text/html
+      if (!copied && navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+        try {
+          const htmlBlob = new Blob([tableEl.outerHTML], { type: 'text/html' });
+          const textBlob = new Blob([tableEl.innerText], { type: 'text/plain' });
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              'text/html': htmlBlob,
+              'text/plain': textBlob
+            })
+          ]);
+          copied = true;
+        } catch (e) {
+          console.warn('ClipboardItem HTML fallback:', e);
+        }
+      }
+
+      if (copied) {
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: '¡Tabla copiada! Pégala en Word con Ctrl+V',
+          timer: 3500,
+          showConfirmButton: false
+        });
+      } else {
+        Swal.fire('Atención', 'No se pudo copiar automáticamente. Puedes presionar el botón de Modo Captura y tomar screenshot con Win+Shift+S.', 'warning');
+      }
+    } catch (err: any) {
+      console.error('Error al copiar tabla HTML:', err);
+    }
+  };
+
   // Copiar imagen limpia de la tabla directamente al portapapeles (o descargar)
   const handleCopyTableImage = async () => {
     const tableEl = document.getElementById('circundantes-capture-table');
@@ -446,62 +508,31 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
     try {
       const wasClean = cleanViewMode;
       if (!wasClean) setCleanViewMode(true);
-
-      // Esperar a que el DOM se actualice sin botones de acción
       await new Promise(r => setTimeout(r, 120));
 
-      // Reemplazar temporalmente todas las imágenes dentro de la tabla por base64
-      // para asegurar que el canvas NUNCA se manche (tainted) y toBlob() funcione 100% libre de error de seguridad
-      const imgElements = Array.from(tableEl.querySelectorAll('img')) as HTMLImageElement[];
-      const originalSrcs = imgElements.map(img => img.src);
-
-      await Promise.all(
-        imgElements.map(async (img) => {
-          if (img.src && !img.src.startsWith('data:')) {
-            try {
-              const b64 = await toBase64DataUrl(img.src);
-              if (b64 && b64.startsWith('data:')) {
-                img.src = b64;
-              }
-            } catch (e) {
-              console.warn('Error convirtiendo imagen a base64:', e);
-            }
-          }
-        })
-      );
-
-      // Breve espera para que el navegador aplique los Data URLs
-      await new Promise(r => setTimeout(r, 100));
-
-      const canvas = await html2canvas(tableEl, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: false, // ESTRICTAMENTE FALSE para evitar error de canvas tainted
-        backgroundColor: '#ffffff'
-      });
-
-      // Restaurar las URLs originales en el DOM
-      imgElements.forEach((img, idx) => {
-        if (originalSrcs[idx]) {
-          img.src = originalSrcs[idx];
-        }
-      });
-
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-      if (!blob) {
-        throw new Error('No se pudo generar el archivo de la imagen.');
+      let canvas: HTMLCanvasElement;
+      try {
+        canvas = await html2canvas(tableEl, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: '#ffffff',
+          logging: false
+        });
+      } catch (h2cErr) {
+        console.warn('html2canvas standard failed, falling back to table copy:', h2cErr);
+        await handleCopyTableHtml();
+        return;
       }
 
-      const base64Png = canvas.toDataURL('image/png');
       let copied = false;
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+      const base64Png = canvas.toDataURL('image/png');
 
-      // Intentar copiar al portapapeles con la API moderna de navegador
-      if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+      if (blob && navigator.clipboard && typeof ClipboardItem !== 'undefined') {
         try {
-          // Preparamos payload con image/png Y text/html para que Word, Google Docs y apps de chat lo peguen sin problemas
-          const htmlContent = `<img src="${base64Png}" alt="Riesgos Circundantes" style="max-width:100%;height:auto;" />`;
+          const htmlContent = `<img src="${base64Png}" alt="Riesgos Circundantes" />`;
           const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
-
           try {
             await navigator.clipboard.write([
               new ClipboardItem({
@@ -511,14 +542,13 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
             ]);
             copied = true;
           } catch (multiErr) {
-            // Reintento solo con PNG si el navegador no admite tipos múltiples
             await navigator.clipboard.write([
               new ClipboardItem({ 'image/png': blob })
             ]);
             copied = true;
           }
         } catch (clipErr) {
-          console.warn('Fallo navigator.clipboard.write:', clipErr);
+          console.warn('Error escribiendo imagen a portapapeles:', clipErr);
         }
       }
 
@@ -527,26 +557,42 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
           toast: true,
           position: 'top-end',
           icon: 'success',
-          title: '¡Tabla copiada! Ya puedes pegarla en Word con Ctrl+V',
+          title: '¡Imagen copiada al portapapeles! Pégala en Word con Ctrl+V',
           timer: 3500,
           showConfirmButton: false
         });
       } else {
-        // Si el navegador bloqueó el acceso al portapapeles, descargamos el PNG
+        // Fallback: Si el navegador bloqueó escribir imagen directamente,
+        // copiamos la tabla en formato HTML al portapapeles Y descargamos el archivo PNG
+        try {
+          const range = document.createRange();
+          range.selectNode(tableEl);
+          const sel = window.getSelection();
+          if (sel) {
+            sel.removeAllRanges();
+            sel.addRange(range);
+            document.execCommand('copy');
+            sel.removeAllRanges();
+          }
+        } catch (e) {}
+
         const link = document.createElement('a');
         link.download = `riesgos_circundantes_${Date.now()}.png`;
         link.href = base64Png;
         link.click();
+
         Swal.fire({
-          icon: 'info',
-          title: 'Imagen descargada',
-          text: 'El navegador no permitió escribir directamente al portapapeles. Se ha descargado la imagen PNG para que puedas insertarla en Word.',
-          confirmButtonColor: '#7b1f1c'
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: '¡Tabla copiada al portapapeles y PNG descargado!',
+          timer: 4000,
+          showConfirmButton: false
         });
       }
     } catch (err: any) {
-      console.error('Error al capturar tabla:', err);
-      Swal.fire('Error', 'No se pudo generar la imagen de la tabla: ' + (err.message || ''), 'error');
+      console.error('Error general capturando tabla:', err);
+      await handleCopyTableHtml();
     } finally {
       setCopyingImage(false);
     }
@@ -1170,10 +1216,21 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
                 onClick={handleCopyTableImage}
                 disabled={copyingImage}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
-                title="Copiar tabla limpia como imagen directamente al portapapeles"
+                title="Copiar tabla limpia como imagen al portapapeles"
               >
-                <Copy className="w-3.5 h-3.5" />
+                <ImageIcon className="w-3.5 h-3.5" />
                 <span>{copyingImage ? 'Copiando...' : 'Copiar Imagen'}</span>
+              </button>
+
+              {/* Botón directo Copiar para Word (Tabla con fotos) */}
+              <button
+                type="button"
+                onClick={handleCopyTableHtml}
+                className="bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs transition-colors"
+                title="Copiar tabla formateada con fotos lista para pegar en Microsoft Word (Ctrl+V)"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Copiar para Word</span>
               </button>
 
               {/* Color Picker circles */}
@@ -1194,38 +1251,46 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
             </div>
           </div>
 
-          <div id="circundantes-capture-table" className="overflow-x-auto border border-black rounded-lg bg-white">
-            <table className="w-full border-collapse bg-white text-xs md:text-sm text-left">
+          <div 
+            id="circundantes-capture-table" 
+            style={{ backgroundColor: '#ffffff', border: '1px solid #000000', borderRadius: '8px' }}
+            className="overflow-x-auto"
+          >
+            <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: '#ffffff', fontSize: '12px', textAlign: 'left', color: '#000000' }}>
               <thead>
-                <tr className="text-white text-sm border-b border-black" style={{ backgroundColor: headerColor }}>
-                  <th className="py-2 px-3 text-center w-40 font-bold border-r border-black uppercase">
+                <tr style={{ backgroundColor: headerColor, color: '#ffffff', fontSize: '13px', borderBottom: '1px solid #000000' }}>
+                  <th style={{ padding: '8px 12px', textAlign: 'center', width: '160px', fontWeight: 'bold', borderRight: '1px solid #000000', textTransform: 'uppercase' }}>
                     {cleanViewMode ? 'FOTO' : 'FOTO / ACCIONES'}
                   </th>
-                  <th className="py-2 px-3 text-center w-24 font-bold border-r border-black uppercase">DISTANCIA</th>
-                  <th className="py-2 px-3 text-center w-auto font-bold uppercase">RIESGO</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'center', width: '96px', fontWeight: 'bold', borderRight: '1px solid #000000', textTransform: 'uppercase' }}>
+                    DISTANCIA
+                  </th>
+                  <th style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                    RIESGO
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {risks.map((risk, index) => (
-                  <tr key={index} className="border-b border-black last:border-0 hover:bg-slate-50/50 transition-colors">
-                    <td className="p-2.5 text-center align-middle bg-white w-40 border-r border-black">
+                  <tr key={index} style={{ borderBottom: '1px solid #000000', backgroundColor: '#ffffff' }}>
+                    <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', backgroundColor: '#ffffff', width: '160px', borderRight: '1px solid #000000' }}>
                       {risk.photoUri && !imageErrors[index] ? (
-                        <div className="w-28 h-28 mx-auto overflow-hidden border border-gray-300 bg-gray-50 flex items-center justify-center rounded">
+                        <div style={{ width: '112px', height: '112px', margin: '0 auto', overflow: 'hidden', border: '1px solid #d1d5db', backgroundColor: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px' }}>
                           <img
                             src={risk.photoUri}
                             crossOrigin="anonymous"
                             alt={`Foto de ${risk.name}`}
-                            className="w-full h-full object-cover"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             loading="lazy"
                             onError={() => setImageErrors(prev => ({ ...prev, [index]: true }))}
                           />
                         </div>
                       ) : (
-                        <div className="w-28 h-28 mx-auto bg-gray-200 flex items-center justify-center border border-gray-300 text-gray-500 italic text-xs rounded text-center p-1">
+                        <div style={{ width: '112px', height: '112px', margin: '0 auto', backgroundColor: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d1d5db', color: '#6b7280', fontStyle: 'italic', fontSize: '12px', borderRadius: '4px', textAlign: 'center', padding: '4px' }}>
                           Sin foto disponible
                         </div>
                       )}
-                      <p className="text-[11px] font-bold mt-1 text-[#7b1f1c] leading-tight max-w-[140px] mx-auto line-clamp-2" title={risk.name}>
+                      <p style={{ fontSize: '11px', fontWeight: 'bold', marginTop: '4px', color: '#7b1f1c', lineHeight: '1.25', maxWidth: '140px', marginLeft: 'auto', marginRight: 'auto' }} title={risk.name}>
                         {risk.name}
                       </p>
 
@@ -1251,22 +1316,28 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
                         </div>
                       )}
                     </td>
-                    <td className="p-2 text-center align-middle font-bold text-gray-800 bg-white border-r border-black whitespace-nowrap">
+                    <td style={{ padding: '8px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 'bold', color: '#1f2937', backgroundColor: '#ffffff', borderRight: '1px solid #000000', whiteSpace: 'nowrap' }}>
                       {risk.distance}
                     </td>
-                    <td className="p-3 align-top text-black bg-white text-xs leading-relaxed text-justify" style={{ textAlign: 'justify' }}>
-                      <p className="mb-1.5 flex items-center gap-2">
-                        <span className="font-bold">Nivel de riesgo:</span>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase border ${
-                          risk.riskLevel === 'Alto' ? 'bg-red-100 text-red-800 border-red-300' :
-                          risk.riskLevel === 'Medio' ? 'bg-amber-100 text-amber-800 border-amber-300' :
-                          'bg-emerald-100 text-emerald-800 border-emerald-300'
-                        }`}>
+                    <td style={{ padding: '12px', verticalAlign: 'top', color: '#000000', backgroundColor: '#ffffff', fontSize: '12px', lineHeight: '1.6', textAlign: 'justify' }}>
+                      <p style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontWeight: 'bold' }}>Nivel de riesgo:</span>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '10px',
+                          fontWeight: '900',
+                          textTransform: 'uppercase',
+                          border: '1px solid',
+                          backgroundColor: risk.riskLevel === 'Alto' ? '#fee2e2' : risk.riskLevel === 'Medio' ? '#fef3c7' : '#d1fae5',
+                          color: risk.riskLevel === 'Alto' ? '#991b1b' : risk.riskLevel === 'Medio' ? '#92400e' : '#065f46',
+                          borderColor: risk.riskLevel === 'Alto' ? '#fca5a5' : risk.riskLevel === 'Medio' ? '#fcd34d' : '#6ee7b7'
+                        }}>
                           {risk.riskLevel}
                         </span>
                       </p>
                       <p>
-                        <span className="font-bold">Riesgo:</span> {risk.riskDescription}
+                        <span style={{ fontWeight: 'bold' }}>Riesgo:</span> {risk.riskDescription}
                       </p>
                     </td>
                   </tr>
