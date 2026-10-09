@@ -24,9 +24,28 @@
     <!-- v2 -->
   </head>
   <body style="background-color: #0B152A;">
-    <div id="splash" style="position:fixed;inset:0;background:#0B152A;display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.4s ease">
+    <div id="splash" style="position:fixed;inset:0;background:#0B152A;display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.35s ease;pointer-events:auto">
       <img src="/seprisa-logo.png" alt="SEPRISA" style="width:min(70vw,320px);height:auto;object-fit:contain" />
     </div>
+    <script>
+      (function() {
+        var dismissed = false;
+        window.__hideSplash = function() {
+          if (dismissed) return;
+          dismissed = true;
+          var s = document.getElementById('splash');
+          if (s) {
+            s.style.opacity = '0';
+            s.style.pointerEvents = 'none';
+            setTimeout(function() {
+              if (s && s.parentNode) s.parentNode.removeChild(s);
+            }, 350);
+          }
+        };
+        // Red de seguridad: desvanecer en max 1.5s para evitar pantalla azul congelada
+        setTimeout(window.__hideSplash, 1500);
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
