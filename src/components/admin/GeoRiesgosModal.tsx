@@ -397,6 +397,47 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
     }
   };
 
+  // Helper para convertir cualquier URL de imagen a Data URL base64 sin ensuciar (taint) el canvas
+  const toBase64DataUrl = async (url: string): Promise<string> => {
+    if (!url || url.startsWith('data:')) return url;
+    
+    // 1. Intentar mediante proxy de la app para evitar restricciones CORS
+    const fetchUrl = (url.startsWith('http://') || url.startsWith('https://'))
+      ? `/api/proxy-image?url=${encodeURIComponent(url)}`
+      : url;
+
+    try {
+      const res = await fetch(fetchUrl);
+      if (res.ok) {
+        const blob = await res.blob();
+        return await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      }
+    } catch (e) {
+      console.warn('Proxy fetch fallo para:', url, e);
+    }
+
+    // 2. Fallback fetch directo
+    try {
+      const res = await fetch(url, { mode: 'cors' });
+      if (res.ok) {
+        const blob = await res.blob();
+        return await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    return url;
+  };
+
   // Copiar imagen limpia de la tabla directamente al portapapeles (o descargar)
   const handleCopyTableImage = async () => {
     const tableEl = document.getElementById('circundantes-capture-table');
@@ -406,56 +447,106 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
       const wasClean = cleanViewMode;
       if (!wasClean) setCleanViewMode(true);
 
-      // Esperar a que el DOM se actualice sin botones
+      // Esperar a que el DOM se actualice sin botones de acción
       await new Promise(r => setTimeout(r, 120));
+
+      // Reemplazar temporalmente todas las imágenes dentro de la tabla por base64
+      // para asegurar que el canvas NUNCA se manche (tainted) y toBlob() funcione 100% libre de error de seguridad
+      const imgElements = Array.from(tableEl.querySelectorAll('img')) as HTMLImageElement[];
+      const originalSrcs = imgElements.map(img => img.src);
+
+      await Promise.all(
+        imgElements.map(async (img) => {
+          if (img.src && !img.src.startsWith('data:')) {
+            try {
+              const b64 = await toBase64DataUrl(img.src);
+              if (b64 && b64.startsWith('data:')) {
+                img.src = b64;
+              }
+            } catch (e) {
+              console.warn('Error convirtiendo imagen a base64:', e);
+            }
+          }
+        })
+      );
+
+      // Breve espera para que el navegador aplique los Data URLs
+      await new Promise(r => setTimeout(r, 100));
 
       const canvas = await html2canvas(tableEl, {
         scale: 2,
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false, // ESTRICTAMENTE FALSE para evitar error de canvas tainted
         backgroundColor: '#ffffff'
       });
 
+      // Restaurar las URLs originales en el DOM
+      imgElements.forEach((img, idx) => {
+        if (originalSrcs[idx]) {
+          img.src = originalSrcs[idx];
+        }
+      });
+
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) {
+        throw new Error('No se pudo generar el archivo de la imagen.');
+      }
+
+      const base64Png = canvas.toDataURL('image/png');
       let copied = false;
+
+      // Intentar copiar al portapapeles con la API moderna de navegador
       if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
         try {
-          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-          if (blob) {
+          // Preparamos payload con image/png Y text/html para que Word, Google Docs y apps de chat lo peguen sin problemas
+          const htmlContent = `<img src="${base64Png}" alt="Riesgos Circundantes" style="max-width:100%;height:auto;" />`;
+          const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
+
+          try {
+            await navigator.clipboard.write([
+              new ClipboardItem({
+                'image/png': blob,
+                'text/html': htmlBlob
+              })
+            ]);
+            copied = true;
+          } catch (multiErr) {
+            // Reintento solo con PNG si el navegador no admite tipos múltiples
             await navigator.clipboard.write([
               new ClipboardItem({ 'image/png': blob })
             ]);
             copied = true;
-            Swal.fire({
-              toast: true,
-              position: 'top-end',
-              icon: 'success',
-              title: '¡Tabla copiada como imagen! Puedes pegarla con Ctrl+V',
-              timer: 3000,
-              showConfirmButton: false
-            });
           }
         } catch (clipErr) {
-          console.warn('Clipboard write fallback:', clipErr);
+          console.warn('Fallo navigator.clipboard.write:', clipErr);
         }
       }
 
-      if (!copied) {
-        const link = document.createElement('a');
-        link.download = `riesgos_circundantes_${Date.now()}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+      if (copied) {
         Swal.fire({
           toast: true,
           position: 'top-end',
           icon: 'success',
-          title: 'Imagen descargada exitosamente',
-          timer: 2500,
+          title: '¡Tabla copiada! Ya puedes pegarla en Word con Ctrl+V',
+          timer: 3500,
           showConfirmButton: false
+        });
+      } else {
+        // Si el navegador bloqueó el acceso al portapapeles, descargamos el PNG
+        const link = document.createElement('a');
+        link.download = `riesgos_circundantes_${Date.now()}.png`;
+        link.href = base64Png;
+        link.click();
+        Swal.fire({
+          icon: 'info',
+          title: 'Imagen descargada',
+          text: 'El navegador no permitió escribir directamente al portapapeles. Se ha descargado la imagen PNG para que puedas insertarla en Word.',
+          confirmButtonColor: '#7b1f1c'
         });
       }
     } catch (err: any) {
       console.error('Error al capturar tabla:', err);
-      Swal.fire('Error', 'No se pudo generar la imagen de la tabla.', 'error');
+      Swal.fire('Error', 'No se pudo generar la imagen de la tabla: ' + (err.message || ''), 'error');
     } finally {
       setCopyingImage(false);
     }
@@ -1122,6 +1213,7 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
                         <div className="w-28 h-28 mx-auto overflow-hidden border border-gray-300 bg-gray-50 flex items-center justify-center rounded">
                           <img
                             src={risk.photoUri}
+                            crossOrigin="anonymous"
                             alt={`Foto de ${risk.name}`}
                             className="w-full h-full object-cover"
                             loading="lazy"

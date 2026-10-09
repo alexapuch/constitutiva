@@ -712,6 +712,31 @@ router.get('/maps-key', (req, res) => {
     res.json({ key: process.env.GOOGLE_MAPS_PLATFORM_KEY || "" });
 });
 
+router.get('/proxy-image', async (req, res) => {
+    try {
+        const imageUrl = req.query.url as string;
+        if (!imageUrl) {
+            return res.status(400).send('URL is required');
+        }
+        if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+            return res.status(400).send('Invalid URL');
+        }
+        const imgRes = await fetch(imageUrl);
+        if (!imgRes.ok) {
+            return res.status(imgRes.status).send('Failed to fetch image');
+        }
+        const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
+        const arrayBuf = await imgRes.arrayBuffer();
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        res.send(Buffer.from(arrayBuf));
+    } catch (err: any) {
+        console.error('proxy-image error:', err);
+        res.status(500).send('Error proxying image');
+    }
+});
+
 // Helper function to call Gemini with automatic retries for transient/quota errors
 async function callGeminiWithRetry(fn: () => Promise<any>, maxRetries = 3, delayMs = 2000) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
