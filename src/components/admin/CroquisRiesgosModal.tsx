@@ -89,9 +89,113 @@ export const mapPlacesTypesToCategory = (types: string[] = []): string => {
   return 'comercial';
 };
 
-// Function to generate the data URI of the custom marker pin (centered vector)
-const createMarkerIcon = (color: string, iconSvg: string) => {
-  const encodedSvg = encodeURIComponent(
+// Helper to generate the custom marker configuration based on zoom level and color
+interface MarkerIconConfig {
+  url: string;
+  size: google.maps.Size;
+  scaledSize: google.maps.Size;
+  anchor: google.maps.Point;
+}
+
+const getMarkerConfig = (
+  color: string,
+  iconSvg: string,
+  zoom: number,
+  forceColorOnly: boolean = false
+): MarkerIconConfig => {
+  // If forced or zoomed out to <= 16, display as a clean colored disc/dot
+  const isColorOnly = forceColorOnly || zoom <= 16;
+
+  if (isColorOnly) {
+    if (zoom >= 18) {
+      // Zoom 18+: 22px colored dot
+      const svg = encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22">
+          <circle cx="11" cy="11" r="9" fill="${color}" stroke="white" stroke-width="2.5" />
+        </svg>`
+      );
+      return {
+        url: `data:image/svg+xml,${svg}`,
+        size: new google.maps.Size(22, 22),
+        scaledSize: new google.maps.Size(22, 22),
+        anchor: new google.maps.Point(11, 11)
+      };
+    } else if (zoom === 17) {
+      // Zoom 17: 20px colored dot
+      const svg = encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+          <circle cx="10" cy="10" r="8" fill="${color}" stroke="white" stroke-width="2" />
+        </svg>`
+      );
+      return {
+        url: `data:image/svg+xml,${svg}`,
+        size: new google.maps.Size(20, 20),
+        scaledSize: new google.maps.Size(20, 20),
+        anchor: new google.maps.Point(10, 10)
+      };
+    } else if (zoom === 16) {
+      // Zoom 16: 18px colored dot
+      const svg = encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+          <circle cx="9" cy="9" r="7.2" fill="${color}" stroke="white" stroke-width="2" />
+        </svg>`
+      );
+      return {
+        url: `data:image/svg+xml,${svg}`,
+        size: new google.maps.Size(18, 18),
+        scaledSize: new google.maps.Size(18, 18),
+        anchor: new google.maps.Point(9, 9)
+      };
+    } else if (zoom === 15) {
+      // Zoom 15: 14px colored dot
+      const svg = encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14">
+          <circle cx="7" cy="7" r="5.5" fill="${color}" stroke="white" stroke-width="1.8" />
+        </svg>`
+      );
+      return {
+        url: `data:image/svg+xml,${svg}`,
+        size: new google.maps.Size(14, 14),
+        scaledSize: new google.maps.Size(14, 14),
+        anchor: new google.maps.Point(7, 7)
+      };
+    } else {
+      // Zoom <= 14: 10px colored dot
+      const svg = encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10">
+          <circle cx="5" cy="5" r="4" fill="${color}" stroke="white" stroke-width="1.4" />
+        </svg>`
+      );
+      return {
+        url: `data:image/svg+xml,${svg}`,
+        size: new google.maps.Size(10, 10),
+        scaledSize: new google.maps.Size(10, 10),
+        anchor: new google.maps.Point(5, 5)
+      };
+    }
+  }
+
+  // Normal zoom with full SVG icon inside:
+  if (zoom === 17) {
+    // Zoom 17: 26px circle with scaled logo inside
+    const svg = encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">
+        <circle cx="13" cy="13" r="11.5" fill="${color}" stroke="white" stroke-width="2" />
+        <g transform="translate(6, 6) scale(0.58)" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          ${iconSvg}
+        </g>
+      </svg>`
+    );
+    return {
+      url: `data:image/svg+xml,${svg}`,
+      size: new google.maps.Size(26, 26),
+      scaledSize: new google.maps.Size(26, 26),
+      anchor: new google.maps.Point(13, 13)
+    };
+  }
+
+  // Zoom >= 18 (default): 36px circle with full logo inside
+  const svg = encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
       <circle cx="18" cy="18" r="16" fill="${color}" stroke="white" stroke-width="2" />
       <g transform="translate(8, 8) scale(0.83)" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -99,7 +203,21 @@ const createMarkerIcon = (color: string, iconSvg: string) => {
       </g>
     </svg>`
   );
-  return `data:image/svg+xml,${encodedSvg}`;
+  return {
+    url: `data:image/svg+xml,${svg}`,
+    size: new google.maps.Size(36, 36),
+    scaledSize: new google.maps.Size(36, 36),
+    anchor: new google.maps.Point(18, 18)
+  };
+};
+
+const getCenterMarkerConfig = (zoom: number): { url: string; scaledSize: google.maps.Size; anchor: google.maps.Point } => {
+  const pinSize = zoom >= 18 ? 38 : zoom === 17 ? 28 : zoom === 16 ? 20 : zoom === 15 ? 15 : 12;
+  return {
+    url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+    scaledSize: new google.maps.Size(pinSize, pinSize),
+    anchor: new google.maps.Point(pinSize / 2, pinSize)
+  };
 };
 
 // Native Circle with dimension text label overlay and radius line (acotación)
@@ -194,6 +312,8 @@ interface MapContentProps {
   setLat: (lat: string) => void;
   setLng: (lng: string) => void;
   markers: SavedMarker[];
+  zoomLevel: number;
+  markerMode?: 'auto' | 'colorOnly';
   handleMarkerDragEnd: (id: string, e: google.maps.MapMouseEvent) => void;
   handleMapClick: (lat: number, lng: number) => void;
   onMapReady: (map: google.maps.Map) => void;
@@ -201,9 +321,27 @@ interface MapContentProps {
   handleRemoveMarker: (id: string) => void;
 }
 
-function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDragEnd, handleMapClick, onMapReady, onZoomChanged, handleRemoveMarker }: MapContentProps) {
+function MapContent({
+  center,
+  setCenter,
+  setLat,
+  setLng,
+  markers,
+  zoomLevel,
+  markerMode = 'auto',
+  handleMarkerDragEnd,
+  handleMapClick,
+  onMapReady,
+  onZoomChanged,
+  handleRemoveMarker
+}: MapContentProps) {
   const map = useMap();
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
+  const [currentZoom, setCurrentZoom] = useState(zoomLevel);
+
+  useEffect(() => {
+    setCurrentZoom(zoomLevel);
+  }, [zoomLevel]);
 
   useEffect(() => {
     if (map) {
@@ -217,6 +355,7 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
     const zoomListener = map.addListener('zoom_changed', () => {
       const z = map.getZoom();
       if (z !== undefined) {
+        setCurrentZoom(z);
         onZoomChanged(z);
       }
     });
@@ -283,22 +422,22 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
       <Marker
         position={center}
         title="Punto Central"
-        icon={{
-          url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-          scaledSize: new google.maps.Size(40, 40)
-        }}
+        icon={getCenterMarkerConfig(currentZoom)}
       />
 
       {/* 250m Circle Overlay */}
       <MapCircle center={center} radius={250} />
 
       {/* Placed Custom Risk Markers */}
-      {markers.map((m, idx) => {
+      {markers.map((m) => {
         const cat = RISK_CATEGORIES.find(c => c.id === m.categoryId);
         // Find index among named establishments for consistent color matching with sidebar
         const estList = markers.filter(item => item.customName);
         const estIndex = estList.findIndex(item => item.id === m.id);
         const markerColor = m.color || (estIndex >= 0 ? getEstablishmentColor(m.customName, estIndex) : (cat?.color || '#1d4ed8'));
+        const isForceColorOnly = markerMode === 'colorOnly';
+        const iconConfig = cat ? getMarkerConfig(markerColor, cat.iconSvg, currentZoom, isForceColorOnly) : undefined;
+
         return (
           <Marker
             key={m.id}
@@ -312,12 +451,12 @@ function MapContent({ center, setCenter, setLat, setLng, markers, handleMarkerDr
               }
               setSelectedMarkerId(m.id);
             }}
-            icon={{
-              url: cat ? createMarkerIcon(markerColor, cat.iconSvg) : '',
-              size: new google.maps.Size(36, 36),
-              scaledSize: new google.maps.Size(36, 36),
-              anchor: new google.maps.Point(18, 18)
-            }}
+            icon={iconConfig ? {
+              url: iconConfig.url,
+              size: iconConfig.size,
+              scaledSize: iconConfig.scaledSize,
+              anchor: iconConfig.anchor
+            } : undefined}
           />
         );
       })}
@@ -387,6 +526,7 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
   const [markers, setMarkers] = useState<SavedMarker[]>([]);
   const [loadingAuto, setLoadingAuto] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(18);
+  const [markerMode, setMarkerMode] = useState<'auto' | 'colorOnly'>('auto');
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
 
   const captureAreaRef = useRef<HTMLDivElement>(null);
@@ -846,7 +986,8 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
           <div className="flex items-center gap-3 bg-white dark:bg-gray-700 p-2.5 rounded-lg border border-gray-200 dark:border-gray-650 justify-between shadow-sm">
             <button
               onClick={() => handleZoomChange(zoomLevel - 1)}
-              className="bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 text-gray-800 dark:text-white px-3 py-1 rounded font-black text-sm select-none transition-colors border border-gray-300 dark:border-gray-500"
+              className="bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 text-gray-800 dark:text-white px-3 py-1 rounded font-black text-sm select-none transition-colors border border-gray-300 dark:border-gray-500 cursor-pointer"
+              title="Alejar zoom (-)"
             >
               -
             </button>
@@ -863,10 +1004,39 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
             </div>
             <button
               onClick={() => handleZoomChange(zoomLevel + 1)}
-              className="bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 text-gray-800 dark:text-white px-3 py-1 rounded font-black text-sm select-none transition-colors border border-gray-300 dark:border-gray-500"
+              className="bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 text-gray-800 dark:text-white px-3 py-1 rounded font-black text-sm select-none transition-colors border border-gray-300 dark:border-gray-500 cursor-pointer"
+              title="Acercar zoom (+)"
             >
               +
             </button>
+          </div>
+
+          {/* Marcadores Adaptables Feedback & Toggle */}
+          <div className="mt-2.5 pt-2 border-t border-gray-200 dark:border-gray-700 flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black text-gray-600 dark:text-gray-300 uppercase tracking-wide">
+                Estilo de Marcadores:
+              </span>
+              <button
+                type="button"
+                onClick={() => setMarkerMode(m => m === 'auto' ? 'colorOnly' : 'auto')}
+                className={`px-2 py-0.5 rounded text-[10px] font-black uppercase transition-all flex items-center gap-1 border cursor-pointer ${
+                  markerMode === 'colorOnly'
+                    ? 'bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-600'
+                    : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-600'
+                }`}
+                title="Alternar entre modo automático y solo puntos de color"
+              >
+                {markerMode === 'auto' ? '✨ Automático (Zoom)' : '🎨 Solo Color'}
+              </button>
+            </div>
+            <p className="text-[9.5px] text-gray-500 dark:text-gray-400 leading-tight">
+              {markerMode === 'auto'
+                ? (zoomLevel <= 16
+                    ? '⚡ Zoom alejado: mostrando puntos de color para que no se encimen.'
+                    : '🔍 Zoom cercano: mostrando iconos completos con logotipo.')
+                : 'Puntos de color activos sin logotipos para máxima diferenciación.'}
+            </p>
           </div>
         </div>
 
@@ -976,6 +1146,8 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
                   setLat={setLat}
                   setLng={setLng}
                   markers={markers}
+                  zoomLevel={zoomLevel}
+                  markerMode={markerMode}
                   handleMarkerDragEnd={handleMarkerDragEnd}
                   handleMapClick={handleMapClick}
                   onMapReady={setMapInstance}
