@@ -435,7 +435,7 @@ function MapContent({
         const estList = markers.filter(item => item.customName);
         const estIndex = estList.findIndex(item => item.id === m.id);
         const markerColor = m.color || (estIndex >= 0 ? getEstablishmentColor(m.customName, estIndex) : (cat?.color || '#1d4ed8'));
-        const isForceColorOnly = markerMode === 'colorOnly';
+        const isForceColorOnly = markerMode === 'colorOnly' || Boolean(m.isCircundantePlace || m.customName);
         const iconConfig = cat ? getMarkerConfig(markerColor, cat.iconSvg, currentZoom, isForceColorOnly) : undefined;
 
         return (
@@ -852,26 +852,33 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
       // Build markers with EXACT coordinates and mapped categories, strictly excluding user business
       const userBizName = (cachedData.establishment || '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-      const importedMarkers: SavedMarker[] = cachedData.places
-        .filter((place: any) => typeof place.lat === 'number' && typeof place.lng === 'number')
+      const cLatNum = cachedData.center?.lat ? Number(cachedData.center.lat) : parseFloat(lat);
+      const cLngNum = cachedData.center?.lng ? Number(cachedData.center.lng) : parseFloat(lng);
+      const importedMarkers: SavedMarker[] = [];
+
+      cachedData.places
         .filter((place: any) => {
           if (!userBizName) return true;
           const pName = (place.name || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
           return !pName.includes(userBizName) && !userBizName.includes(pName);
         })
-        .map((place: any, index: number) => {
+        .forEach((place: any, index: number) => {
+          const fallbackAngle = (index * Math.PI * 2) / 5;
+          const rawLat = typeof place.lat === 'number' && !isNaN(place.lat) ? place.lat : cLatNum + Math.cos(fallbackAngle) * 0.00045;
+          const rawLng = typeof place.lng === 'number' && !isNaN(place.lng) ? place.lng : cLngNum + Math.sin(fallbackAngle) * 0.00045;
+          const adjusted = adjustOverlap(rawLat, rawLng, [{ lat: cLatNum, lng: cLngNum }, ...importedMarkers]);
           const categoryId = mapPlacesTypesToCategory(place.types || []);
           const assignedColor = getEstablishmentColor(place.name, index);
-          return {
+          importedMarkers.push({
             id: `circundante-${index}-${Date.now()}`,
-            lat: place.lat,
-            lng: place.lng,
+            lat: adjusted.lat,
+            lng: adjusted.lng,
             categoryId,
             customName: place.name,
             distance: place.distance,
             isCircundantePlace: true,
             color: assignedColor
-          };
+          });
         });
 
       // Keep existing manual markers and replace previous imported ones
@@ -906,24 +913,32 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
             setLng(cachedData.center.lng.toString());
             setCenter({ lat: cachedData.center.lat, lng: cachedData.center.lng });
           }
+          const cLatNum = cachedData.center?.lat ? Number(cachedData.center.lat) : 20.650283;
+          const cLngNum = cachedData.center?.lng ? Number(cachedData.center.lng) : -87.061502;
           const userBizName = (cachedData.establishment || '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-          const importedMarkers: SavedMarker[] = cachedData.places
-            .filter((place: any) => typeof place.lat === 'number' && typeof place.lng === 'number')
+          const importedMarkers: SavedMarker[] = [];
+          cachedData.places
             .filter((place: any) => {
               if (!userBizName) return true;
               const pName = (place.name || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
               return !pName.includes(userBizName) && !userBizName.includes(pName);
             })
-            .map((place: any, index: number) => ({
-              id: `circundante-${index}-${Date.now()}`,
-              lat: place.lat,
-              lng: place.lng,
-              categoryId: mapPlacesTypesToCategory(place.types || []),
-              customName: place.name,
-              distance: place.distance,
-              isCircundantePlace: true,
-              color: getEstablishmentColor(place.name, index)
-            }));
+            .forEach((place: any, index: number) => {
+              const fallbackAngle = (index * Math.PI * 2) / 5;
+              const rawLat = typeof place.lat === 'number' && !isNaN(place.lat) ? place.lat : cLatNum + Math.cos(fallbackAngle) * 0.00045;
+              const rawLng = typeof place.lng === 'number' && !isNaN(place.lng) ? place.lng : cLngNum + Math.sin(fallbackAngle) * 0.00045;
+              const adjusted = adjustOverlap(rawLat, rawLng, [{ lat: cLatNum, lng: cLngNum }, ...importedMarkers]);
+              importedMarkers.push({
+                id: `circundante-${index}-${Date.now()}`,
+                lat: adjusted.lat,
+                lng: adjusted.lng,
+                categoryId: mapPlacesTypesToCategory(place.types || []),
+                customName: place.name,
+                distance: place.distance,
+                isCircundantePlace: true,
+                color: getEstablishmentColor(place.name, index)
+              });
+            });
           setMarkers(importedMarkers);
         }
       }
@@ -1189,11 +1204,9 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
                       return (
                         <div key={m.id || idx} className="flex items-center gap-2 bg-white px-2.5 py-1.5 rounded-md border border-blue-100 shadow-2xs">
                           <div 
-                            className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 shadow text-white font-bold"
+                            className="w-5 h-5 rounded-full shrink-0 shadow border-2 border-white"
                             style={{ backgroundColor: markerColor }}
-                          >
-                            <span className="text-xs leading-none">{cat?.symbolLabel || '🏪'}</span>
-                          </div>
+                          />
                           <div className="flex flex-col min-w-0 flex-1 leading-tight">
                             <span className="text-xs font-black text-gray-900 truncate">
                               {m.customName}

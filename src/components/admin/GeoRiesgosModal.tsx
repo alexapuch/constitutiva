@@ -1055,12 +1055,15 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
       }
 
       // Re-attach exact coordinates & types to each risk item
-      const enrichedResults = (data.results || []).map((r: any) => {
-        const matched = placesData.find(p => p.name === r.name);
+      const enrichedResults = (data.results || []).map((r: any, idx: number) => {
+        const matched =
+          placesData.find(p => (p.name || '').toLowerCase().trim() === (r.name || '').toLowerCase().trim()) ||
+          placesData[idx];
         return {
           ...r,
           lat: matched?.lat,
           lng: matched?.lng,
+          photoUri: r.photoUri || matched?.photoUri,
           types: matched?.types || r.types || []
         };
       });

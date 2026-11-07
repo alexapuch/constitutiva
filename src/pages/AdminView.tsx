@@ -41,6 +41,7 @@ const ManualRiesgosModal = lazy(() => import('../components/admin/ManualRiesgosM
 const CroquisRiesgosModal = lazy(() => import('../components/admin/CroquisRiesgosModal'));
 const CroquisSeñaleticaModal = lazy(() => import('../components/admin/CroquisSeñaleticaModal'));
 const ManualCalendarioModal = lazy(() => import('../components/admin/ManualCalendarioModal'));
+const PIPCModal = lazy(() => import('../components/admin/PIPCModal'));
 import { generateDC3PDF } from '../utils/generateDC3PDF';
 import { generateCalendarioPDF } from '../utils/generateCalendarioPDF';
 import { Menu } from 'lucide-react';
@@ -129,6 +130,7 @@ export default function AdminView() {
   const [showCroquisRiesgosModal, setShowCroquisRiesgosModal] = useState(false);
   const [showCroquisSeñaleticaModal, setShowCroquisSeñaleticaModal] = useState(false);
   const [showCalendarioModal, setShowCalendarioModal] = useState(false);
+  const [showPIPCModal, setShowPIPCModal] = useState(false);
   const [turnosSimulacro, setTurnosSimulacro] = useState<'M' | 'MV' | 'MVN'>('MV');
   const [editingEmpId, setEditingEmpId] = useState<number | null>(null);
   const [editingEmpName, setEditingEmpName] = useState('');
@@ -1245,6 +1247,14 @@ export default function AdminView() {
                     <Eye className="w-4 h-4" />
                     <span className="whitespace-nowrap">Organigrama</span>
                   </button>
+                  <button
+                    onClick={() => { if (docInfo) setShowPIPCModal(true); }}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-amber-700 text-white px-3.5 py-1.5 text-sm rounded-md hover:bg-amber-800 transition-colors shadow-md font-bold min-h-[38px]"
+                    title="Armar y Descargar Programa Interno de Protección Civil (PIPC 2026)"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span className="whitespace-nowrap">PIPC 2026</span>
+                  </button>
                 </div>
               </div>
 
@@ -1529,6 +1539,18 @@ export default function AdminView() {
         }}
         onPreview={async (data) => {
           await handlePreview(() => generateCalendarioPDF(data, true), 'Calendario de Actividades', generatePdfName('CALENDARIO', data.commercialName, data.year));
+        }}
+      />
+
+      <PIPCModal
+        isOpen={showPIPCModal}
+        onClose={() => setShowPIPCModal(false)}
+        docInfo={docInfo}
+        employees={employees}
+        onPreview={(url, name) => {
+          setPreviewUrl(url);
+          setPreviewName(name);
+          setPreviewType('PIPC 2026');
         }}
       />
 
