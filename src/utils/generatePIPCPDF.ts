@@ -114,16 +114,16 @@ function releaseCanvas(c?: HTMLCanvasElement | null) {
 
 /**
  * Renderiza una página de un documento PDF de pdfjs a un HTMLCanvasElement.
- * Escala 1.35 (~105 DPI): produce páginas perfectamente legibles en pantalla e impresión
- * reduciendo el peso final del documento de ~36MB a menos de 7MB.
+ * Escala 1.9: resolución de alta definición (~140 DPI) que garantiza que todas
+ * las letras, tablas, firmas y marcos se lean 100% nítidos sin pixelación.
  */
 async function renderPdfPageToCanvas(
   pdfDoc: any,
   pageNum: number,
-  scale: number = 1.35
+  scale: number = 1.9
 ): Promise<HTMLCanvasElement> {
   const isMobileDevice = typeof window !== 'undefined' && window.innerWidth < 768;
-  const effectiveScale = isMobileDevice ? Math.min(scale, 1.35) : scale;
+  const effectiveScale = isMobileDevice ? Math.min(scale, 1.85) : scale;
   const page = await pdfDoc.getPage(pageNum);
   const viewport = page.getViewport({ scale: effectiveScale });
   const canvas = document.createElement('canvas');
@@ -198,7 +198,7 @@ export async function generatePIPCPDF(
 
     // 1. Extraer el marco base limpio (borde café + marca de agua SEPRISA + ícono inferior derecho) desde la pág. 10
     report('Preparando marco institucional y marca de agua...', 10);
-    const baseFrameCanvas = await renderPdfPageToCanvas(templatePdf, 10, 1.35);
+    const baseFrameCanvas = await renderPdfPageToCanvas(templatePdf, 10, 1.9);
     const frameCtx = baseFrameCanvas.getContext('2d')!;
     const fw = baseFrameCanvas.width;
     const fh = baseFrameCanvas.height;
@@ -209,7 +209,7 @@ export async function generatePIPCPDF(
     // Borrar el número "10" arriba del loguito inferior derecho
     frameCtx.fillRect(fw * 0.86, fh * 0.885, fw * 0.10, fh * 0.036);
 
-    const blankFrameDataUrl = baseFrameCanvas.toDataURL('image/jpeg', 0.75);
+    const blankFrameDataUrl = baseFrameCanvas.toDataURL('image/jpeg', 0.86);
 
     // Crear documento maestro jsPDF (Tamaño Carta vertical: 215.9 x 279.4 mm)
     const doc = new jsPDF({
@@ -241,12 +241,12 @@ export async function generatePIPCPDF(
     const addStaticTemplatePage = async (templatePageIndex: number): Promise<number> => {
       doc.addPage();
       currentPageNum++;
-      const canvas = await renderPdfPageToCanvas(templatePdf, templatePageIndex, 1.35);
+      const canvas = await renderPdfPageToCanvas(templatePdf, templatePageIndex, 1.9);
       const ctx = canvas.getContext('2d')!;
       // Tapar el número de página original arriba del loguito en la esquina inferior derecha
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(canvas.width * 0.87, canvas.height * 0.885, canvas.width * 0.09, canvas.height * 0.037);
-      const imgData = canvas.toDataURL('image/jpeg', 0.70);
+      const imgData = canvas.toDataURL('image/jpeg', 0.83);
       releaseCanvas(canvas);
       doc.addImage(imgData, 'JPEG', 0, 0, pageW, pageH, undefined, 'FAST');
       return currentPageNum;
@@ -272,7 +272,7 @@ export async function generatePIPCPDF(
         const cCtx = compCanvas.getContext('2d')!;
         cCtx.drawImage(baseFrameCanvas, 0, 0);
 
-        const subPageCanvas = await renderPdfPageToCanvas(subPdf, p, 1.35);
+        const subPageCanvas = await renderPdfPageToCanvas(subPdf, p, 1.9);
 
         const hasTopTitle = p === 1 && !!firstPageTitle;
         const destX = fw * 0.075;
@@ -286,7 +286,7 @@ export async function generatePIPCPDF(
         cCtx.drawImage(subPageCanvas, destX, destY, destW, destH);
         cCtx.restore();
 
-        const mergedDataUrl = compCanvas.toDataURL('image/jpeg', 0.72);
+        const mergedDataUrl = compCanvas.toDataURL('image/jpeg', 0.84);
         releaseCanvas(subPageCanvas);
         releaseCanvas(compCanvas);
         doc.addImage(mergedDataUrl, 'JPEG', 0, 0, pageW, pageH, undefined, 'FAST');
@@ -618,6 +618,8 @@ export async function generatePIPCPDF(
         drawW = (dims.width / dims.height) * drawH;
       }
       const imgX = (pageW - drawW) / 2;
+      doc.setFillColor(255, 255, 255);
+      doc.rect(imgX, 49, drawW, drawH, 'F');
       doc.addImage(ubicacionImgData, 'JPEG', imgX, 49, drawW, drawH, undefined, 'FAST');
     } else {
       doc.setDrawColor(180, 180, 180);
@@ -694,7 +696,11 @@ export async function generatePIPCPDF(
           drawH = maxH;
           drawW = (dims.width / dims.height) * drawH;
         }
-        doc.addImage(imgData, 'JPEG', (pageW - drawW) / 2, 38, drawW, drawH, undefined, 'FAST');
+        const imgX = (pageW - drawW) / 2;
+        // Fondo blanco sólido detrás de la imagen pegada
+        doc.setFillColor(255, 255, 255);
+        doc.rect(imgX, 38, drawW, drawH, 'F');
+        doc.addImage(imgData, 'JPEG', imgX, 38, drawW, drawH, undefined, 'FAST');
       }
     } else if (activeRiesgosList && activeRiesgosList.length > 0) {
       // Pre-cargar fotos de los riesgos circundantes como JPEG limpio (vía proxy o Street View/Satélite)
@@ -726,6 +732,11 @@ export async function generatePIPCPDF(
         const headerH = 9.5;
         const rowH = isFiveRows ? 38 : 40;
 
+        // Fondo blanco sólido para todo el bloque de la tabla de Riesgos Circundantes
+        const totalTableH = headerH + chunk.length * rowH;
+        doc.setFillColor(255, 255, 255);
+        doc.rect(tableX, tableY, tableW, totalTableH, 'F');
+
         // Encabezado Guinda (#7b1f1c)
         doc.setFillColor(123, 31, 28);
         doc.rect(tableX, tableY, tableW, headerH, 'F');
@@ -745,8 +756,12 @@ export async function generatePIPCPDF(
         doc.setTextColor(0, 0, 0);
         chunk.forEach((risk, idx) => {
           const ry = tableY + headerH + idx * rowH;
+
+          // Fondo blanco sólido en cada fila para evitar cualquier transparencia
+          doc.setFillColor(255, 255, 255);
+          doc.rect(tableX, ry, tableW, rowH, 'FD');
+
           doc.setDrawColor(110, 110, 110);
-          doc.rect(tableX, ry, tableW, rowH, 'S');
           doc.line(tableX + col1W, ry, tableX + col1W, ry + rowH);
           doc.line(tableX + col1W + col2W, ry, tableX + col1W + col2W, ry + rowH);
 
@@ -825,6 +840,10 @@ export async function generatePIPCPDF(
     const croqBoxW = pageW - 28; // 187.9 mm
     const croqImgH = (croqBoxW * 740) / 980; // ~141.9 mm manteniendo proporción exacta 980x740
 
+    // Fondo blanco sólido detrás del croquis para evitar transparencias
+    doc.setFillColor(255, 255, 255);
+    doc.rect(croqBoxX, croqBoxY, croqBoxW, croqImgH + 28, 'F');
+
     if (croquis250Img) {
       doc.addImage(croquis250Img, 'JPEG', croqBoxX, croqBoxY, croqBoxW, croqImgH, undefined, 'FAST');
     }
@@ -832,9 +851,10 @@ export async function generatePIPCPDF(
     // Recuadro inferior con Nombre Comercial y Dirección del establecimiento evaluado
     const infoBoxY = croqBoxY + croqImgH + 4;
     const infoBoxH = 22;
+    doc.setFillColor(255, 255, 255);
     doc.setDrawColor(30, 58, 138);
     doc.setLineWidth(0.35);
-    doc.rect(croqBoxX, infoBoxY, croqBoxW, infoBoxH, 'S');
+    doc.rect(croqBoxX, infoBoxY, croqBoxW, infoBoxH, 'FD');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
@@ -1432,6 +1452,11 @@ export async function generatePIPCPDF(
         const headerH = 9.5;
         const rowH = 49;
 
+        // Fondo blanco sólido para toda el área de la tabla de Inventario
+        const totalTableH = headerH + chunk.length * rowH;
+        doc.setFillColor(255, 255, 255);
+        doc.rect(tableX, tableY, tableW, totalTableH, 'F');
+
         // Encabezado Azul Marino (#1f3a60) igual al machote oficial
         doc.setFillColor(31, 58, 96);
         doc.rect(tableX, tableY, tableW, headerH, 'F');
@@ -1452,8 +1477,11 @@ export async function generatePIPCPDF(
           const item = chunk[rIdx];
           const ry = tableY + headerH + rIdx * rowH;
 
+          // Fondo blanco sólido en cada celda
+          doc.setFillColor(255, 255, 255);
+          doc.rect(tableX, ry, tableW, rowH, 'FD');
+
           doc.setDrawColor(120, 120, 120);
-          doc.rect(tableX, ry, tableW, rowH, 'S');
           doc.line(tableX + col1W, ry, tableX + col1W, ry + rowH);
           doc.line(tableX + col1W + col2W, ry, tableX + col1W + col2W, ry + rowH);
 
@@ -1519,7 +1547,10 @@ export async function generatePIPCPDF(
             drawH = maxH;
             drawW = (dims.width / dims.height) * drawH;
           }
-          doc.addImage(imgData, 'JPEG', (pageW - drawW) / 2, 22, drawW, drawH, undefined, 'FAST');
+          const imgX = (pageW - drawW) / 2;
+          doc.setFillColor(255, 255, 255);
+          doc.rect(imgX, 22, drawW, drawH, 'F');
+          doc.addImage(imgData, 'JPEG', imgX, 22, drawW, drawH, undefined, 'FAST');
         }
       }
     } else if (config.inventarioImgs && config.inventarioImgs.length > 0) {
@@ -1544,7 +1575,10 @@ export async function generatePIPCPDF(
           drawH = maxH;
           drawW = (dims.width / dims.height) * drawH;
         }
-        doc.addImage(imgData, 'JPEG', (pageW - drawW) / 2, topY, drawW, drawH, undefined, 'FAST');
+        const imgX = (pageW - drawW) / 2;
+        doc.setFillColor(255, 255, 255);
+        doc.rect(imgX, topY, drawW, drawH, 'F');
+        doc.addImage(imgData, 'JPEG', imgX, topY, drawW, drawH, undefined, 'FAST');
       }
     } else if (config.useDefaultInventarioIfEmpty !== false) {
       // Si no pegó imágenes nuevas, coloca el título arriba y debajo la primera hoja del inventario (pág. 54) sin página en blanco
@@ -1554,7 +1588,7 @@ export async function generatePIPCPDF(
       doc.setTextColor(0, 0, 0);
       doc.text('INVENTARIO SEÑALÉTICAS Y EQUIPOS DE EMERGENCIA', pageW / 2, 25, { align: 'center' });
 
-      const p54Canvas = await renderPdfPageToCanvas(templatePdf, 54, 1.35);
+      const p54Canvas = await renderPdfPageToCanvas(templatePdf, 54, 1.9);
       // Recortar el contenido interior de la página 54 (debajo del encabezado superior y arriba del pie de página)
       const cropCanvas = document.createElement('canvas');
       const sy = Math.round(p54Canvas.height * 0.08);
@@ -1567,7 +1601,9 @@ export async function generatePIPCPDF(
       cropCtx.fillStyle = '#ffffff';
       cropCtx.fillRect(0, 0, sw, sh);
       cropCtx.drawImage(p54Canvas, sx, sy, sw, sh, 0, 0, sw, sh);
-      doc.addImage(cropCanvas.toDataURL('image/jpeg', 0.72), 'JPEG', 13, 30, pageW - 26, 215, undefined, 'FAST');
+      doc.setFillColor(255, 255, 255);
+      doc.rect(13, 30, pageW - 26, 215, 'F');
+      doc.addImage(cropCanvas.toDataURL('image/jpeg', 0.84), 'JPEG', 13, 30, pageW - 26, 215, undefined, 'FAST');
       releaseCanvas(p54Canvas);
       releaseCanvas(cropCanvas);
 

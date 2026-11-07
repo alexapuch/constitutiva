@@ -291,8 +291,8 @@ export default function PIPCModal({
 
   if (!isOpen || !docInfo) return null;
 
-  // Convertir y optimizar imagen subida (o pegada) a DataURL JPEG ligero (max 1400px, calidad 0.78).
-  // Esto previene que fotos de iPhone (4000x3000px y 5MB c/u) inflen el PDF a más de 30MB.
+  // Convertir y optimizar imagen subida (o pegada) a DataURL JPEG de alta definición (max 2048px, calidad 0.86).
+  // Mantiene letras, tablas y fotos 100% nítidas evitando que fotos crudas de 48MP de iPhone inflen el PDF sin necesidad.
   const fileToDataUrl = (file: File): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -300,7 +300,7 @@ export default function PIPCModal({
         const rawUrl = reader.result as string;
         const img = new Image();
         img.onload = () => {
-          const maxDim = 1400;
+          const maxDim = 2048;
           let w = img.naturalWidth || img.width;
           let h = img.naturalHeight || img.height;
           if (w > maxDim || h > maxDim) {
@@ -320,7 +320,7 @@ export default function PIPCModal({
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, w, h);
             ctx.drawImage(img, 0, 0, w, h);
-            const compressed = canvas.toDataURL('image/jpeg', 0.78);
+            const compressed = canvas.toDataURL('image/jpeg', 0.86);
             canvas.width = 0;
             canvas.height = 0;
             resolve(compressed);
