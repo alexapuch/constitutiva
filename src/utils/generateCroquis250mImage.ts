@@ -191,6 +191,441 @@ export async function resolveRiskPhotoAsJpegDataUrl(
   return canvas.toDataURL('image/jpeg', 0.9);
 }
 
+/**
+ * Calcula la distancia en metros entre dos coordenadas GPS (Fórmula de Haversine).
+ */
+export function computeDistanceMeters(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c);
+}
+
+/**
+ * Asegura que la librería Google Maps JS (places) esté cargada en el navegador.
+ */
+async function ensureGooglePlacesLibrary(mapsApiKey: string): Promise<any | null> {
+  if (typeof window === 'undefined') return null;
+  const w = window as any;
+
+  if (w.google?.maps?.importLibrary) {
+    try {
+      return await w.google.maps.importLibrary('places');
+    } catch {
+      // continue to script fallback
+    }
+  }
+
+  if (w.google?.maps?.places?.Place) {
+    return w.google.maps.places;
+  }
+
+  // Inyectar script de Google Maps JS si aún no se ha cargado
+  await new Promise<void>((resolve) => {
+    const existing = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+    if (existing) {
+      let checks = 0;
+      const timer = setInterval(() => {
+        checks++;
+        if (w.google?.maps?.importLibrary || w.google?.maps?.places || checks > 40) {
+          clearInterval(timer);
+          resolve();
+        }
+      }, 150);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
+      mapsApiKey
+    )}&libraries=places,geometry&v=weekly`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => resolve();
+    document.head.appendChild(script);
+  });
+
+  if (w.google?.maps?.importLibrary) {
+    try {
+      return await w.google.maps.importLibrary('places');
+    } catch {
+      // ignore
+    }
+  }
+  return w.google?.maps?.places || null;
+}
+
+/**
+ * Busca y evalúa automáticamente los 5 establecimientos circundantes reales en un radio de 250 m
+ * para las coordenadas indicadas (usando Google Places + análisis de Protección Civil / IA),
+ * y actualiza la caché local para mantener sincronizados todos los modales.
+ */
+export async function discoverSurroundingRisksForCoords(
+  lat: number,
+  lng: number,
+  mapsApiKey: string,
+  excludeEstablishmentName?: string
+): Promise<RiskData[]> {
+  if (isNaN(lat) || isNaN(lng) || !mapsApiKey) return [];
+
+  try {
+    const placesLib = await ensureGooglePlacesLibrary(mapsApiKey);
+    const center = { lat, lng };
+    const rawPlaces: any[] = [];
+
+    if (placesLib?.Place?.searchNearby) {
+      const distanceRank =
+        (placesLib.SearchNearbyRankPreference && placesLib.SearchNearbyRankPreference.DISTANCE) ||
+        'DISTANCE';
+
+      const [critRes, foodRes, genRes] = await Promise.allSettled([
+        placesLib.Place.searchNearby({
+          fields: ['displayName', 'location', 'photos', 'types'],
+          locationRestriction: { center, radius: 250 },
+          rankPreference: distanceRank,
+          includedTypes: [
+            'gas_station',
+            'shopping_mall',
+            'supermarket',
+            'department_store',
+            'school',
+            'hospital',
+            'car_repair',
+            'hardware_store'
+          ],
+          maxResultCount: 20
+        }),
+        placesLib.Place.searchNearby({
+          fields: ['displayName', 'location', 'photos', 'types'],
+          locationRestriction: { center, radius: 250 },
+          rankPreference: distanceRank,
+          includedTypes: [
+            'restaurant',
+            'fast_food_restaurant',
+            'meal_takeaway',
+            'bakery',
+            'cafe',
+            'bar'
+          ],
+          maxResultCount: 20
+        }),
+        placesLib.Place.searchNearby({
+          fields: ['displayName', 'location', 'photos', 'types'],
+          locationRestriction: { center, radius: 250 },
+          rankPreference: distanceRank,
+          maxResultCount: 20
+        })
+      ]);
+
+      if (critRes.status === 'fulfilled' && critRes.value?.places) {
+        rawPlaces.push(...critRes.value.places);
+      }
+      if (foodRes.status === 'fulfilled' && foodRes.value?.places) {
+        rawPlaces.push(...foodRes.value.places);
+      }
+      if (genRes.status === 'fulfilled' && genRes.value?.places) {
+        rawPlaces.push(...genRes.value.places);
+      }
+
+      if (typeof placesLib.Place.searchByText === 'function') {
+        const [gasText, plazaText] = await Promise.allSettled([
+          placesLib.Place.searchByText({
+            textQuery: 'gasolinera',
+            locationBias: { center, radius: 250 },
+            fields: ['displayName', 'location', 'photos', 'types'],
+            maxResultCount: 5
+          }),
+          placesLib.Place.searchByText({
+            textQuery: 'plaza comercial',
+            locationBias: { center, radius: 250 },
+            fields: ['displayName', 'location', 'photos', 'types'],
+            maxResultCount: 5
+          })
+        ]);
+        if (gasText.status === 'fulfilled' && gasText.value?.places) {
+          rawPlaces.push(...gasText.value.places);
+        }
+        if (plazaText.status === 'fulfilled' && plazaText.value?.places) {
+          rawPlaces.push(...plazaText.value.places);
+        }
+      }
+    }
+
+    // Deduplicar candidatos y calcular puntaje de Protección Civil
+    const mergedMap = new Map<string, any>();
+    rawPlaces.forEach((p) => {
+      if (!p || !p.location) return;
+      const pLat = typeof p.location.lat === 'function' ? p.location.lat() : p.location.lat;
+      const pLng = typeof p.location.lng === 'function' ? p.location.lng() : p.location.lng;
+      if (typeof pLat !== 'number' || typeof pLng !== 'number') return;
+      const nameStr = (p.displayName || '').toString().trim();
+      if (!nameStr) return;
+      const key = `${nameStr.toLowerCase()}_${pLat.toFixed(4)}_${pLng.toFixed(4)}`;
+      if (!mergedMap.has(key)) {
+        mergedMap.set(key, { raw: p, name: nameStr, lat: pLat, lng: pLng, types: p.types || [] });
+      }
+    });
+
+    const excludeNorm = (excludeEstablishmentName || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+    interface ScoredCandidate {
+      raw: any;
+      name: string;
+      lat: number;
+      lng: number;
+      types: string[];
+      distanceMeters: number;
+      isGasStation: boolean;
+      isPlaza: boolean;
+      isFood: boolean;
+      isHighImpact: boolean;
+      isConsultorioOrOffice: boolean;
+      score: number;
+    }
+
+    const candidates: ScoredCandidate[] = [];
+    mergedMap.forEach((item) => {
+      const normName = item.name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+      if (excludeNorm && (normName.includes(excludeNorm) || excludeNorm.includes(normName))) {
+        return;
+      }
+
+      const distanceMeters = computeDistanceMeters(lat, lng, item.lat, item.lng);
+      if (distanceMeters > 260) return;
+
+      const types: string[] = item.types || [];
+      const isConsultorioOrOffice =
+        /psicolog|psiquiatr|dentist|dental|consultorio|dr\b|dra\b|doctor\b|doctora\b|nutriolog|podolog|terapia|optica|pediatra|ginecolog|cardiolog|dermatolog|homeopat|notaria|despacho|abogad|contador/i.test(
+          normName
+        ) &&
+        !/hospital|sanatorio|cruz\s*roja|urgencias|centro\s*medico|clinica\s*de\s*especialidades|clinica\s*hospital/i.test(
+          normName
+        );
+
+      const isGasStation =
+        types.includes('gas_station') ||
+        /gasolinera|gasolin|combustible|pemex|oxxo\s*gas|bp\b|shell\b|mobil\b|g500|hidrosina|totalenergies|gas\s*lp|gasera|estacion\s*de\s*servicio|subestacion/i.test(
+          normName
+        );
+
+      const isPlaza =
+        (types.includes('shopping_mall') ||
+          /plaza\b|plazita|centro\s*comercial|mall\b|galeria|galerias|pabellon|pasaje\s*comercial|gran\s*plaza|macroplaza|paseo\b|portal\b/i.test(
+            normName
+          )) &&
+        !isConsultorioOrOffice;
+
+      const isFood =
+        (types.some((t) =>
+          [
+            'restaurant',
+            'fast_food_restaurant',
+            'hamburger_restaurant',
+            'pizza_restaurant',
+            'mexican_restaurant',
+            'bakery',
+            'cafe',
+            'bar',
+            'meal_takeaway',
+            'meal_delivery',
+            'food_court'
+          ].includes(t)
+        ) ||
+          /restaurante|cocina|fonda|taqueria|pizzeria|panaderia|cafe|mariscos|asador|carnitas|burguer|burger|tacos|comida|alitas|papas|subway|domino|kfc|pizza|mcdonald|tortas|antojitos|hamburgues/i.test(
+            normName
+          )) &&
+        !isConsultorioOrOffice;
+
+      const isHighImpact =
+        isPlaza ||
+        types.some((t) => ['supermarket', 'school', 'car_repair', 'hardware_store', 'hospital'].includes(t)) ||
+        (!isConsultorioOrOffice &&
+          /supermercado|bodega\s*aurrera|walmart|soriana|chedraui|taller|mecanic|hojalater|soldadur|ferreter|maderer|colegio|escuela|instituto|universidad|hospital/i.test(
+            normName
+          ));
+
+      let hazardBonus = 50;
+      if (isGasStation) hazardBonus = 800;
+      else if (isPlaza) hazardBonus = 420;
+      else if (isFood) hazardBonus = distanceMeters <= 35 ? 460 : 320;
+      else if (isHighImpact) hazardBonus = 260;
+      else if (isConsultorioOrOffice) hazardBonus = 15;
+
+      const score = hazardBonus + Math.max(0, 250 - distanceMeters) * 3;
+      candidates.push({
+        raw: item.raw,
+        name: item.name,
+        lat: item.lat,
+        lng: item.lng,
+        types,
+        distanceMeters,
+        isGasStation,
+        isPlaza,
+        isFood,
+        isHighImpact,
+        isConsultorioOrOffice,
+        score
+      });
+    });
+
+    if (candidates.length === 0) return [];
+
+    // Seleccionar los 5 principales riesgos igual que en GeoRiesgosModal
+    const sorted = [...candidates].sort((a, b) => b.score - a.score);
+    const selected: ScoredCandidate[] = [];
+    const usedNames = new Set<string>();
+    const addCand = (c: ScoredCandidate) => {
+      const k = c.name.toLowerCase().trim();
+      if (!usedNames.has(k)) {
+        selected.push(c);
+        usedNames.add(k);
+        return true;
+      }
+      return false;
+    };
+
+    const gas = sorted.filter((c) => c.isGasStation).sort((a, b) => a.distanceMeters - b.distanceMeters);
+    if (gas.length > 0) addCand(gas[0]);
+
+    const plz = sorted.filter((c) => c.isPlaza).sort((a, b) => a.distanceMeters - b.distanceMeters);
+    if (plz.length > 0 && selected.length < 5) addCand(plz[0]);
+
+    const closeFood = sorted
+      .filter((c) => c.isFood && c.distanceMeters <= 60)
+      .sort((a, b) => a.distanceMeters - b.distanceMeters);
+    if (closeFood.length > 0 && selected.length < 5) addCand(closeFood[0]);
+
+    let foodCount = selected.filter((s) => s.isFood).length;
+    for (const c of sorted) {
+      if (selected.length >= 5) break;
+      if (usedNames.has(c.name.toLowerCase().trim())) continue;
+      if (c.isFood && foodCount >= 2) {
+        const hasNonFood = sorted.some(
+          (o) => !o.isFood && !o.isConsultorioOrOffice && !usedNames.has(o.name.toLowerCase().trim())
+        );
+        if (hasNonFood) continue;
+      }
+      if (addCand(c) && c.isFood) foodCount++;
+    }
+    for (const c of sorted) {
+      if (selected.length >= 5) break;
+      addCand(c);
+    }
+
+    const finalSelected = selected.sort((a, b) => a.distanceMeters - b.distanceMeters);
+
+    // Resolver foto y descripción técnica para cada uno de los 5 lugares
+    const placesPayload = await Promise.all(
+      finalSelected.map(async (c) => {
+        let photoUri: string | undefined;
+        if (c.raw?.photos && c.raw.photos.length > 0) {
+          try {
+            photoUri = c.raw.photos[0].getURI({ maxWidth: 400 });
+          } catch {
+            photoUri = undefined;
+          }
+        }
+        if (!photoUri) {
+          photoUri = `https://maps.googleapis.com/maps/api/streetview?size=400x400&location=${c.lat},${c.lng}&radius=120&source=outdoor&key=${mapsApiKey}`;
+        }
+
+        // Respaldo técnico determinista por si la IA tarda o no responde
+        let fallbackLevel: 'Alto' | 'Medio' | 'Bajo' = 'Bajo';
+        let fallbackDesc = `Establecimiento comercial ubicado a ${c.distanceMeters} metros con afluencia moderada de personas y riesgo eléctrico ordinario por instalaciones comerciales.`;
+        if (c.isGasStation) {
+          fallbackLevel = 'Alto';
+          fallbackDesc = `Riesgo químico-tecnológico alto por almacenamiento y despacho de hidrocarburos a ${c.distanceMeters} metros, con potencial de fuga, incendio o explosión y flujo vehicular constante.`;
+        } else if (c.isPlaza || c.isHighImpact) {
+          fallbackLevel = c.distanceMeters <= 40 ? 'Alto' : 'Medio';
+          fallbackDesc = `Riesgo socio-organizativo y de tránsito vehicular a ${c.distanceMeters} metros por concentración de personas, carga de fuego comercial e instalaciones eléctricas de media capacidad.`;
+        } else if (c.isFood) {
+          fallbackLevel = c.distanceMeters <= 30 ? 'Alto' : 'Medio';
+          fallbackDesc = `Riesgo químico-tecnológico de incendio o fuga a ${c.distanceMeters} metros por uso de instalaciones de Gas L.P. comercial, cocción a flama abierta y equipos térmicos.`;
+        }
+
+        return {
+          name: c.name,
+          distance: `${c.distanceMeters} MTS`,
+          types: c.types,
+          lat: c.lat,
+          lng: c.lng,
+          photoUri,
+          riskLevel: fallbackLevel,
+          riskDescription: fallbackDesc
+        };
+      })
+    );
+
+    // Consultar /api/analyze-risks para enriquecer las descripciones con IA
+    let enriched: RiskData[] = placesPayload;
+    try {
+      const res = await fetch('/api/analyze-risks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ places: placesPayload })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data?.results) && data.results.length > 0) {
+          enriched = placesPayload.map((base, idx) => {
+            const matched =
+              data.results.find(
+                (r: any) => (r.name || '').toLowerCase().trim() === base.name.toLowerCase().trim()
+              ) || data.results[idx];
+            return {
+              ...base,
+              riskLevel: matched?.riskLevel || base.riskLevel,
+              riskDescription: matched?.riskDescription || base.riskDescription
+            };
+          });
+        }
+      }
+    } catch {
+      // Usa el respaldo determinista ya calculado
+    }
+
+    // Guardar en localStorage para mantener sincronizado GeoRiesgos, Croquis y PIPC
+    try {
+      localStorage.setItem(
+        'circundantes_places_cache',
+        JSON.stringify({
+          center: { lat, lng },
+          establishment: excludeEstablishmentName || '',
+          places: enriched,
+          updatedAt: Date.now()
+        })
+      );
+    } catch {
+      // ignore
+    }
+
+    return enriched;
+  } catch (err) {
+    console.warn('Error en discoverSurroundingRisksForCoords:', err);
+    return [];
+  }
+}
+
 function drawRoundedRect(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -406,20 +841,41 @@ export async function generateCroquis250mDataUrl(params: {
     ctx.restore();
   };
 
-  // Resolver lista de establecimientos (si places viene vacío, intentar leer de circundantes_places_cache)
-  let effectivePlaces: RiskData[] = Array.isArray(places) ? places.slice(0, 5) : [];
+  // Resolver lista de establecimientos verificando que realmente pertenezcan a estas coordenadas (radio <= 450m)
+  const isNearTarget = (p: RiskData) => {
+    if (typeof p.lat === 'number' && typeof p.lng === 'number' && !isNaN(p.lat) && !isNaN(p.lng)) {
+      return computeDistanceMeters(lat, lng, p.lat, p.lng) <= 450;
+    }
+    return true;
+  };
+
+  let effectivePlaces: RiskData[] = Array.isArray(places)
+    ? places.filter(isNearTarget).slice(0, 5)
+    : [];
+
   if (effectivePlaces.length === 0) {
     try {
       const cachedRaw = localStorage.getItem('circundantes_places_cache');
       if (cachedRaw) {
         const parsed = JSON.parse(cachedRaw);
-        if (Array.isArray(parsed?.places) && parsed.places.length > 0) {
-          effectivePlaces = parsed.places.slice(0, 5);
+        const cacheLat = Number(parsed?.center?.lat);
+        const cacheLng = Number(parsed?.center?.lng);
+        const cacheNear =
+          !isNaN(cacheLat) &&
+          !isNaN(cacheLng) &&
+          computeDistanceMeters(lat, lng, cacheLat, cacheLng) <= 450;
+        if (cacheNear && Array.isArray(parsed?.places) && parsed.places.length > 0) {
+          effectivePlaces = parsed.places.filter(isNearTarget).slice(0, 5);
         }
       }
     } catch {
       // ignore
     }
+  }
+
+  // Si las coordenadas son nuevas y no hay establecimientos de esta zona, buscarlos automáticamente en Google Places
+  if (effectivePlaces.length === 0) {
+    effectivePlaces = await discoverSurroundingRisksForCoords(lat, lng, mapsApiKey);
   }
   const topPlaces = effectivePlaces.slice(0, 5);
 

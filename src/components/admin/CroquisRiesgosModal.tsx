@@ -552,6 +552,9 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
         const parsedLat = parseFloat(latitude);
         const parsedLng = parseFloat(longitude);
         if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+          if (Math.hypot(parsedLat - center.lat, parsedLng - center.lng) > 0.003) {
+            setMarkers(prev => prev.filter(m => !m.id.startsWith('auto-') && !m.id.startsWith('circundante-')));
+          }
           setCenter({ lat: parsedLat, lng: parsedLng });
         }
       }
@@ -564,6 +567,9 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
     const parsedLat = parseFloat(lat);
     const parsedLng = parseFloat(lng);
     if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+      if (Math.hypot(parsedLat - center.lat, parsedLng - center.lng) > 0.003) {
+        setMarkers(prev => prev.filter(m => !m.id.startsWith('auto-') && !m.id.startsWith('circundante-')));
+      }
       setCenter({ lat: parsedLat, lng: parsedLng });
     } else {
       Swal.fire('Error', 'Por favor ingresa coordenadas válidas.', 'error');
@@ -801,8 +807,10 @@ function CroquisEditor({ apiKey }: { apiKey: string }) {
       });
 
       setMarkers(prev => {
-        // Merge without repeating coordinates
-        const filtered = prev.filter(m => !m.id.startsWith('auto-'));
+        // Reemplazar tanto los marcadores automáticos anteriores como los cargados del caché anterior
+        const filtered = prev.filter(
+          m => !m.id.startsWith('auto-') && !m.id.startsWith('circundante-') && !m.isCircundantePlace
+        );
         return [...filtered, ...newMarkers, ...programmaticMarkers];
       });
 

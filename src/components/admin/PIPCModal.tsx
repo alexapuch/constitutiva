@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   FileText,
@@ -12,7 +12,9 @@ import {
   Trash2,
   Plus,
   CheckCircle2,
-  ClipboardPaste
+  ClipboardPaste,
+  RefreshCw,
+  Camera
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { DocumentInfo, Employee, RiskData } from '../../types';
@@ -24,10 +26,26 @@ import {
 import {
   generatePIPCPDF,
   PIPCPDFConfig,
-  PuntosCriticosData
+  PuntosCriticosData,
+  EvidenciaFotograficaItem
 } from '../../utils/generatePIPCPDF';
 import { generatePdfName } from '../../utils/pdfNameGenerator';
-import { generateCroquis250mDataUrl } from '../../utils/generateCroquis250mImage';
+import {
+  generateCroquis250mDataUrl,
+  discoverSurroundingRisksForCoords,
+  computeDistanceMeters
+} from '../../utils/generateCroquis250mImage';
+
+const EVIDENCIA_SIGNAL_OPTIONS = [
+  { value: 'extintor', label: 'EXTINTOR' },
+  { value: 'botiquin', label: 'BOTIQUÍN DE PRIMEROS AUXILIOS' },
+  { value: 'ruta_evacuacion', label: 'RUTA DE EVACUACIÓN' },
+  { value: 'salida_emergencia', label: 'SALIDA DE EMERGENCIA' },
+  { value: 'riesgo_electrico', label: 'RIESGO ELÉCTRICO' },
+  { value: 'detector_humo', label: 'DETECTOR DE HUMO' },
+  { value: 'valvula_gas', label: 'VÁLVULA DE GAS' },
+  { value: 'otro', label: 'PUNTO DE REUNIÓN / OTRO EQUIPO' }
+];
 
 interface PIPCModalProps {
   isOpen: boolean;
@@ -103,12 +121,81 @@ export default function PIPCModal({
 
   // 4. Inventario de Señaléticas y Equipos de Emergencia (Pág. 54+)
   const [inventarioImgs, setInventarioImgs] = useState<string[]>([]);
+  const [evidenciaItems, setEvidenciaItems] = useState<EvidenciaFotograficaItem[]>([]);
   const [useDefaultInventarioIfEmpty, setUseDefaultInventarioIfEmpty] = useState(true);
+  const [loadingRisksForCoords, setLoadingRisksForCoords] = useState(false);
+  const analyzedCenterRef = useRef<{ lat: number; lng: number } | null>(null);
+  const syncTimeoutRef = useRef<any>(null);
 
   // Estado de generación
   const [generating, setGenerating] = useState(false);
   const [progressText, setProgressText] = useState('');
   const [progressPercent, setProgressPercent] = useState(0);
+
+  // Actualizar establecimientos circundantes, simbología y croquis cuando cambian las coordenadas
+  const syncRisksWithCoords = async (lat: number, lng: number, updateSatelliteToo = true) => {
+    setLoadingRisksForCoords(true);
+    if (updateSatelliteToo) setLoadingMapImg(true);
+    try {
+      const keyRes = await fetch('/api/maps-key');
+      const keyData = await keyRes.json();
+      const apiKey = keyData?.key;
+      if (!apiKey) return;
+
+      if (updateSatelliteToo) {
+        try {
+          const staticUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=18&size=640x480&scale=2&maptype=hybrid&markers=color:red%7C${lat},${lng}&key=${apiKey}`;
+          const res = await fetch(staticUrl);
+          if (res.ok) {
+            const blob = await res.blob();
+            const reader = new FileReader();
+            const satDataUrl: string = await new Promise((resolve) => {
+              reader.onload = () => resolve(reader.result as string);
+              reader.readAsDataURL(new File([blob], 'map.jpg', { type: 'image/jpeg' }));
+            });
+            setCroquisUbicacionImg(satDataUrl);
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      const discovered = await discoverSurroundingRisksForCoords(
+        lat,
+        lng,
+        apiKey,
+        nombreComercial || docInfo?.commercial_name || ''
+      );
+
+      analyzedCenterRef.current = { lat, lng };
+      setRiesgosCircundantesList(discovered);
+
+      const colors = ['#16a34a', '#1d4ed8', '#dc2626', '#f59e0b', '#7c3aed'];
+      if (discovered.length > 0) {
+        setSimbologiaItems(
+          discovered.slice(0, 5).map((p: RiskData, i: number) => ({
+            label: (p.name || `LOCAL ${i + 1}`).toUpperCase(),
+            color: colors[i % colors.length]
+          }))
+        );
+      }
+
+      const croq250 = await generateCroquis250mDataUrl({
+        lat,
+        lng,
+        places: discovered,
+        mapsApiKey: apiKey
+      });
+      if (croq250) {
+        setCroquisCircundantesImg(croq250);
+      }
+    } catch (e) {
+      console.error('Error syncing risks with new coordinates:', e);
+    } finally {
+      setLoadingRisksForCoords(false);
+      if (updateSatelliteToo) setLoadingMapImg(false);
+    }
+  };
 
   // Inicializar datos al abrir para una empresa
   useEffect(() => {
@@ -127,6 +214,8 @@ export default function PIPCModal({
       setHorario('');
       setM2Construccion('');
       setCroquisCircundantesImg('');
+      setCroquisUbicacionImg('');
+      setEvidenciaItems([]);
       setGiro(docInfo.activity || 'TIENDAS DE ROPA, ZAPATERIAS, NOVEDADES Y REGALOS');
       setNumTrabajadores(String(employees.length || docInfo.usuarios || 1));
       setAfluenciaClientes(String(docInfo.visitantes || 10));
@@ -147,8 +236,9 @@ export default function PIPCModal({
         const cachedRaw = localStorage.getItem('circundantes_places_cache');
         if (cachedRaw) {
           const parsed = JSON.parse(cachedRaw);
-          if (parsed?.center?.lat && parsed?.center?.lng) {
+          if (typeof parsed?.center?.lat === 'number' && typeof parsed?.center?.lng === 'number') {
             setCoordenadas(`${parsed.center.lat}, ${parsed.center.lng}`);
+            analyzedCenterRef.current = { lat: parsed.center.lat, lng: parsed.center.lng };
           }
           if (Array.isArray(parsed?.places) && parsed.places.length > 0) {
             setRiesgosCircundantesList(parsed.places.slice(0, 5));
@@ -166,6 +256,38 @@ export default function PIPCModal({
       }
     }
   }, [isOpen, docInfo, employees]);
+
+  // Detectar cambio de coordenadas (ej. al pegar nuevas coordenadas en celular o PC)
+  // y actualizar automáticamente los riesgos circundantes, mapa satelital y croquis 250m
+  useEffect(() => {
+    if (!isOpen) return;
+    const parts = coordenadas.split(',').map((s) => s.trim());
+    if (parts.length < 2) return;
+    const lat = parseFloat(parts[0]);
+    const lng = parseFloat(parts[1]);
+    if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return;
+
+    const prevCenter = analyzedCenterRef.current;
+    const distFromPrev = prevCenter
+      ? computeDistanceMeters(prevCenter.lat, prevCenter.lng, lat, lng)
+      : Infinity;
+
+    // Si las coordenadas cambiaron más de 50 metros respecto a las anteriores,
+    // limpiar inmediatamente los establecimientos viejos y buscar los del nuevo punto
+    if (distFromPrev > 50) {
+      setRiesgosCircundantesList([]);
+      setCroquisUbicacionImg('');
+      setCroquisCircundantesImg('');
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = setTimeout(() => {
+        syncRisksWithCoords(lat, lng, true);
+      }, 650);
+    }
+
+    return () => {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    };
+  }, [coordenadas, isOpen]);
 
   if (!isOpen || !docInfo) return null;
 
@@ -199,44 +321,29 @@ export default function PIPCModal({
     }
   };
 
-  // Descargar mapa satelital automático desde Google Static Maps usando las coordenadas
+  // Descargar mapa satelital automático y actualizar riesgos circundantes según coordenadas
   const handleAutoFetchSatelliteMap = async () => {
     const parts = coordenadas.split(',').map((s) => s.trim());
     if (parts.length < 2 || isNaN(parseFloat(parts[0])) || isNaN(parseFloat(parts[1]))) {
       Swal.fire('Coordenadas inválidas', 'Ingresa Latitud, Longitud separadas por coma.', 'warning');
       return;
     }
-    setLoadingMapImg(true);
-    try {
-      const keyRes = await fetch('/api/maps-key');
-      const keyData = await keyRes.json();
-      const apiKey = keyData?.key;
-      if (!apiKey) throw new Error('No se encontró API Key de Google Maps.');
+    const lat = parseFloat(parts[0]);
+    const lng = parseFloat(parts[1]);
+    await syncRisksWithCoords(lat, lng, true);
+  };
 
-      const lat = parseFloat(parts[0]);
-      const lng = parseFloat(parts[1]);
-      const staticUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=18&size=640x480&scale=2&maptype=hybrid&markers=color:red%7C${lat},${lng}&key=${apiKey}`;
-
-      const res = await fetch(staticUrl);
-      if (!res.ok) throw new Error('No se pudo obtener el mapa satelital.');
-      const blob = await res.blob();
-      const dataUrl = await fileToDataUrl(new File([blob], 'map.jpg', { type: 'image/jpeg' }));
-      setCroquisUbicacionImg(dataUrl);
-
-      const croq250 = await generateCroquis250mDataUrl({
-        lat,
-        lng,
-        places: riesgosCircundantesList,
-        mapsApiKey: apiKey
-      });
-      if (croq250) {
-        setCroquisCircundantesImg(croq250);
-      }
-    } catch (err: any) {
-      Swal.fire('Aviso', err?.message || 'Error al obtener mapa satelital.', 'info');
-    } finally {
-      setLoadingMapImg(false);
-    }
+  // Inicializar 6 señales básicas para subir fotos desde el Carrete del iPhone
+  const handlePreloadDefaultEvidenciaSignals = () => {
+    const preset: EvidenciaFotograficaItem[] = [
+      { id: `ev-${Date.now()}-1`, signalType: 'extintor', label: 'EXTINTOR', cantidad: '1', photoDataUrl: '' },
+      { id: `ev-${Date.now()}-2`, signalType: 'botiquin', label: 'BOTIQUÍN DE PRIMEROS AUXILIOS', cantidad: '1', photoDataUrl: '' },
+      { id: `ev-${Date.now()}-3`, signalType: 'ruta_evacuacion', label: 'RUTA DE EVACUACIÓN', cantidad: '2', photoDataUrl: '' },
+      { id: `ev-${Date.now()}-4`, signalType: 'salida_emergencia', label: 'SALIDA DE EMERGENCIA', cantidad: '1', photoDataUrl: '' },
+      { id: `ev-${Date.now()}-5`, signalType: 'riesgo_electrico', label: 'RIESGO ELÉCTRICO', cantidad: '1', photoDataUrl: '' },
+      { id: `ev-${Date.now()}-6`, signalType: 'detector_humo', label: 'DETECTOR DE HUMO', cantidad: '1', photoDataUrl: '' }
+    ];
+    setEvidenciaItems(preset);
   };
 
   const handleRegenerateTextsFromGiro = () => {
@@ -281,6 +388,7 @@ export default function PIPCModal({
     puntosCriticos,
     riesgosInternos,
     inventarioImgs,
+    evidenciaItems,
     useDefaultInventarioIfEmpty,
     turnosSimulacro,
     onProgress: (txt, pct) => {
@@ -563,15 +671,30 @@ export default function PIPCModal({
 
                 <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
-                    Coordenadas (Latitud, Longitud)
+                    Coordenadas (Latitud, Longitud) — Al pegar nuevas coordenadas se actualizan automáticamente los 5 establecimientos circundantes
                   </label>
-                  <input
-                    type="text"
-                    value={coordenadas}
-                    onChange={(e) => setCoordenadas(e.target.value)}
-                    placeholder="Ej. 20.650283, -87.061502"
-                    className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-base sm:text-sm bg-white dark:bg-gray-800"
-                  />
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={coordenadas}
+                      onChange={(e) => setCoordenadas(e.target.value)}
+                      placeholder="Ej. 20.650283, -87.061502"
+                      className="flex-1 px-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-base sm:text-sm bg-white dark:bg-gray-800"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAutoFetchSatelliteMap}
+                      disabled={loadingRisksForCoords || loadingMapImg}
+                      className="w-full sm:w-auto px-3.5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50 shrink-0 min-h-[42px] touch-manipulation"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${loadingRisksForCoords ? 'animate-spin' : ''}`} />
+                      <span>
+                        {loadingRisksForCoords
+                          ? 'Buscando establecimientos...'
+                          : 'Actualizar Riesgos y Mapas'}
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
                 <div
@@ -653,20 +776,60 @@ export default function PIPCModal({
                 </div>
 
                 {riesgosCircundantesMode === 'table' ? (
-                  riesgosCircundantesList.length > 0 ? (
+                  loadingRisksForCoords ? (
+                    <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl flex items-center gap-2.5 text-xs font-bold text-amber-800 dark:text-amber-200">
+                      <RefreshCw className="w-4 h-4 animate-spin shrink-0 text-[#7b1f1c] dark:text-amber-400" />
+                      <span>
+                        Buscando establecimientos reales en un radio de 250 m para las coordenadas ({coordenadas})...
+                      </span>
+                    </div>
+                  ) : riesgosCircundantesList.length > 0 ? (
                     <div className="space-y-2">
                       <p className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold">
-                        ✓ Se cargaron automáticamente {riesgosCircundantesList.length} riesgos circundantes del módulo GeoRiesgos:
+                        ✓ {riesgosCircundantesList.length} establecimientos detectados para las coordenadas actuales (puedes subir foto desde tu Carrete en cualquiera):
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {riesgosCircundantesList.map((r, i) => (
                           <div
                             key={i}
-                            className="p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg flex items-center justify-between gap-2 text-xs"
+                            className="p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg flex items-center justify-between gap-2 text-xs bg-gray-50/50 dark:bg-gray-800/40"
                           >
+                            {r.photoUri && r.photoUri.startsWith('data:') && (
+                              <img
+                                src={r.photoUri}
+                                alt={r.name}
+                                className="w-10 h-10 rounded object-cover border shrink-0"
+                              />
+                            )}
                             <div className="truncate min-w-0 flex-1">
-                              <span className="font-bold">{r.name}</span> ({r.distance}) — Nivel {r.riskLevel}
+                              <span className="font-bold block truncate">{r.name}</span>
+                              <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                {r.distance} — Nivel {r.riskLevel}
+                              </span>
                             </div>
+                            <label
+                              className="px-2 py-1.5 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer shrink-0 touch-manipulation"
+                              title="Subir foto desde mi Carrete / Galería"
+                            >
+                              <Camera className="w-3.5 h-3.5 shrink-0" />
+                              <span>Foto</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                  const f = e.target.files?.[0];
+                                  if (f) {
+                                    const url = await fileToDataUrl(f);
+                                    setRiesgosCircundantesList((prev) =>
+                                      prev.map((item, idx) =>
+                                        idx === i ? { ...item, photoUri: url } : item
+                                      )
+                                    );
+                                  }
+                                }}
+                                className="hidden"
+                              />
+                            </label>
                             <button
                               type="button"
                               onClick={() =>
@@ -681,9 +844,11 @@ export default function PIPCModal({
                       </div>
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-500 leading-relaxed">
-                      No hay riesgos guardados recientemente en GeoRiesgos. Puedes abrir <strong>Riesgos Circundantes</strong> en el menú para analizarlos, o cambiar a <strong>"Subir / Pegar"</strong> arriba.
-                    </p>
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        Pulsa <strong>"Actualizar Riesgos y Mapas"</strong> arriba para buscar automáticamente los 5 establecimientos cercanos a las coordenadas ingresadas, o cambia a <strong>"Subir / Pegar"</strong> para subir capturas desde tu Carrete.
+                      </p>
+                    </div>
                   )
                 ) : (
                   <div
@@ -916,9 +1081,229 @@ export default function PIPCModal({
 
           {/* TAB 4: INVENTARIO DE SEÑALÉTICAS Y EQUIPOS (PÁGS. 54-55+) */}
           {activeTab === 'inventario' && (
-            <div className="space-y-4">
+            <div className="space-y-5">
+              {/* SECCIÓN 1: SUBIR EVIDENCIA FOTOGRÁFICA DESDE EL CARRETE DEL IPHONE (ARMA LA TABLA OFICIAL) */}
+              <div className="border-2 border-emerald-500/40 dark:border-emerald-700/60 bg-emerald-50/40 dark:bg-emerald-950/20 rounded-xl p-3.5 sm:p-4 space-y-3.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div>
+                    <h4 className="font-extrabold text-xs sm:text-sm uppercase text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
+                      <Camera className="w-4 h-4 shrink-0 text-emerald-600" />
+                      <span>Opción 1 (Ideal iPhone / Móvil): Subir Evidencia Fotográfica desde tu Carrete</span>
+                    </h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 leading-relaxed">
+                      Sube las fotos directamente desde tu <strong>Carrete / Galería de Fotos</strong> y el sistema armará automáticamente la tabla oficial (<strong>EVIDENCIA FOTOGRÁFICA | SEÑAL | CANTIDAD</strong>) con los íconos de Protección Civil.
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                    <label className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs active:scale-[0.99] cursor-pointer min-h-[42px] touch-manipulation">
+                      <Camera className="w-4 h-4 shrink-0" />
+                      <span>Subir Fotos de mi Carrete</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={async (e) => {
+                          const files: File[] = Array.from(e.target.files || []);
+                          if (files.length === 0) return;
+                          const urls = await Promise.all(files.map((file) => fileToDataUrl(file)));
+                          const defaultOrder = [
+                            { type: 'extintor', label: 'EXTINTOR' },
+                            { type: 'botiquin', label: 'BOTIQUÍN DE PRIMEROS AUXILIOS' },
+                            { type: 'ruta_evacuacion', label: 'RUTA DE EVACUACIÓN' },
+                            { type: 'salida_emergencia', label: 'SALIDA DE EMERGENCIA' },
+                            { type: 'riesgo_electrico', label: 'RIESGO ELÉCTRICO' },
+                            { type: 'detector_humo', label: 'DETECTOR DE HUMO' }
+                          ];
+                          setEvidenciaItems((prev) => [
+                            ...prev,
+                            ...urls.map((url, idx) => {
+                              const preset = defaultOrder[(prev.length + idx) % defaultOrder.length];
+                              return {
+                                id: `ev-${Date.now()}-${idx}-${Math.random()}`,
+                                signalType: preset.type,
+                                label: preset.label,
+                                cantidad: '1',
+                                photoDataUrl: url
+                              };
+                            })
+                          ]);
+                          e.target.value = '';
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                    {evidenciaItems.length === 0 && (
+                      <button
+                        type="button"
+                        onClick={handlePreloadDefaultEvidenciaSignals}
+                        className="px-3 py-2.5 bg-white dark:bg-gray-800 border border-emerald-400 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 min-h-[42px] touch-manipulation"
+                      >
+                        <Plus className="w-4 h-4 shrink-0" />
+                        <span>Cargar 6 Señales Básicas</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {evidenciaItems.length > 0 && (
+                  <div className="space-y-2.5 pt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase text-emerald-900 dark:text-emerald-300">
+                        Evidencias Fotográficas ({evidenciaItems.length}):
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEvidenciaItems((prev) => [
+                              ...prev,
+                              {
+                                id: `ev-${Date.now()}-${Math.random()}`,
+                                signalType: 'extintor',
+                                label: 'EXTINTOR',
+                                cantidad: '1',
+                                photoDataUrl: ''
+                              }
+                            ])
+                          }
+                          className="text-xs text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1 hover:underline"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Agregar fila
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEvidenciaItems([])}
+                          className="text-xs text-red-600 font-bold hover:underline"
+                        >
+                          Limpiar todas
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {evidenciaItems.map((item, idx) => (
+                        <div
+                          key={item.id}
+                          className="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl flex gap-3 items-start shadow-2xs"
+                        >
+                          {/* Miniatura o botón para elegir foto del Carrete */}
+                          <label className="w-24 h-24 rounded-lg border-2 border-dashed border-emerald-400 dark:border-emerald-600 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 overflow-hidden cursor-pointer shrink-0 relative group touch-manipulation">
+                            {item.photoDataUrl ? (
+                              <>
+                                <img
+                                  src={item.photoDataUrl}
+                                  alt={item.label}
+                                  className="w-full h-full object-cover"
+                                />
+                                <span className="absolute bottom-0 inset-x-0 bg-black/70 text-white text-[10px] font-bold py-0.5 text-center">
+                                  Cambiar foto
+                                </span>
+                              </>
+                            ) : (
+                              <div className="text-center p-1.5 space-y-1">
+                                <Camera className="w-6 h-6 mx-auto text-emerald-600" />
+                                <span className="block text-[10px] font-bold text-emerald-700 dark:text-emerald-400 leading-tight">
+                                  Subir de Carrete
+                                </span>
+                              </div>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={async (e) => {
+                                const f = e.target.files?.[0];
+                                if (f) {
+                                  const url = await fileToDataUrl(f);
+                                  setEvidenciaItems((prev) =>
+                                    prev.map((it, i) => (i === idx ? { ...it, photoDataUrl: url } : it))
+                                  );
+                                }
+                              }}
+                              className="hidden"
+                            />
+                          </label>
+
+                          {/* Selector de Señal y Cantidad */}
+                          <div className="flex-1 min-w-0 space-y-2">
+                            <div className="flex items-start justify-between gap-1">
+                              <select
+                                value={item.signalType}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const found = EVIDENCIA_SIGNAL_OPTIONS.find((o) => o.value === val);
+                                  setEvidenciaItems((prev) =>
+                                    prev.map((it, i) =>
+                                      i === idx
+                                        ? {
+                                            ...it,
+                                            signalType: val,
+                                            label: found ? found.label : it.label
+                                          }
+                                        : it
+                                    )
+                                  );
+                                }}
+                                className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-base sm:text-xs font-bold bg-white dark:bg-gray-900"
+                              >
+                                {EVIDENCIA_SIGNAL_OPTIONS.map((opt) => (
+                                  <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setEvidenciaItems((prev) => prev.filter((_, i) => i !== idx))
+                                }
+                                className="p-1.5 text-red-500 hover:text-red-700 shrink-0 touch-manipulation"
+                                title="Eliminar evidencia"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={item.label}
+                                onChange={(e) => {
+                                  const val = e.target.value.toUpperCase();
+                                  setEvidenciaItems((prev) =>
+                                    prev.map((it, i) => (i === idx ? { ...it, label: val } : it))
+                                  );
+                                }}
+                                placeholder="Nombre de señal..."
+                                className="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-base sm:text-xs bg-white dark:bg-gray-900"
+                              />
+                              <div className="w-20 shrink-0 flex items-center gap-1">
+                                <span className="text-[10px] font-bold uppercase text-gray-500">Cant:</span>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min="1"
+                                  value={item.cantidad}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setEvidenciaItems((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, cantidad: val } : it))
+                                    );
+                                  }}
+                                  className="w-12 px-1.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-base sm:text-xs font-bold text-center bg-white dark:bg-gray-900"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECCIÓN 2: SUBIR CAPTURAS DE HOJA COMPLETA DESDE GALERÍA O CTRL+V */}
               <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-3 text-xs leading-relaxed text-blue-900 dark:text-blue-200">
-                Aquí puedes subir desde tu iPhone (o pegar con <strong>Ctrl + V</strong> en PC) las capturas de pantalla de las tablas de <strong>Inventario de Señaléticas y Equipos de Emergencia</strong>. Cada imagen ocupará una página dentro del marco del PIPC y el índice ajustará los números de página automáticamente.
+                <strong>Opción 2 (Hojas completas):</strong> También puedes subir desde el Carrete de tu iPhone (o pegar con <strong>Ctrl + V</strong> en PC) capturas de pantalla completas de las tablas de Inventario.
               </div>
 
               <div
@@ -926,15 +1311,15 @@ export default function PIPCModal({
                   handlePasteImage(e, (url) => setInventarioImgs((prev) => [...prev, url]))
                 }
                 tabIndex={0}
-                className="border-2 border-dashed border-blue-400 dark:border-blue-600 rounded-xl p-4 sm:p-6 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/60 dark:bg-gray-800/40 cursor-pointer space-y-2.5"
+                className="border-2 border-dashed border-blue-400 dark:border-blue-600 rounded-xl p-4 sm:p-5 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/60 dark:bg-gray-800/40 cursor-pointer space-y-2.5"
               >
-                <ClipboardPaste className="w-8 h-8 mx-auto text-blue-600 dark:text-blue-400" />
+                <ClipboardPaste className="w-7 h-7 mx-auto text-blue-600 dark:text-blue-400" />
                 <p className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-100 leading-snug">
-                  Selecciona una o varias imágenes de tu Galería / Archivos (o presiona <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-700 border rounded shadow-2xs">Ctrl + V</kbd> en PC)
+                  Sube capturas desde tu Carrete / Galería (o presiona <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-700 border rounded shadow-2xs">Ctrl + V</kbd> en PC)
                 </p>
                 <label className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs active:scale-[0.99] cursor-pointer w-full sm:w-auto min-h-[44px] touch-manipulation">
                   <ImageIcon className="w-4 h-4 shrink-0" />
-                  <span>Seleccionar Hojas de Inventario</span>
+                  <span>Abrir Carrete / Seleccionar Capturas de Inventario</span>
                   <input
                     type="file"
                     accept="image/*"

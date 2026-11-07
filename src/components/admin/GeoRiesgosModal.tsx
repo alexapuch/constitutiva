@@ -1696,15 +1696,36 @@ function GeoAnalyzer({ apiKey, onOpenCroquis }: { apiKey: string; onOpenCroquis?
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-gray-600 dark:text-gray-300 uppercase">URL de Fotografía</label>
-                <input
-                  type="text"
-                  value={editingForm.photoUri}
-                  onChange={(e) => setEditingForm(prev => ({ ...prev, photoUri: e.target.value }))}
-                  placeholder="https://maps.googleapis.com/..."
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-xs outline-none focus:ring-2 focus:ring-amber-500 text-gray-900 dark:text-gray-100"
-                />
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-gray-600 dark:text-gray-300 uppercase">Fotografía de Evidencia (URL o Subir de tu Carrete / Galería)</label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={editingForm.photoUri}
+                    onChange={(e) => setEditingForm(prev => ({ ...prev, photoUri: e.target.value }))}
+                    placeholder="https://maps.googleapis.com/..."
+                    className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-xs outline-none focus:ring-2 focus:ring-amber-500 text-gray-900 dark:text-gray-100"
+                  />
+                  <label className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold cursor-pointer shrink-0 touch-manipulation">
+                    <span>📱 Subir de Carrete</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          if (typeof reader.result === 'string') {
+                            setEditingForm(prev => ({ ...prev, photoUri: reader.result as string }));
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
               </div>
             </div>
 

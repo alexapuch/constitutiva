@@ -21,10 +21,20 @@ import { savePdf } from './savePdf';
 import {
   resolveRiskPhotoAsJpegDataUrl,
   generateCroquis250mDataUrl,
-  loadCrossOriginImage
+  loadCrossOriginImage,
+  discoverSurroundingRisksForCoords,
+  computeDistanceMeters
 } from './generateCroquis250mImage';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
+export interface EvidenciaFotograficaItem {
+  id: string;
+  signalType: string;
+  label: string;
+  cantidad: string;
+  photoDataUrl: string;
+}
 
 export interface PuntosCriticosData {
   brigadaPrimerosAuxilios: boolean;
@@ -80,6 +90,7 @@ export interface PIPCPDFConfig {
 
   // Pág. 54+: Inventario Señaléticas y Equipos de Emergencia
   inventarioImgs: string[]; // imágenes pegadas por el usuario (o usa las del machote si está vacío y useDefaultInventario=true)
+  evidenciaItems?: EvidenciaFotograficaItem[]; // fotos subidas desde el Carrete del iPhone / Galería por señal
   useDefaultInventarioIfEmpty?: boolean;
 
   // Estudios opcionales personalizados (si no se pasan, se autogeneran)
@@ -614,6 +625,32 @@ export async function generatePIPCPDF(
     report('Generando Riesgos Circundantes y cargando fotografías...', 27);
     sectionPages.riesgosCircundantes = currentPageNum + 1;
 
+    // Verificar que los riesgos correspondan a las coordenadas actuales (<= 450m).
+    // Si pertenecen a otro punto (ej. caché de Playa del Carmen cuando se pegaron coordenadas de Mérida),
+    // se descubren automáticamente los establecimientos reales de las nuevas coordenadas.
+    let activeRiesgosList = (config.riesgosCircundantesList || []).filter((p) => {
+      if (typeof p.lat === 'number' && typeof p.lng === 'number') {
+        return computeDistanceMeters(centerLat, centerLng, p.lat, p.lng) <= 450;
+      }
+      return false;
+    });
+    if (
+      activeRiesgosList.length === 0 &&
+      mapsApiKey &&
+      config.riesgosCircundantesMode !== 'images'
+    ) {
+      report('Buscando establecimientos a 250 m de las coordenadas...', 26);
+      const discovered = await discoverSurroundingRisksForCoords(
+        centerLat,
+        centerLng,
+        mapsApiKey,
+        config.nombreComercial
+      );
+      if (discovered.length > 0) {
+        activeRiesgosList = discovered;
+      }
+    }
+
     if (config.riesgosCircundantesMode === 'images' && config.riesgosCircundantesImgs.length > 0) {
       for (let i = 0; i < config.riesgosCircundantesImgs.length; i++) {
         addFramedPage();
@@ -634,18 +671,18 @@ export async function generatePIPCPDF(
         }
         doc.addImage(imgData, 'JPEG', (pageW - drawW) / 2, 38, drawW, drawH, undefined, 'FAST');
       }
-    } else if (config.riesgosCircundantesList && config.riesgosCircundantesList.length > 0) {
+    } else if (activeRiesgosList && activeRiesgosList.length > 0) {
       // Pre-cargar fotos de los riesgos circundantes como JPEG limpio (vía proxy o Street View/Satélite)
       const loadedPhotos: (string | null)[] = await Promise.all(
-        config.riesgosCircundantesList.map((r) =>
+        activeRiesgosList.map((r) =>
           resolveRiskPhotoAsJpegDataUrl(r, mapsApiKey, centerLat, centerLng)
         )
       );
 
       // Si son <= 5 riesgos, caben todos en 1 sola página ajustando ligeramente la altura de fila
-      const chunkSize = config.riesgosCircundantesList.length <= 5 ? 5 : 4;
-      for (let c = 0; c < config.riesgosCircundantesList.length; c += chunkSize) {
-        const chunk = config.riesgosCircundantesList.slice(c, c + chunkSize);
+      const chunkSize = activeRiesgosList.length <= 5 ? 5 : 4;
+      for (let c = 0; c < activeRiesgosList.length; c += chunkSize) {
+        const chunk = activeRiesgosList.slice(c, c + chunkSize);
         const chunkPhotos = loadedPhotos.slice(c, c + chunkSize);
 
         addFramedPage();
@@ -750,7 +787,7 @@ export async function generatePIPCPDF(
       const autoCroquis = await generateCroquis250mDataUrl({
         lat: centerLat,
         lng: centerLng,
-        places: config.riesgosCircundantesList || [],
+        places: activeRiesgosList || [],
         mapsApiKey
       });
       if (autoCroquis) {
@@ -1323,9 +1360,144 @@ export async function generatePIPCPDF(
 
     // =========================================================================
     // PÁGINAS 53+ (ref): INVENTARIO SEÑALÉTICAS Y EQUIPOS DE EMERGENCIA
-    // (La primera imagen se pega en la misma página justo debajo del título)
+    // (La primera tabla o imagen se pega en la misma página justo debajo del título)
     // =========================================================================
-    if (config.inventarioImgs && config.inventarioImgs.length > 0) {
+    const validEvidenciaItems = (config.evidenciaItems || []).filter((it) => !!it.photoDataUrl);
+    if (validEvidenciaItems.length > 0) {
+      // Precargar iconos de señalética (/senales/*.png) como DataURL para dibujarlos en la columna SEÑAL
+      const signIconCache: Record<string, string> = {};
+      const uniqueTypes = Array.from(new Set(validEvidenciaItems.map((it) => it.signalType)));
+      for (const sType of uniqueTypes) {
+        if (!sType || sType === 'otro') continue;
+        try {
+          const iconImg = await loadCrossOriginImage(`/senales/${sType}.png`, 4000);
+          if (iconImg) {
+            const ic = document.createElement('canvas');
+            ic.width = iconImg.naturalWidth || 200;
+            ic.height = iconImg.naturalHeight || 200;
+            const ictx = ic.getContext('2d')!;
+            ictx.fillStyle = '#ffffff';
+            ictx.fillRect(0, 0, ic.width, ic.height);
+            ictx.drawImage(iconImg, 0, 0);
+            signIconCache[sType] = ic.toDataURL('image/jpeg', 0.9);
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      const itemsPerPage = 4;
+      for (let pIdx = 0; pIdx < validEvidenciaItems.length; pIdx += itemsPerPage) {
+        const chunk = validEvidenciaItems.slice(pIdx, pIdx + itemsPerPage);
+        const pageNo = addFramedPage();
+        if (pIdx === 0) {
+          sectionPages.inventarioSenaleticas = pageNo;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(13.5);
+          doc.setTextColor(0, 0, 0);
+          doc.text('INVENTARIO SEÑALÉTICAS Y EQUIPOS DE EMERGENCIA', pageW / 2, 25, { align: 'center' });
+        }
+
+        const tableX = 16;
+        const tableY = pIdx === 0 ? 31 : 24;
+        const tableW = pageW - 32; // 183.9 mm
+        const col1W = 72; // EVIDENCIA FOTOGRÁFICA
+        const col2W = 72; // SEÑAL
+        const col3W = tableW - col1W - col2W; // CANTIDAD (~39.9 mm)
+        const headerH = 9.5;
+        const rowH = 49;
+
+        // Encabezado Azul Marino (#1f3a60) igual al machote oficial
+        doc.setFillColor(31, 58, 96);
+        doc.rect(tableX, tableY, tableW, headerH, 'F');
+        doc.setDrawColor(100, 100, 100);
+        doc.setLineWidth(0.25);
+        doc.rect(tableX, tableY, tableW, headerH, 'S');
+        doc.line(tableX + col1W, tableY, tableX + col1W, tableY + headerH);
+        doc.line(tableX + col1W + col2W, tableY, tableX + col1W + col2W, tableY + headerH);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.5);
+        doc.setTextColor(255, 255, 255);
+        doc.text('EVIDENCIA FOTOGRÁFICA', tableX + col1W / 2, tableY + 6.2, { align: 'center' });
+        doc.text('SEÑAL', tableX + col1W + col2W / 2, tableY + 6.2, { align: 'center' });
+        doc.text('CANTIDAD', tableX + col1W + col2W + col3W / 2, tableY + 6.2, { align: 'center' });
+
+        for (let rIdx = 0; rIdx < chunk.length; rIdx++) {
+          const item = chunk[rIdx];
+          const ry = tableY + headerH + rIdx * rowH;
+
+          doc.setDrawColor(120, 120, 120);
+          doc.rect(tableX, ry, tableW, rowH, 'S');
+          doc.line(tableX + col1W, ry, tableX + col1W, ry + rowH);
+          doc.line(tableX + col1W + col2W, ry, tableX + col1W + col2W, ry + rowH);
+
+          // Columna 1: Evidencia Fotográfica
+          try {
+            const pDims = await getImageDimensions(item.photoDataUrl);
+            const maxPW = col1W - 8;
+            const maxPH = rowH - 5;
+            let pw = maxPW;
+            let ph = (pDims.height / pDims.width) * pw;
+            if (ph > maxPH) {
+              ph = maxPH;
+              pw = (pDims.width / pDims.height) * ph;
+            }
+            const px = tableX + (col1W - pw) / 2;
+            const py = ry + (rowH - ph) / 2;
+            doc.addImage(item.photoDataUrl, 'JPEG', px, py, pw, ph, undefined, 'FAST');
+          } catch {
+            // ignore broken image
+          }
+
+          // Columna 2: Señal (Icono NOM-003 + Nombre)
+          const iconData = signIconCache[item.signalType];
+          if (iconData) {
+            const iconSize = 27;
+            const ix = tableX + col1W + (col2W - iconSize) / 2;
+            const iy = ry + 4.5;
+            doc.addImage(iconData, 'JPEG', ix, iy, iconSize, iconSize, undefined, 'FAST');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8.5);
+            doc.setTextColor(20, 20, 20);
+            const lblLines = doc.splitTextToSize((item.label || '').toUpperCase(), col2W - 6);
+            doc.text(lblLines.slice(0, 2), tableX + col1W + col2W / 2, ry + 37.5, { align: 'center' });
+          } else {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9.5);
+            doc.setTextColor(20, 20, 20);
+            const lblLines = doc.splitTextToSize((item.label || '').toUpperCase(), col2W - 8);
+            doc.text(lblLines.slice(0, 3), tableX + col1W + col2W / 2, ry + rowH / 2, { align: 'center' });
+          }
+
+          // Columna 3: Cantidad
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(13);
+          doc.setTextColor(20, 20, 20);
+          doc.text(String(item.cantidad || '1'), tableX + col1W + col2W + col3W / 2, ry + rowH / 2 + 2, {
+            align: 'center'
+          });
+        }
+      }
+
+      // Si además adjuntó hojas completas en inventarioImgs, agregarlas a continuación
+      if (config.inventarioImgs && config.inventarioImgs.length > 0) {
+        for (let i = 0; i < config.inventarioImgs.length; i++) {
+          addFramedPage();
+          const imgData = config.inventarioImgs[i];
+          const dims = await getImageDimensions(imgData);
+          const maxW = pageW - 26;
+          const maxH = 225;
+          let drawW = maxW;
+          let drawH = (dims.height / dims.width) * drawW;
+          if (drawH > maxH) {
+            drawH = maxH;
+            drawW = (dims.width / dims.height) * drawH;
+          }
+          doc.addImage(imgData, 'JPEG', (pageW - drawW) / 2, 22, drawW, drawH, undefined, 'FAST');
+        }
+      }
+    } else if (config.inventarioImgs && config.inventarioImgs.length > 0) {
       for (let i = 0; i < config.inventarioImgs.length; i++) {
         const pageNo = addFramedPage();
         if (i === 0) {
