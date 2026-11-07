@@ -14,15 +14,21 @@ import {
   CheckCircle2,
   ClipboardPaste,
   RefreshCw,
-  Camera
+  Camera,
+  Calendar
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { DocumentInfo, Employee, RiskData } from '../../types';
 import {
   generateActividadEconomicaText,
   generateRiesgosInternosSection,
-  InternalRisksSection
+  InternalRisksSection,
+  buildDefaultCalendarioGrid
 } from '../../utils/pipcTemplates';
+import {
+  ACTIVITIES_LIST,
+  MONTHS_LIST
+} from '../../utils/generateCalendarioPDF';
 import {
   generatePIPCPDF,
   PIPCPDFConfig,
@@ -55,7 +61,7 @@ interface PIPCModalProps {
   onPreview: (url: string, name: string) => void;
 }
 
-type PIPCTab = 'empresa' | 'ubicacion' | 'actividad' | 'inventario' | 'resumen';
+type PIPCTab = 'empresa' | 'ubicacion' | 'actividad' | 'inventario' | 'calendario' | 'resumen';
 
 export default function PIPCModal({
   isOpen,
@@ -126,6 +132,45 @@ export default function PIPCModal({
   const [loadingRisksForCoords, setLoadingRisksForCoords] = useState(false);
   const analyzedCenterRef = useRef<{ lat: number; lng: number } | null>(null);
   const syncTimeoutRef = useRef<any>(null);
+
+  // 5. Calendario Anual de Actividades (Pág. 56)
+  const [calendarioGrid, setCalendarioGrid] = useState<boolean[][]>(() =>
+    buildDefaultCalendarioGrid(docInfo?.date)
+  );
+
+  const extintoresIdx = ACTIVITIES_LIST.findIndex((a) =>
+    a.includes('MANTENIMIENTO Y RECARGA DEL EQUIPO CONTRA INCENDIOS')
+  );
+  const polizaIdx = ACTIVITIES_LIST.findIndex((a) =>
+    a.includes('RENOVACIÓN POLIZA DE SEGURO')
+  );
+
+  const toggleCalendarioCell = (rIdx: number, cIdx: number) => {
+    setCalendarioGrid((prev) => {
+      const copy = prev.map((row) => [...row]);
+      if (!copy[rIdx]) copy[rIdx] = new Array(12).fill(false);
+      copy[rIdx][cIdx] = !copy[rIdx][cIdx];
+      return copy;
+    });
+  };
+
+  const setSingleMonthForActivity = (rIdx: number, cIdx: number) => {
+    if (rIdx < 0) return;
+    setCalendarioGrid((prev) => {
+      const copy = prev.map((row) => [...row]);
+      if (!copy[rIdx]) copy[rIdx] = new Array(12).fill(false);
+      const isCurrentlyActive = !!copy[rIdx][cIdx];
+      copy[rIdx].fill(false);
+      if (!isCurrentlyActive) {
+        copy[rIdx][cIdx] = true;
+      }
+      return copy;
+    });
+  };
+
+  const resetCalendarioToDefault = () => {
+    setCalendarioGrid(buildDefaultCalendarioGrid(docInfo?.date));
+  };
 
   // Estado de generación
   const [generating, setGenerating] = useState(false);
@@ -254,6 +299,8 @@ export default function PIPCModal({
       } catch (e) {
         console.error('Error reading circundantes_places_cache:', e);
       }
+      // Resetear o inicializar cuadrícula del calendario
+      setCalendarioGrid(buildDefaultCalendarioGrid(docInfo.date));
     }
   }, [isOpen, docInfo, employees]);
 
@@ -425,6 +472,7 @@ export default function PIPCModal({
     inventarioImgs,
     evidenciaItems,
     useDefaultInventarioIfEmpty,
+    calendarioGrid,
     turnosSimulacro,
     onProgress: (txt, pct) => {
       setProgressText(txt);
@@ -490,14 +538,15 @@ export default function PIPCModal({
           </button>
         </div>
 
-        {/* Tabs - Adaptados para iPhone (5 pestañas visibles sin amontonarse) y Desktop */}
-        <div className="grid grid-cols-5 sm:flex sm:overflow-x-auto bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-1.5 sm:px-3 pt-1.5 sm:pt-2 gap-1 sm:gap-1.5 shrink-0">
+        {/* Tabs - Adaptados con scroll horizontal táctil suave para iPhone y Desktop */}
+        <div className="flex overflow-x-auto scrollbar-none bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-1.5 sm:px-3 pt-1.5 sm:pt-2 gap-1 sm:gap-1.5 shrink-0">
           {[
             { id: 'empresa', shortLabel: '1. Empresa', label: '1. Empresa y Portada', icon: Building2 },
             { id: 'ubicacion', shortLabel: '2. Croquis', label: '2. Croquis y Circundantes', icon: MapPin },
-            { id: 'actividad', shortLabel: '3. Actividad', label: '3. Actividad y Riesgos Internos', icon: ShieldAlert },
-            { id: 'inventario', shortLabel: '4. Inventario', label: '4. Inventario Señaléticas', icon: ImageIcon },
-            { id: 'resumen', shortLabel: '5. Estudios', label: '5. Estudios Incluidos', icon: CheckCircle2 }
+            { id: 'actividad', shortLabel: '3. Actividad', label: '3. Actividad y Riesgos', icon: ShieldAlert },
+            { id: 'inventario', shortLabel: '4. Fotos', label: '4. Evidencia Fotográfica', icon: Camera },
+            { id: 'calendario', shortLabel: '5. Calendario', label: '5. Calendario Anual', icon: Calendar },
+            { id: 'resumen', shortLabel: '6. Estudios', label: '6. Estudios Incluidos', icon: CheckCircle2 }
           ].map((t) => {
             const Icon = t.icon;
             const active = activeTab === t.id;
@@ -1426,7 +1475,194 @@ export default function PIPCModal({
             </div>
           )}
 
-          {/* TAB 5: RESUMEN DE ESTUDIOS AUTOMÁTICOS INCLUIDOS */}
+          {/* TAB 5: CALENDARIO ANUAL DE ACTIVIDADES (PÁG. 56) */}
+          {activeTab === 'calendario' && (
+            <div className="space-y-5">
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs leading-relaxed text-blue-950 dark:text-blue-200">
+                <div className="flex items-start gap-2.5">
+                  <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-extrabold text-sm text-blue-900 dark:text-blue-200">
+                      Calendario de Actividades de Protección Civil (Pág. 56)
+                    </h4>
+                    <p className="mt-0.5 text-blue-800 dark:text-blue-300">
+                      Selecciona qué mes pintar para los <strong>equipos de emergencia / extintores</strong> y la <strong>póliza de seguro</strong>, o haz clic directamente en cualquier casilla de la tabla anual para personalizar los 20 renglones.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={resetCalendarioToDefault}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-blue-900/60 hover:bg-blue-100 border border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200 rounded-lg text-xs font-bold shrink-0 self-start sm:self-center transition-colors"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Restablecer
+                </button>
+              </div>
+
+              {/* SELECTOR RÁPIDO 1: PÓLIZA DE SEGURO */}
+              <div className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xs space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                      <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-gray-100 uppercase tracking-wide">
+                        Renovación Póliza de Seguro
+                      </h4>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      Haz clic en el mes en que se contrata o renueva la póliza de la empresa para marcarlo en el calendario:
+                    </p>
+                  </div>
+                  {polizaIdx >= 0 && (
+                    <div className="text-xs font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 rounded-md border border-blue-200 dark:border-blue-800 shrink-0 self-start sm:self-center">
+                      Mes activo:{' '}
+                      {MONTHS_LIST.filter((_, mIdx) => calendarioGrid[polizaIdx]?.[mIdx]).join(', ') || 'Ninguno'}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5">
+                  {MONTHS_LIST.map((m, mIdx) => {
+                    const isSelected = polizaIdx >= 0 && !!calendarioGrid[polizaIdx]?.[mIdx];
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setSingleMonthForActivity(polizaIdx, mIdx)}
+                        className={`py-2 px-1 rounded-xl text-center font-extrabold text-xs transition-all touch-manipulation border ${
+                          isSelected
+                            ? 'bg-[#0b2c5e] text-white border-[#0b2c5e] shadow-sm scale-[1.02]'
+                            : 'bg-gray-50 dark:bg-gray-750 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        <span className="block text-[11px] leading-tight">{m.slice(0, 3)}</span>
+                        {isSelected && <span className="block text-[9px] font-normal opacity-90">✓ Marcado</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* SELECTOR RÁPIDO 2: MANTENIMIENTO Y RECARGA DE EQUIPOS CONTRA INCENDIOS */}
+              <div className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xs space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-600"></span>
+                      <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-gray-100 uppercase tracking-wide">
+                        Mantenimiento y Recarga del Equipo Contra Incendios (Extintores)
+                      </h4>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      Haz clic en el mes en que se realiza la recarga anual de extintores para marcar el recuadro correspondiente:
+                    </p>
+                  </div>
+                  {extintoresIdx >= 0 && (
+                    <div className="text-xs font-bold text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-2.5 py-1 rounded-md border border-red-200 dark:border-red-800 shrink-0 self-start sm:self-center">
+                      Mes activo:{' '}
+                      {MONTHS_LIST.filter((_, mIdx) => calendarioGrid[extintoresIdx]?.[mIdx]).join(', ') || 'Ninguno'}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5">
+                  {MONTHS_LIST.map((m, mIdx) => {
+                    const isSelected = extintoresIdx >= 0 && !!calendarioGrid[extintoresIdx]?.[mIdx];
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setSingleMonthForActivity(extintoresIdx, mIdx)}
+                        className={`py-2 px-1 rounded-xl text-center font-extrabold text-xs transition-all touch-manipulation border ${
+                          isSelected
+                            ? 'bg-[#7b1f1c] text-white border-[#7b1f1c] shadow-sm scale-[1.02]'
+                            : 'bg-gray-50 dark:bg-gray-750 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        <span className="block text-[11px] leading-tight">{m.slice(0, 3)}</span>
+                        {isSelected && <span className="block text-[9px] font-normal opacity-90">✓ Marcado</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* TABLA COMPLETA DE 20 ACTIVIDADES DE LA PÁGINA 56 */}
+              <div className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xs space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-gray-100">
+                      Tabla Completa de Actividades Anuales
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Haz clic en cualquier celda para activar o desactivar el mes de esa tarea:
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
+                    <span className="inline-block w-3.5 h-3.5 rounded-sm bg-[#99c2e6] border border-blue-400"></span>
+                    <span>= Marcado en azul en el PDF</span>
+                  </div>
+                </div>
+
+                <div className="border border-gray-300 dark:border-gray-700 rounded-xl overflow-x-auto shadow-inner bg-gray-50 dark:bg-gray-900">
+                  <table className="w-full text-xs text-left whitespace-nowrap min-w-[850px]">
+                    <thead className="bg-[#0b2c5e] text-white">
+                      <tr>
+                        <th className="px-3 py-2.5 font-bold border-r border-blue-800/80 w-[280px]">ACTIVIDAD</th>
+                        {MONTHS_LIST.map((m) => (
+                          <th key={m} className="px-1 py-1.5 border-r border-blue-800/80 text-center font-bold text-[10px] w-8">
+                            {m.slice(0, 3)}
+                          </th>
+                        ))}
+                        <th className="px-2 py-2.5 font-bold text-center border-r border-blue-800/80 text-[10px]">RESPONSABLE</th>
+                        <th className="px-2 py-2.5 font-bold text-center text-[10px]">EVIDENCIA</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200">
+                      {ACTIVITIES_LIST.slice(0, 20).map((act, rIdx) => {
+                        let evidencia = 'REPORTE';
+                        if (rIdx === 2) evidencia = 'EVIDENCIA FOTOGRÁFICA';
+                        if (rIdx >= 12 && rIdx <= 14) evidencia = 'CONSTANCIAS';
+                        return (
+                          <tr key={rIdx} className="hover:bg-blue-50/50 dark:hover:bg-gray-700/50 transition-colors">
+                            <td className="px-2.5 py-2 font-medium border-r border-gray-200 dark:border-gray-700 text-[11px] leading-snug whitespace-normal max-w-[280px]">
+                              {act}
+                            </td>
+                            {MONTHS_LIST.map((_, cIdx) => {
+                              const isChecked = !!calendarioGrid[rIdx]?.[cIdx];
+                              return (
+                                <td
+                                  key={cIdx}
+                                  onClick={() => toggleCalendarioCell(rIdx, cIdx)}
+                                  className={`border-r border-gray-200 dark:border-gray-700 text-center cursor-pointer transition-colors p-0 select-none ${
+                                    isChecked
+                                      ? 'bg-[#99c2e6] hover:bg-[#82b3dc] text-blue-950 font-bold'
+                                      : 'hover:bg-gray-100 dark:hover:bg-gray-700/60'
+                                  }`}
+                                  title={`Clic para alternar ${MONTHS_LIST[cIdx]}`}
+                                >
+                                  <div className="w-full h-8 flex items-center justify-center text-[11px]">
+                                    {isChecked ? '■' : ''}
+                                  </div>
+                                </td>
+                              );
+                            })}
+                            <td className="px-1.5 py-1 text-center border-r border-gray-200 dark:border-gray-700 text-[10px] text-gray-500"></td>
+                            <td className="px-2 py-1 text-center text-[10px] font-bold text-gray-600 dark:text-gray-300">
+                              {evidencia}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: RESUMEN DE ESTUDIOS AUTOMÁTICOS INCLUIDOS */}
           {activeTab === 'resumen' && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

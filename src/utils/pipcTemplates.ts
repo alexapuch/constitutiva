@@ -1067,7 +1067,7 @@ export function buildDefaultCalendarioGrid(dateStr?: string): boolean[][] {
     const row: boolean[] = new Array(12).fill(false);
     const activity = ACTIVITIES_LIST[r];
     if (activity === 'RENOVACIÓN POLIZA DE SEGURO') {
-      // vacío
+      row[docMonth] = true;
     } else if (activity.includes('(MENSUAL)') || activity.includes('(DIARIO)')) {
       row.fill(true);
     } else if (

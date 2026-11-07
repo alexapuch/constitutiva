@@ -241,12 +241,12 @@ export async function generatePIPCPDF(
     const addStaticTemplatePage = async (templatePageIndex: number): Promise<number> => {
       doc.addPage();
       currentPageNum++;
-      const canvas = await renderPdfPageToCanvas(templatePdf, templatePageIndex, 1.9);
+      const canvas = await renderPdfPageToCanvas(templatePdf, templatePageIndex, 2.2);
       const ctx = canvas.getContext('2d')!;
       // Tapar el número de página original arriba del loguito en la esquina inferior derecha
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(canvas.width * 0.87, canvas.height * 0.885, canvas.width * 0.09, canvas.height * 0.037);
-      const imgData = canvas.toDataURL('image/jpeg', 0.83);
+      const imgData = canvas.toDataURL('image/jpeg', 0.88);
       releaseCanvas(canvas);
       doc.addImage(imgData, 'JPEG', 0, 0, pageW, pageH, undefined, 'FAST');
       return currentPageNum;
@@ -265,35 +265,38 @@ export async function generatePIPCPDF(
         doc.addPage();
         currentPageNum++;
 
-        // Componer sobre una copia de baseFrameCanvas usando 'multiply' para que se vea la marca de agua SEPRISA
-        const compCanvas = document.createElement('canvas');
-        compCanvas.width = fw;
-        compCanvas.height = fh;
-        const cCtx = compCanvas.getContext('2d')!;
-        cCtx.drawImage(baseFrameCanvas, 0, 0);
+        // 1. Aplicar marco institucional limpio
+        applyBlankFrameToCurrentPage();
 
-        const subPageCanvas = await renderPdfPageToCanvas(subPdf, p, 1.9);
+        // 2. Renderizar la página del sub-PDF a alta definición (escala 2.6 = ~200 DPI, texto y números nítidos)
+        const subPageCanvas = await renderPdfPageToCanvas(subPdf, p, 2.6);
 
         const hasTopTitle = p === 1 && !!firstPageTitle;
-        const destX = fw * 0.075;
-        const destY = hasTopTitle ? fh * 0.105 : fh * 0.055;
-        const destW = fw * 0.85;
-        const destH = hasTopTitle ? fh * 0.81 : fh * 0.86;
+        // Mantener proporciones exactas del sub-pdf dentro del marco
+        const marginX = 15;
+        const destW = pageW - marginX * 2; // 185.9 mm
+        const subAspect = subPageCanvas.height / subPageCanvas.width;
+        let destH = destW * subAspect;
+        const maxH = hasTopTitle ? pageH - 42 : pageH - 26;
+        let destY = hasTopTitle ? 28 : 13;
+        if (destH > maxH) {
+          destH = maxH;
+        }
+        const destX = (pageW - destW) / 2;
 
-        cCtx.save();
-        cCtx.fillStyle = '#ffffff';
-        cCtx.fillRect(destX, destY, destW, destH);
-        cCtx.drawImage(subPageCanvas, destX, destY, destW, destH);
-        cCtx.restore();
+        // 3. Fondo blanco sólido para evitar cualquier transparencia con la marca de agua
+        doc.setFillColor(255, 255, 255);
+        doc.rect(destX - 0.5, destY - 0.5, destW + 1, destH + 1, 'F');
 
-        const mergedDataUrl = compCanvas.toDataURL('image/jpeg', 0.84);
+        // 4. Incrustar con alta calidad sin compresión destructiva
+        const subImgData = subPageCanvas.toDataURL('image/jpeg', 0.92);
         releaseCanvas(subPageCanvas);
-        releaseCanvas(compCanvas);
-        doc.addImage(mergedDataUrl, 'JPEG', 0, 0, pageW, pageH, undefined, 'FAST');
+
+        doc.addImage(subImgData, 'JPEG', destX, destY, destW, destH, undefined, 'FAST');
 
         if (hasTopTitle && firstPageTitle) {
           doc.setFont('helvetica', 'bold');
-          doc.setFontSize(14);
+          doc.setFontSize(13.5);
           doc.setTextColor(0, 0, 0);
           doc.text(firstPageTitle.toUpperCase(), pageW / 2, 23, { align: 'center' });
         }
