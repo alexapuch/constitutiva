@@ -316,20 +316,23 @@ export default function PIPCModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/65 flex items-center justify-center p-2 sm:p-4">
+    <div className="fixed inset-0 z-50 bg-black/65 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
       <div
-        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-900 rounded-none sm:rounded-2xl shadow-2xl w-full max-w-4xl h-[100dvh] sm:h-auto sm:max-h-[92dvh] flex flex-col overflow-hidden border-0 sm:border border-gray-200 dark:border-gray-700"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-5 py-3.5 bg-gradient-to-r from-[#7b1f1c] to-[#4a1210] text-white flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2.5">
-            <FileText className="w-5 h-5 text-amber-300" />
-            <div>
-              <h3 className="font-extrabold text-base sm:text-lg leading-tight">
+        <div
+          className="px-4 sm:px-5 py-3 sm:py-3.5 bg-gradient-to-r from-[#7b1f1c] to-[#4a1210] text-white flex items-center justify-between gap-2 shrink-0"
+          style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+        >
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <FileText className="w-5 h-5 text-amber-300 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <h3 className="font-extrabold text-sm sm:text-lg leading-tight truncate">
                 Generador de Programa Interno (PIPC {anio})
               </h3>
-              <p className="text-xs text-amber-100/90 font-medium truncate max-w-md">
+              <p className="text-[11px] sm:text-xs text-amber-100/90 font-medium truncate">
                 {nombreComercial} — {employees.length} brigadista(s) firmado(s)
               </p>
             </div>
@@ -337,20 +340,21 @@ export default function PIPCModal({
           <button
             onClick={onClose}
             disabled={generating}
-            className="p-1.5 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
+            className="p-2 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50 shrink-0 touch-manipulation"
+            aria-label="Cerrar"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex overflow-x-auto bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-3 pt-2 gap-1.5 shrink-0">
+        {/* Tabs - Adaptados para iPhone (5 pestañas visibles sin amontonarse) y Desktop */}
+        <div className="grid grid-cols-5 sm:flex sm:overflow-x-auto bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-1.5 sm:px-3 pt-1.5 sm:pt-2 gap-1 sm:gap-1.5 shrink-0">
           {[
-            { id: 'empresa', label: '1. Empresa y Portada', icon: Building2 },
-            { id: 'ubicacion', label: '2. Croquis y Circundantes', icon: MapPin },
-            { id: 'actividad', label: '3. Actividad y Riesgos Internos', icon: ShieldAlert },
-            { id: 'inventario', label: '4. Inventario Señaléticas', icon: ImageIcon },
-            { id: 'resumen', label: '5. Estudios Incluidos', icon: CheckCircle2 }
+            { id: 'empresa', shortLabel: '1. Empresa', label: '1. Empresa y Portada', icon: Building2 },
+            { id: 'ubicacion', shortLabel: '2. Croquis', label: '2. Croquis y Circundantes', icon: MapPin },
+            { id: 'actividad', shortLabel: '3. Actividad', label: '3. Actividad y Riesgos Internos', icon: ShieldAlert },
+            { id: 'inventario', shortLabel: '4. Inventario', label: '4. Inventario Señaléticas', icon: ImageIcon },
+            { id: 'resumen', shortLabel: '5. Estudios', label: '5. Estudios Incluidos', icon: CheckCircle2 }
           ].map((t) => {
             const Icon = t.icon;
             const active = activeTab === t.id;
@@ -359,25 +363,26 @@ export default function PIPCModal({
                 key={t.id}
                 type="button"
                 onClick={() => setActiveTab(t.id as PIPCTab)}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-t-lg text-xs sm:text-sm font-bold whitespace-nowrap transition-colors border-b-2 ${
+                className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1 sm:px-3.5 py-2 rounded-t-lg text-[10px] sm:text-sm font-bold whitespace-nowrap transition-colors border-b-2 touch-manipulation ${
                   active
                     ? 'bg-white dark:bg-gray-900 text-[#7b1f1c] dark:text-amber-400 border-[#7b1f1c] dark:border-amber-400 shadow-xs'
                     : 'text-gray-600 dark:text-gray-400 border-transparent hover:text-gray-900 dark:hover:text-gray-200'
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                <span>{t.label}</span>
+                <Icon className="w-4 h-4 shrink-0" />
+                <span className="sm:hidden truncate max-w-full">{t.shortLabel}</span>
+                <span className="hidden sm:inline">{t.label}</span>
               </button>
             );
           })}
         </div>
 
         {/* Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100">
+        <div className="p-3.5 sm:p-6 overflow-y-auto overscroll-contain flex-1 space-y-5 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100">
           {/* TAB 1: DATOS DE LA EMPRESA Y PORTADA */}
           {activeTab === 'empresa' && (
             <div className="space-y-4">
-              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-xs text-amber-900 dark:text-amber-200">
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-xs leading-relaxed text-amber-900 dark:text-amber-200">
                 Estos datos llenan automáticamente la <strong>Portada (Pág. 1)</strong>, <strong>Presentación (Pág. 3)</strong>, <strong>Datos de la Empresa (Pág. 5)</strong>, <strong>Agentes Perturbadores (Pág. 14)</strong> y <strong>Organigrama (Pág. 47)</strong>.
               </div>
 
@@ -390,7 +395,7 @@ export default function PIPCModal({
                     type="text"
                     value={razonSocial}
                     onChange={(e) => setRazonSocial(e.target.value.toUpperCase())}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-semibold bg-white dark:bg-gray-800"
+                    className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-base sm:text-sm font-semibold bg-white dark:bg-gray-800"
                   />
                 </div>
                 <div>
@@ -401,7 +406,7 @@ export default function PIPCModal({
                     type="text"
                     value={nombreComercial}
                     onChange={(e) => setNombreComercial(e.target.value.toUpperCase())}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-semibold bg-white dark:bg-gray-800"
+                    className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-base sm:text-sm font-semibold bg-white dark:bg-gray-800"
                   />
                 </div>
 
@@ -409,20 +414,20 @@ export default function PIPCModal({
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
                     Giro / Descripción de Actividades (Pág. 6, 38, 43, 45, 46, 63)
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="text"
                       value={giro}
                       onChange={(e) => setGiro(e.target.value.toUpperCase())}
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800"
+                      className="flex-1 px-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-base sm:text-sm bg-white dark:bg-gray-800"
                     />
                     <button
                       type="button"
                       onClick={handleRegenerateTextsFromGiro}
-                      className="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-xs"
+                      className="w-full sm:w-auto px-3.5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shrink-0 shadow-xs min-h-[42px] touch-manipulation"
                       title="Actualizar textos de Pág. 45 y 46 con base en este giro"
                     >
-                      <Sparkles className="w-4 h-4" />
+                      <Sparkles className="w-4 h-4 shrink-0" />
                       <span>Auto-Redactar Pág. 45 y 46</span>
                     </button>
                   </div>
@@ -436,7 +441,7 @@ export default function PIPCModal({
                     type="text"
                     value={direccion}
                     onChange={(e) => setDireccion(e.target.value.toUpperCase())}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800"
+                    className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-base sm:text-sm bg-white dark:bg-gray-800"
                   />
                 </div>
 
@@ -448,7 +453,7 @@ export default function PIPCModal({
                     type="text"
                     value={municipio}
                     onChange={(e) => setMunicipio(e.target.value.toUpperCase())}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800"
+                    className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-base sm:text-sm bg-white dark:bg-gray-800"
                   />
                 </div>
                 <div>
@@ -460,7 +465,7 @@ export default function PIPCModal({
                     value={rfc}
                     onChange={(e) => setRfc(e.target.value.toUpperCase())}
                     placeholder="Escribe aquí el RFC de la empresa..."
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800"
+                    className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-base sm:text-sm bg-white dark:bg-gray-800"
                   />
                 </div>
 
@@ -473,7 +478,7 @@ export default function PIPCModal({
                     value={horario}
                     onChange={(e) => setHorario(e.target.value.toUpperCase())}
                     placeholder="Ej. 9:00 A.M. – 9:00 P.M. LUNES - DOMINGO"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800"
+                    className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-base sm:text-sm bg-white dark:bg-gray-800"
                   />
                 </div>
                 <div>
@@ -484,20 +489,21 @@ export default function PIPCModal({
                     type="text"
                     value={representanteLegal}
                     onChange={(e) => setRepresentanteLegal(e.target.value.toUpperCase())}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800"
+                    className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-base sm:text-sm bg-white dark:bg-gray-800"
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 sm:col-span-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:col-span-2">
                   <div>
                     <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
                       N° Trabajadores
                     </label>
                     <input
                       type="text"
+                      inputMode="numeric"
                       value={numTrabajadores}
                       onChange={(e) => setNumTrabajadores(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800"
+                      className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-base sm:text-sm bg-white dark:bg-gray-800"
                     />
                   </div>
                   <div>
@@ -506,25 +512,27 @@ export default function PIPCModal({
                     </label>
                     <input
                       type="text"
+                      inputMode="numeric"
                       value={afluenciaClientes}
                       onChange={(e) => setAfluenciaClientes(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800"
+                      className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-base sm:text-sm bg-white dark:bg-gray-800"
                     />
                   </div>
-                  <div>
+                  <div className="col-span-2 sm:col-span-1">
                     <label className="block text-xs font-extrabold uppercase text-[#7b1f1c] dark:text-amber-400 mb-1">
-                      Metros Cuadrados (M² Construcción / Superficie) *
+                      Metros Cuadrados (M² Construcción) *
                     </label>
                     <input
                       type="number"
+                      inputMode="decimal"
                       min="5"
                       step="any"
                       value={m2Construccion}
                       onChange={(e) => setM2Construccion(e.target.value)}
                       placeholder="Escribe los m² (Ej. 45, 90, 180)..."
-                      className="w-full px-3 py-2 border-2 border-[#7b1f1c]/50 dark:border-amber-500/60 rounded-lg text-sm font-bold bg-amber-50/40 dark:bg-gray-800 focus:border-[#7b1f1c] focus:outline-none"
+                      className="w-full px-3 py-2.5 border-2 border-[#7b1f1c]/50 dark:border-amber-500/60 rounded-lg text-base sm:text-sm font-bold bg-amber-50/40 dark:bg-gray-800 focus:border-[#7b1f1c] focus:outline-none"
                     />
-                    <span className="block text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                    <span className="block text-[11px] text-gray-500 dark:text-gray-400 mt-1 leading-snug">
                       Calcula automáticamente Sí/No y cantidades en Análisis de Riesgo (Pág. 38-42) e Incendio (Pág. 43)
                     </span>
                   </div>
@@ -535,20 +543,20 @@ export default function PIPCModal({
 
           {/* TAB 2: CROQUIS DE UBICACIÓN Y RIESGOS CIRCUNDANTES (PÁGS. 6, 7 Y 8) */}
           {activeTab === 'ubicacion' && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* Pág. 6: Croquis de Ubicación */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h4 className="font-bold text-sm uppercase text-[#7b1f1c] dark:text-amber-400">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-3.5 sm:p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <h4 className="font-bold text-xs sm:text-sm uppercase text-[#7b1f1c] dark:text-amber-400">
                     Pág. 6 — Croquis de Ubicación y Coordenadas
                   </h4>
                   <button
                     type="button"
                     onClick={handleAutoFetchSatelliteMap}
                     disabled={loadingMapImg}
-                    className="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
+                    className="w-full sm:w-auto px-3.5 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50 min-h-[40px] touch-manipulation"
                   >
-                    <MapPin className="w-3.5 h-3.5" />
+                    <MapPin className="w-3.5 h-3.5 shrink-0" />
                     <span>{loadingMapImg ? 'Descargando mapa...' : 'Generar Satelital con Google Maps'}</span>
                   </button>
                 </div>
@@ -562,80 +570,84 @@ export default function PIPCModal({
                     value={coordenadas}
                     onChange={(e) => setCoordenadas(e.target.value)}
                     placeholder="Ej. 20.650283, -87.061502"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800"
+                    className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-base sm:text-sm bg-white dark:bg-gray-800"
                   />
                 </div>
 
                 <div
                   onPaste={(e) => handlePasteImage(e, (url) => setCroquisUbicacionImg(url))}
                   tabIndex={0}
-                  className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 text-center focus:border-blue-500 focus:outline-none cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                  className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-3.5 sm:p-4 text-center focus:border-blue-500 focus:outline-none cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                 >
                   {croquisUbicacionImg ? (
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       <img
                         src={croquisUbicacionImg}
                         alt="Croquis Ubicación"
-                        className="max-h-48 mx-auto rounded-lg shadow border"
+                        className="max-h-48 mx-auto rounded-lg shadow border object-contain"
                       />
                       <div className="flex justify-center gap-2">
                         <button
                           type="button"
                           onClick={() => setCroquisUbicacionImg('')}
-                          className="text-xs text-red-600 font-bold hover:underline"
+                          className="px-3 py-1.5 bg-red-50 dark:bg-red-950/40 text-xs text-red-600 font-bold rounded-lg hover:underline"
                         >
                           Quitar imagen
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-2 py-2">
+                    <div className="space-y-2.5 py-2">
                       <ClipboardPaste className="w-7 h-7 mx-auto text-gray-400" />
-                      <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">
-                        Haz clic aquí y presiona <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">Ctrl + V</kbd> para pegar tu screenshot satelital, o sube una imagen:
+                      <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold leading-relaxed">
+                        En PC presiona <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">Ctrl + V</kbd> para pegar tu captura, o sube una foto desde tu iPhone / dispositivo:
                       </p>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const f = e.target.files?.[0];
-                          if (f) setCroquisUbicacionImg(await fileToDataUrl(f));
-                        }}
-                        className="text-xs mx-auto block"
-                      />
+                      <label className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 shadow-2xs active:scale-[0.99] cursor-pointer w-full sm:w-auto min-h-[42px] touch-manipulation">
+                        <ImageIcon className="w-4 h-4 text-blue-600 shrink-0" />
+                        <span>Seleccionar imagen de Galería / Archivos</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const f = e.target.files?.[0];
+                            if (f) setCroquisUbicacionImg(await fileToDataUrl(f));
+                          }}
+                          className="hidden"
+                        />
+                      </label>
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Pág. 7: Riesgos Circundantes */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h4 className="font-bold text-sm uppercase text-[#7b1f1c] dark:text-amber-400">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-3.5 sm:p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <h4 className="font-bold text-xs sm:text-sm uppercase text-[#7b1f1c] dark:text-amber-400">
                     Pág. 7 — Riesgos Circundantes
                   </h4>
-                  <div className="flex gap-1.5">
+                  <div className="grid grid-cols-2 sm:flex gap-1.5 w-full sm:w-auto">
                     <button
                       type="button"
                       onClick={() => setRiesgosCircundantesMode('table')}
-                      className={`px-2.5 py-1 rounded text-xs font-bold ${
+                      className={`px-2.5 py-2 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold text-center touch-manipulation ${
                         riesgosCircundantesMode === 'table'
                           ? 'bg-[#7b1f1c] text-white'
                           : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                       }`}
                     >
-                      Usar Tabla Automática ({riesgosCircundantesList.length})
+                      Tabla Automática ({riesgosCircundantesList.length})
                     </button>
                     <button
                       type="button"
                       onClick={() => setRiesgosCircundantesMode('images')}
-                      className={`px-2.5 py-1 rounded text-xs font-bold ${
+                      className={`px-2.5 py-2 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold text-center touch-manipulation ${
                         riesgosCircundantesMode === 'images'
                           ? 'bg-[#7b1f1c] text-white'
                           : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                       }`}
                     >
-                      Pegar Captura(s) Manualmente ({riesgosCircundantesImgs.length})
+                      Subir / Pegar ({riesgosCircundantesImgs.length})
                     </button>
                   </div>
                 </div>
@@ -650,9 +662,9 @@ export default function PIPCModal({
                         {riesgosCircundantesList.map((r, i) => (
                           <div
                             key={i}
-                            className="p-2 border border-gray-200 dark:border-gray-700 rounded-lg flex items-center justify-between gap-2 text-xs"
+                            className="p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg flex items-center justify-between gap-2 text-xs"
                           >
-                            <div className="truncate">
+                            <div className="truncate min-w-0 flex-1">
                               <span className="font-bold">{r.name}</span> ({r.distance}) — Nivel {r.riskLevel}
                             </div>
                             <button
@@ -660,17 +672,17 @@ export default function PIPCModal({
                               onClick={() =>
                                 setRiesgosCircundantesList((prev) => prev.filter((_, idx) => idx !== i))
                               }
-                              className="text-red-500 hover:text-red-700 shrink-0"
+                              className="p-1.5 text-red-500 hover:text-red-700 shrink-0 touch-manipulation"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         ))}
                       </div>
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-500">
-                      No hay riesgos guardados recientemente en GeoRiesgos. Puedes abrir <strong>Riesgos Circundantes</strong> en el menú para analizarlos, o cambiar a <strong>"Pegar Captura(s) Manualmente"</strong> arriba.
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      No hay riesgos guardados recientemente en GeoRiesgos. Puedes abrir <strong>Riesgos Circundantes</strong> en el menú para analizarlos, o cambiar a <strong>"Subir / Pegar"</strong> arriba.
                     </p>
                   )
                 ) : (
@@ -679,24 +691,28 @@ export default function PIPCModal({
                       handlePasteImage(e, (url) => setRiesgosCircundantesImgs((prev) => [...prev, url]))
                     }
                     tabIndex={0}
-                    className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 text-center focus:border-blue-500 focus:outline-none"
+                    className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-3.5 sm:p-4 text-center focus:border-blue-500 focus:outline-none space-y-2.5"
                   >
-                    <p className="text-xs font-semibold mb-2">
-                      Haz clic aquí y presiona <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">Ctrl + V</kbd> para pegar la imagen de tu tabla de Riesgos Circundantes:
+                    <p className="text-xs font-semibold">
+                      Pega con <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">Ctrl + V</kbd> o selecciona imágenes de tu galería:
                     </p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={async (e) => {
-                        const files: File[] = Array.from(e.target.files || []);
-                        const urls = await Promise.all(files.map((file) => fileToDataUrl(file)));
-                        setRiesgosCircundantesImgs((prev) => [...prev, ...urls]);
-                      }}
-                      className="text-xs mx-auto block mb-3"
-                    />
+                    <label className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 shadow-2xs active:scale-[0.99] cursor-pointer w-full sm:w-auto min-h-[42px] touch-manipulation">
+                      <ImageIcon className="w-4 h-4 text-[#7b1f1c] shrink-0" />
+                      <span>Seleccionar imagen(es) de Galería</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={async (e) => {
+                          const files: File[] = Array.from(e.target.files || []);
+                          const urls = await Promise.all(files.map((file) => fileToDataUrl(file)));
+                          setRiesgosCircundantesImgs((prev) => [...prev, ...urls]);
+                        }}
+                        className="hidden"
+                      />
+                    </label>
                     {riesgosCircundantesImgs.length > 0 && (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-2">
                         {riesgosCircundantesImgs.map((img, idx) => (
                           <div key={idx} className="relative border rounded-lg p-1">
                             <img src={img} alt={`Riesgo ${idx + 1}`} className="h-28 mx-auto object-contain" />
@@ -705,9 +721,9 @@ export default function PIPCModal({
                               onClick={() =>
                                 setRiesgosCircundantesImgs((prev) => prev.filter((_, i) => i !== idx))
                               }
-                              className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1"
+                              className="absolute top-1.5 right-1.5 bg-red-600 text-white rounded-full p-1.5 shadow touch-manipulation"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         ))}
@@ -718,18 +734,18 @@ export default function PIPCModal({
               </div>
 
               {/* Pág. 8: Croquis Riesgos Circundantes */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h4 className="font-bold text-sm uppercase text-[#7b1f1c] dark:text-amber-400">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-3.5 sm:p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <h4 className="font-bold text-xs sm:text-sm uppercase text-[#7b1f1c] dark:text-amber-400">
                     Pág. 8 — Croquis Riesgos Circundantes (250 m a la redonda)
                   </h4>
                   <button
                     type="button"
                     onClick={handleAutoFetchSatelliteMap}
                     disabled={loadingMapImg}
-                    className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
+                    className="w-full sm:w-auto px-3.5 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50 min-h-[40px] touch-manipulation"
                   >
-                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
                     <span>
                       {loadingMapImg ? 'Generando Croquis 250m...' : 'Generar Croquis 250m Automático'}
                     </span>
@@ -738,40 +754,44 @@ export default function PIPCModal({
                 <div
                   onPaste={(e) => handlePasteImage(e, (url) => setCroquisCircundantesImg(url))}
                   tabIndex={0}
-                  className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 text-center focus:border-blue-500 focus:outline-none"
+                  className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-3.5 sm:p-4 text-center focus:border-blue-500 focus:outline-none"
                 >
                   {croquisCircundantesImg ? (
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       <img
                         src={croquisCircundantesImg}
                         alt="Croquis Circundantes 250m"
-                        className="max-h-56 mx-auto rounded-lg shadow border"
+                        className="max-h-56 mx-auto rounded-lg shadow border object-contain"
                       />
                       <button
                         type="button"
                         onClick={() => setCroquisCircundantesImg('')}
-                        className="text-xs text-red-600 font-bold hover:underline"
+                        className="px-3 py-1.5 bg-red-50 dark:bg-red-950/40 text-xs text-red-600 font-bold rounded-lg hover:underline"
                       >
                         Quitar imagen (se regenerará automáticamente el Croquis de 250m al crear el PDF)
                       </button>
                     </div>
                   ) : (
-                    <div className="space-y-1.5">
-                      <p className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold">
+                    <div className="space-y-2">
+                      <p className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold leading-relaxed">
                         ✓ Al generar el PDF se dibujará automáticamente el Croquis de Riesgos Circundantes a 250 m a la redonda con los establecimientos, círculo rojo de 250m y simbología de riesgos.
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        (Opcional: también puedes pulsar &quot;Generar Croquis 250m Automático&quot; arriba para previsualizarlo aquí o pegar una captura con <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">Ctrl + V</kbd>)
+                        (Opcional: puedes previsualizarlo con el botón de arriba o subir una captura manual)
                       </p>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const f = e.target.files?.[0];
-                          if (f) setCroquisCircundantesImg(await fileToDataUrl(f));
-                        }}
-                        className="text-xs mx-auto block"
-                      />
+                      <label className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 shadow-2xs active:scale-[0.99] cursor-pointer w-full sm:w-auto min-h-[42px] touch-manipulation">
+                        <ImageIcon className="w-4 h-4 text-purple-600 shrink-0" />
+                        <span>Subir imagen manual de Croquis 250m</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const f = e.target.files?.[0];
+                            if (f) setCroquisCircundantesImg(await fileToDataUrl(f));
+                          }}
+                          className="hidden"
+                        />
+                      </label>
                     </div>
                   )}
                 </div>
@@ -781,34 +801,34 @@ export default function PIPCModal({
 
           {/* TAB 3: ACTIVIDAD ECONÓMICA (PÁG. 45) Y RIESGOS INTERNOS (PÁG. 46) */}
           {activeTab === 'actividad' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
-                <p className="text-xs text-amber-900 dark:text-amber-200">
+            <div className="space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
+                <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
                   Ambas páginas ya se redactaron automáticamente para el giro <strong>"{giro}"</strong>. Puedes editarlas libremente si deseas ajustar algo.
                 </p>
                 <button
                   type="button"
                   onClick={handleRegenerateTextsFromGiro}
-                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shrink-0"
+                  className="w-full sm:w-auto px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shrink-0 min-h-[38px] touch-manipulation"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
                   <span>Regenerar con Giro</span>
                 </button>
               </div>
 
               {/* Pág. 45 */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
-                <h4 className="font-bold text-sm uppercase text-[#7b1f1c] dark:text-amber-400">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-3.5 sm:p-4 space-y-3">
+                <h4 className="font-bold text-xs sm:text-sm uppercase text-[#7b1f1c] dark:text-amber-400">
                   Pág. 45 — Descripción de Actividad Económica y Puntos Críticos
                 </h4>
                 <textarea
                   rows={6}
                   value={actividadEconomicaText}
                   onChange={(e) => setActividadEconomicaText(e.target.value.toUpperCase())}
-                  className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg text-xs leading-relaxed bg-white dark:bg-gray-800 font-medium"
+                  className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg text-base sm:text-xs leading-relaxed bg-white dark:bg-gray-800 font-medium"
                 />
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <div className="grid grid-cols-1 min-[370px]:grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
                   {[
                     { key: 'brigadaPrimerosAuxilios', label: 'Brigada Primeros Aux.' },
                     { key: 'combateIncendios', label: 'Combate de Incendios' },
@@ -821,7 +841,7 @@ export default function PIPCModal({
                   ].map((chk) => (
                     <label
                       key={chk.key}
-                      className="flex items-center gap-2 p-2 border border-gray-200 dark:border-gray-700 rounded-lg text-xs cursor-pointer"
+                      className="flex items-center gap-2 p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg text-xs cursor-pointer min-h-[42px] touch-manipulation"
                     >
                       <input
                         type="checkbox"
@@ -829,17 +849,17 @@ export default function PIPCModal({
                         onChange={(e) =>
                           setPuntosCriticos((prev) => ({ ...prev, [chk.key]: e.target.checked }))
                         }
-                        className="rounded text-[#7b1f1c]"
+                        className="rounded text-[#7b1f1c] w-4 h-4 shrink-0"
                       />
-                      <span className="font-semibold">{chk.label}</span>
+                      <span className="font-semibold leading-tight">{chk.label}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
               {/* Pág. 46 */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
-                <h4 className="font-bold text-sm uppercase text-[#7b1f1c] dark:text-amber-400">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-3.5 sm:p-4 space-y-3">
+                <h4 className="font-bold text-xs sm:text-sm uppercase text-[#7b1f1c] dark:text-amber-400">
                   Pág. 46 — Riesgos Internos (5 Puntos y Conclusión)
                 </h4>
                 <div className="space-y-3">
@@ -858,7 +878,7 @@ export default function PIPCModal({
                             items: prev.items.map((it, i) => (i === idx ? { ...it, title: val } : it))
                           }));
                         }}
-                        className="w-full px-2.5 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs font-bold bg-white dark:bg-gray-800"
+                        className="w-full px-2.5 py-2 border border-gray-300 dark:border-gray-600 rounded text-base sm:text-xs font-bold bg-white dark:bg-gray-800"
                       />
                       <textarea
                         rows={2}
@@ -872,7 +892,7 @@ export default function PIPCModal({
                             )
                           }));
                         }}
-                        className="w-full px-2.5 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800"
+                        className="w-full px-2.5 py-2 border border-gray-300 dark:border-gray-600 rounded text-base sm:text-xs bg-white dark:bg-gray-800"
                       />
                     </div>
                   ))}
@@ -886,7 +906,7 @@ export default function PIPCModal({
                       onChange={(e) =>
                         setRiesgosInternos((prev) => ({ ...prev, conclusion: e.target.value }))
                       }
-                      className="w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800"
+                      className="w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-base sm:text-xs bg-white dark:bg-gray-800"
                     />
                   </div>
                 </div>
@@ -897,8 +917,8 @@ export default function PIPCModal({
           {/* TAB 4: INVENTARIO DE SEÑALÉTICAS Y EQUIPOS (PÁGS. 54-55+) */}
           {activeTab === 'inventario' && (
             <div className="space-y-4">
-              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-3 text-xs text-blue-900 dark:text-blue-200">
-                Aquí puedes pegar con <strong>Ctrl + V</strong> (o subir) las capturas de pantalla de las tablas de <strong>Inventario de Señaléticas y Equipos de Emergencia</strong> que haces en tu otra página. Cada imagen ocupará una página dentro del marco del PIPC y el índice ajustará los números de página automáticamente.
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-3 text-xs leading-relaxed text-blue-900 dark:text-blue-200">
+                Aquí puedes subir desde tu iPhone (o pegar con <strong>Ctrl + V</strong> en PC) las capturas de pantalla de las tablas de <strong>Inventario de Señaléticas y Equipos de Emergencia</strong>. Cada imagen ocupará una página dentro del marco del PIPC y el índice ajustará los números de página automáticamente.
               </div>
 
               <div
@@ -906,26 +926,27 @@ export default function PIPCModal({
                   handlePasteImage(e, (url) => setInventarioImgs((prev) => [...prev, url]))
                 }
                 tabIndex={0}
-                className="border-2 border-dashed border-blue-400 dark:border-blue-600 rounded-xl p-6 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/60 dark:bg-gray-800/40 cursor-pointer"
+                className="border-2 border-dashed border-blue-400 dark:border-blue-600 rounded-xl p-4 sm:p-6 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/60 dark:bg-gray-800/40 cursor-pointer space-y-2.5"
               >
-                <ClipboardPaste className="w-9 h-9 mx-auto text-blue-600 dark:text-blue-400 mb-2" />
-                <p className="text-sm font-bold text-gray-800 dark:text-gray-100">
-                  Haz clic en este recuadro y presiona <kbd className="px-2 py-0.5 bg-white dark:bg-gray-700 border rounded shadow-2xs">Ctrl + V</kbd> para pegar cada hoja del inventario
+                <ClipboardPaste className="w-8 h-8 mx-auto text-blue-600 dark:text-blue-400" />
+                <p className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-100 leading-snug">
+                  Selecciona una o varias imágenes de tu Galería / Archivos (o presiona <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-700 border rounded shadow-2xs">Ctrl + V</kbd> en PC)
                 </p>
-                <p className="text-xs text-gray-500 mt-1 mb-3">
-                  O selecciona una o varias imágenes desde tu computadora:
-                </p>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={async (e) => {
-                    const files: File[] = Array.from(e.target.files || []);
-                    const urls = await Promise.all(files.map((file) => fileToDataUrl(file)));
-                    setInventarioImgs((prev) => [...prev, ...urls]);
-                  }}
-                  className="text-xs mx-auto block"
-                />
+                <label className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs active:scale-[0.99] cursor-pointer w-full sm:w-auto min-h-[44px] touch-manipulation">
+                  <ImageIcon className="w-4 h-4 shrink-0" />
+                  <span>Seleccionar Hojas de Inventario</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={async (e) => {
+                      const files: File[] = Array.from(e.target.files || []);
+                      const urls = await Promise.all(files.map((file) => fileToDataUrl(file)));
+                      setInventarioImgs((prev) => [...prev, ...urls]);
+                    }}
+                    className="hidden"
+                  />
+                </label>
               </div>
 
               {inventarioImgs.length > 0 ? (
@@ -961,7 +982,7 @@ export default function PIPCModal({
                           onClick={() =>
                             setInventarioImgs((prev) => prev.filter((_, idx) => idx !== i))
                           }
-                          className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1.5 shadow"
+                          className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1.5 shadow touch-manipulation"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -970,14 +991,14 @@ export default function PIPCModal({
                   </div>
                 </div>
               ) : (
-                <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 cursor-pointer pt-1">
+                <label className="flex items-start sm:items-center gap-2.5 text-xs text-gray-600 dark:text-gray-300 cursor-pointer pt-1">
                   <input
                     type="checkbox"
                     checked={useDefaultInventarioIfEmpty}
                     onChange={(e) => setUseDefaultInventarioIfEmpty(e.target.checked)}
-                    className="rounded text-[#7b1f1c]"
+                    className="rounded text-[#7b1f1c] w-4 h-4 mt-0.5 sm:mt-0 shrink-0"
                   />
-                  <span>
+                  <span className="leading-snug">
                     Si no pego imágenes arriba, dejar las 2 páginas de inventario de ejemplo del machote (Págs. 54 y 55)
                   </span>
                 </label>
@@ -1024,34 +1045,34 @@ export default function PIPCModal({
                       <h5 className="font-bold text-xs sm:text-sm text-gray-900 dark:text-gray-100">
                         {st.title}
                       </h5>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{st.desc}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 leading-snug">{st.desc}</p>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h5 className="font-bold text-xs uppercase text-gray-600 dark:text-gray-300">
                     Turnos para la Cédula de Simulacro
                   </h5>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 mt-0.5">
                     Selecciona qué turnos marcar con trabajadores en la Cédula de Simulacro:
                   </p>
                 </div>
-                <div className="flex gap-1.5">
+                <div className="grid grid-cols-3 sm:flex gap-1.5 w-full sm:w-auto">
                   {(['M', 'MV', 'MVN'] as const).map((mode) => (
                     <button
                       key={mode}
                       type="button"
                       onClick={() => setTurnosSimulacro(mode)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
+                      className={`px-2 sm:px-3 py-2 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold text-center touch-manipulation ${
                         turnosSimulacro === mode
                           ? 'bg-[#1f497d] text-white'
                           : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                       }`}
                     >
-                      {mode === 'M' ? 'Solo Matutino' : mode === 'MV' ? 'Matutino y Vespertino' : 'M / V / Nocturno'}
+                      {mode === 'M' ? 'Matutino' : mode === 'MV' ? 'Mat. y Vesp.' : 'M / V / Noc.'}
                     </button>
                   ))}
                 </div>
@@ -1062,10 +1083,10 @@ export default function PIPCModal({
 
         {/* Barra de progreso mientras ensambla las ~84 páginas */}
         {generating && (
-          <div className="px-6 py-3 bg-amber-50 dark:bg-gray-800 border-t border-amber-200 dark:border-gray-700 space-y-1.5">
-            <div className="flex items-center justify-between text-xs font-bold text-[#7b1f1c] dark:text-amber-300">
-              <span>{progressText}</span>
-              <span>{progressPercent}%</span>
+          <div className="px-4 sm:px-6 py-2.5 sm:py-3 bg-amber-50 dark:bg-gray-800 border-t border-amber-200 dark:border-gray-700 space-y-1.5 shrink-0">
+            <div className="flex items-center justify-between gap-2 text-xs font-bold text-[#7b1f1c] dark:text-amber-300">
+              <span className="truncate">{progressText}</span>
+              <span className="shrink-0">{progressPercent}%</span>
             </div>
             <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
               <div
@@ -1076,35 +1097,38 @@ export default function PIPCModal({
           </div>
         )}
 
-        {/* Footer */}
-        <div className="px-5 py-3.5 bg-gray-50 dark:bg-gray-800/90 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-2 shrink-0">
+        {/* Footer adaptado para iPhone 16 (con safe-area-inset-bottom y botones de ancho completo en móvil) */}
+        <div
+          className="px-3.5 sm:px-5 pt-3 bg-gray-50 dark:bg-gray-800/95 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shrink-0"
+          style={{ paddingBottom: 'max(0.875rem, env(safe-area-inset-bottom))' }}
+        >
           <button
             type="button"
             onClick={onClose}
             disabled={generating}
-            className="px-4 py-2 text-xs sm:text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+            className="hidden sm:inline-flex items-center justify-center px-4 py-2 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
           >
             Cerrar
           </button>
 
-          <div className="flex items-center gap-2.5">
+          <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={handlePreviewPIPC}
               disabled={generating}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm transition-colors disabled:opacity-50"
+              className="px-3 sm:px-4 py-2.5 sm:py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl sm:rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow-sm transition-colors disabled:opacity-50 min-h-[44px] touch-manipulation"
             >
-              <Eye className="w-4 h-4" />
-              <span>{generating ? 'Ensamblando...' : 'Vista Previa PIPC'}</span>
+              <Eye className="w-4 h-4 shrink-0" />
+              <span className="truncate">{generating ? 'Ensamblando...' : 'Vista Previa'}</span>
             </button>
             <button
               type="button"
               onClick={handleDownloadPIPC}
               disabled={generating}
-              className="px-5 py-2 bg-[#7b1f1c] hover:bg-[#5c1614] text-white rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-md transition-colors disabled:opacity-50"
+              className="px-3 sm:px-5 py-2.5 sm:py-2 bg-[#7b1f1c] hover:bg-[#5c1614] text-white rounded-xl sm:rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow-md transition-colors disabled:opacity-50 min-h-[44px] touch-manipulation"
             >
-              <Download className="w-4 h-4" />
-              <span>{generating ? 'Generando PDF...' : 'Descargar PIPC 2026'}</span>
+              <Download className="w-4 h-4 shrink-0" />
+              <span className="truncate">{generating ? 'Generando...' : 'Descargar PIPC'}</span>
             </button>
           </div>
         </div>

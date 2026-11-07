@@ -54,30 +54,34 @@ export default function PdfPreviewModal({
 }: PdfPreviewModalProps) {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
-  const [zoom, setZoom] = useState(0.40);
-  const [zoomInput, setZoomInput] = useState('40');
+  const isMobileScreen = typeof window !== 'undefined' && window.innerWidth < 640;
+  const [zoom, setZoom] = useState(isMobileScreen ? 1.0 : 0.40);
+  const [zoomInput, setZoomInput] = useState(isMobileScreen ? '100' : '40');
   const pdfContainerRef = useRef<HTMLDivElement>(null);
 
   const isLandscape = previewType === 'Constancia' || previewType === 'Constancias (Lote)';
-  const pdfWidth = Math.max(containerWidth * zoom, 300);
+  const pdfWidth = Math.max(containerWidth * zoom, 240);
 
   const applyZoom = (value: number) => {
-    const clamped = Math.min(Math.max(value, 10), 300);
+    const clamped = Math.min(Math.max(value, 20), 300);
     setZoom(clamped / 100);
     setZoomInput(String(clamped));
   };
 
   useEffect(() => {
     if (previewUrl && pdfContainerRef.current) {
+       const mobile = window.innerWidth < 640;
+       setZoom(mobile ? 1.0 : 0.40);
+       setZoomInput(mobile ? '100' : '40');
        setTimeout(() => {
           if (pdfContainerRef.current) {
-            setContainerWidth(Math.max(pdfContainerRef.current.offsetWidth - 32, 300));
+            setContainerWidth(Math.max(pdfContainerRef.current.offsetWidth - (window.innerWidth < 640 ? 16 : 32), 260));
           }
        }, 100);
 
        const handleResize = () => {
          if (pdfContainerRef.current) {
-           setContainerWidth(Math.max(pdfContainerRef.current.offsetWidth - 32, 300));
+           setContainerWidth(Math.max(pdfContainerRef.current.offsetWidth - (window.innerWidth < 640 ? 16 : 32), 260));
          }
        };
        window.addEventListener('resize', handleResize);
@@ -91,33 +95,33 @@ export default function PdfPreviewModal({
 
   return (
     <div className="fixed inset-0 bg-black/70 flex flex-col z-[10000]">
-      <div className="flex items-center justify-between px-4 py-3 bg-gray-900 text-white shrink-0" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
-        <h3 className="font-bold text-lg truncate">{previewName}</h3>
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-900 text-white shrink-0" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
+        <h3 className="font-bold text-sm sm:text-lg truncate min-w-0 flex-1">{previewName}</h3>
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             onClick={() => applyZoom(Math.round(zoom * 100) - 15)}
-            className="hidden sm:flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors rounded-lg w-11 h-11 text-white/80 hover:text-white"
+            className="flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors rounded-lg w-9 h-9 sm:w-11 sm:h-11 text-white/80 hover:text-white touch-manipulation"
             title="Reducir zoom"
           >
-            <ZoomOut className="w-5 h-5" />
+            <ZoomOut className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
-          <div className="hidden sm:flex items-center bg-gray-700 rounded-lg px-2 h-11">
+          <div className="flex items-center bg-gray-700 rounded-lg px-1.5 sm:px-2 h-9 sm:h-11">
             <input
               type="number"
               value={zoomInput}
               onChange={e => setZoomInput(e.target.value)}
               onBlur={e => applyZoom(Number(e.target.value))}
               onKeyDown={e => { if (e.key === 'Enter') applyZoom(Number(zoomInput)); }}
-              className="w-12 bg-transparent text-white text-sm text-center outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className="w-9 sm:w-12 bg-transparent text-white text-xs sm:text-sm text-center outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
-            <span className="text-white/60 text-sm">%</span>
+            <span className="text-white/60 text-xs sm:text-sm">%</span>
           </div>
           <button
             onClick={() => applyZoom(Math.round(zoom * 100) + 15)}
-            className="hidden sm:flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors rounded-lg w-11 h-11 text-white/80 hover:text-white"
+            className="flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors rounded-lg w-9 h-9 sm:w-11 sm:h-11 text-white/80 hover:text-white touch-manipulation"
             title="Aumentar zoom"
           >
-            <ZoomIn className="w-5 h-5" />
+            <ZoomIn className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
           
           <button
@@ -164,13 +168,13 @@ export default function PdfPreviewModal({
           </button>
           <button
             onClick={() => { URL.revokeObjectURL(previewUrl); onClose(); }}
-            className="flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors rounded-lg w-11 h-11 text-white/80 hover:text-white"
+            className="flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition-colors rounded-lg w-9 h-9 sm:w-11 sm:h-11 text-white/80 hover:text-white touch-manipulation"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
       </div>
-      <div ref={pdfContainerRef} className="flex-1 w-full bg-gray-200 overflow-y-auto p-4 flex flex-col items-center">
+      <div ref={pdfContainerRef} className="flex-1 w-full bg-gray-200 overflow-auto p-2 sm:p-4 flex flex-col items-center">
         <Document
           key={previewUrl}
           file={previewUrl}

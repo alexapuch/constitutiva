@@ -250,7 +250,8 @@ export async function generatePIPCPDF(
         const destH = hasTopTitle ? fh * 0.81 : fh * 0.86;
 
         cCtx.save();
-        cCtx.globalCompositeOperation = 'multiply';
+        cCtx.fillStyle = '#ffffff';
+        cCtx.fillRect(destX, destY, destW, destH);
         cCtx.drawImage(subPageCanvas, destX, destY, destW, destH);
         cCtx.restore();
 
