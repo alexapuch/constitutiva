@@ -525,6 +525,10 @@ export async function generatePIPCPDF(
     report('Generando Datos de la Empresa y Croquis...', 20);
     sectionPages.datosEmpresa = addFramedPage();
 
+    // Fondo blanco sólido para el título y la tabla completa
+    doc.setFillColor(255, 255, 255);
+    doc.rect(pageW / 2 - 55, 19, 110, 10, 'F');
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13.5);
     doc.setTextColor(0, 0, 0);
@@ -547,6 +551,10 @@ export async function generatePIPCPDF(
       ]
     ];
 
+    // Fondo blanco sólido para todo el contenedor de la tabla de Datos de la Empresa
+    doc.setFillColor(255, 255, 255);
+    doc.rect(28, 38, pageW - 56, 185, 'F');
+
     autoTable(doc, {
       startY: 40,
       body: datosRows,
@@ -556,6 +564,7 @@ export async function generatePIPCPDF(
         font: 'helvetica',
         fontSize: 9.5,
         textColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
         halign: 'center',
         valign: 'middle',
         cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
@@ -563,8 +572,8 @@ export async function generatePIPCPDF(
         lineWidth: 0.25
       },
       columnStyles: {
-        0: { cellWidth: 68 },
-        1: { cellWidth: pageW - 60 - 68 }
+        0: { cellWidth: 68, fillColor: [255, 255, 255] },
+        1: { cellWidth: pageW - 60 - 68, fillColor: [255, 255, 255] }
       }
     });
 
@@ -789,21 +798,63 @@ export async function generatePIPCPDF(
           doc.setTextColor(30, 30, 30);
           doc.text((risk.distance || '').toUpperCase(), tableX + col1W + col2W / 2, ry + rowH / 2 + 1, { align: 'center' });
 
-          // Nivel de riesgo y descripción
+          // Nivel de riesgo
+          const textStartX = tableX + col1W + col2W + 4;
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(8);
           doc.setTextColor(20, 20, 20);
-          doc.text(`Nivel de riesgo: `, tableX + col1W + col2W + 4, ry + 6.5);
+          doc.text('Nivel de riesgo: ', textStartX, ry + 6.5);
           const lvlOffset = doc.getTextWidth('Nivel de riesgo: ');
           doc.setFont('helvetica', 'normal');
-          doc.text(`${risk.riskLevel || 'Medio'}.`, tableX + col1W + col2W + 4 + lvlOffset, ry + 6.5);
+          doc.text(`${risk.riskLevel || 'Medio'}.`, textStartX + lvlOffset, ry + 6.5);
 
+          // Limpiar la descripción para evitar prefijos duplicados ("Riesgo: Riesgo...")
+          let cleanDesc = (risk.riskDescription || '').trim();
+          cleanDesc = cleanDesc.replace(/^riesgo\s*:\s*/i, '').trim();
+          if (/^riesgo\s+/i.test(cleanDesc)) {
+            cleanDesc = cleanDesc.replace(/^riesgo\s+/i, '').trim();
+          }
+          if (cleanDesc.length > 0) {
+            cleanDesc = cleanDesc.charAt(0).toUpperCase() + cleanDesc.slice(1);
+          }
+
+          // Imprimir etiqueta "Riesgo: " en negrita UNA SOLA VEZ
           doc.setFont('helvetica', 'bold');
-          doc.text('Riesgo: ', tableX + col1W + col2W + 4, ry + 12);
-          const descText = `Riesgo: ${risk.riskDescription || ''}`;
+          doc.setFontSize(8);
+          doc.setTextColor(20, 20, 20);
+          const riesgoLabel = 'Riesgo: ';
+          doc.text(riesgoLabel, textStartX, ry + 12);
+          const labelW = doc.getTextWidth(riesgoLabel);
+
+          // Texto descriptivo en normal (comenzando inmediatamente después de la etiqueta sin sobreponerse)
           doc.setFont('helvetica', 'normal');
-          const descLines = doc.splitTextToSize(descText, col3W - 8);
-          doc.text(descLines.slice(0, 6), tableX + col1W + col2W + 4, ry + 12, { lineHeightFactor: 1.3 });
+          doc.setFontSize(7.6);
+          doc.setTextColor(30, 30, 30);
+
+          const firstLineMaxW = col3W - 8 - labelW;
+          const fullLineMaxW = col3W - 8;
+          const words = cleanDesc.split(/\s+/).filter(Boolean);
+          let firstLine = '';
+          let nextWordIdx = 0;
+          for (let w = 0; w < words.length; w++) {
+            const candidate = firstLine ? `${firstLine} ${words[w]}` : words[w];
+            if (doc.getTextWidth(candidate) <= firstLineMaxW) {
+              firstLine = candidate;
+              nextWordIdx = w + 1;
+            } else {
+              break;
+            }
+          }
+
+          if (firstLine) {
+            doc.text(firstLine, textStartX + labelW, ry + 12);
+          }
+
+          const remainingText = words.slice(nextWordIdx).join(' ');
+          if (remainingText) {
+            const restLines = doc.splitTextToSize(remainingText, fullLineMaxW);
+            doc.text(restLines.slice(0, 5), textStartX, ry + 15.6, { lineHeightFactor: 1.25 });
+          }
         });
       }
     } else {
