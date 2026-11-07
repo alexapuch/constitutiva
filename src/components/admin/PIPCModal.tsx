@@ -15,7 +15,8 @@ import {
   ClipboardPaste,
   RefreshCw,
   Camera,
-  Calendar
+  Calendar,
+  RotateCw
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { DocumentInfo, Employee, RiskData } from '../../types';
@@ -338,35 +339,124 @@ export default function PIPCModal({
 
   if (!isOpen || !docInfo) return null;
 
+  // Rota un DataURL JPEG 90 grados en el sentido de las agujas del reloj
+  const rotateDataUrl90 = (dataUrl: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.height;
+        canvas.height = img.width;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(dataUrl);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((90 * Math.PI) / 180);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+        const rotated = canvas.toDataURL('image/jpeg', 0.88);
+        canvas.width = 0;
+        canvas.height = 0;
+        resolve(rotated);
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  };
+
   // Convertir y optimizar imagen subida (o pegada) a DataURL JPEG de alta definición (max 2048px, calidad 0.86).
-  // Mantiene letras, tablas y fotos 100% nítidas evitando que fotos crudas de 48MP de iPhone inflen el PDF sin necesidad.
-  const fileToDataUrl = (file: File): Promise<string> => {
+  // Respeta la orientación EXIF de la cámara del iPhone ('from-image') y si forceVertical=true garantiza que
+  // quede vertical (portrait) sin girarse horizontalmente de forma indeseada.
+  const fileToDataUrl = async (file: File, forceVertical = false): Promise<string> => {
+    // 1. Intentar decodificar con createImageBitmap respetando la orientación EXIF nativa del iPhone
+    if (typeof createImageBitmap === 'function') {
+      try {
+        const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+        let bw = bitmap.width;
+        let bh = bitmap.height;
+
+        // Si se pide vertical obligatoriamente y la foto vino horizontal, rotar 90 grados
+        const shouldRotate = forceVertical && bw > bh;
+        const effW = shouldRotate ? bh : bw;
+        const effH = shouldRotate ? bw : bh;
+
+        const maxDim = 2048;
+        let outW = effW;
+        let outH = effH;
+        if (outW > maxDim || outH > maxDim) {
+          if (outW > outH) {
+            outH = Math.round((outH * maxDim) / outW);
+            outW = maxDim;
+          } else {
+            outW = Math.round((outW * maxDim) / outH);
+            outH = maxDim;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = outW;
+        canvas.height = outH;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, outW, outH);
+          if (shouldRotate) {
+            ctx.translate(outW / 2, outH / 2);
+            ctx.rotate((90 * Math.PI) / 180);
+            ctx.drawImage(bitmap, -outH / 2, -outW / 2, outH, outW);
+          } else {
+            ctx.drawImage(bitmap, 0, 0, outW, outH);
+          }
+          const compressed = canvas.toDataURL('image/jpeg', 0.86);
+          canvas.width = 0;
+          canvas.height = 0;
+          bitmap.close();
+          return compressed;
+        }
+      } catch {
+        // Fallback a FileReader si el navegador no soporta options en createImageBitmap
+      }
+    }
+
+    // 2. Fallback estándar con FileReader
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = () => {
         const rawUrl = reader.result as string;
         const img = new Image();
         img.onload = () => {
+          let iw = img.naturalWidth || img.width;
+          let ih = img.naturalHeight || img.height;
+          const shouldRotate = forceVertical && iw > ih;
+          const effW = shouldRotate ? ih : iw;
+          const effH = shouldRotate ? iw : ih;
+
           const maxDim = 2048;
-          let w = img.naturalWidth || img.width;
-          let h = img.naturalHeight || img.height;
-          if (w > maxDim || h > maxDim) {
-            if (w > h) {
-              h = Math.round((h * maxDim) / w);
-              w = maxDim;
+          let outW = effW;
+          let outH = effH;
+          if (outW > maxDim || outH > maxDim) {
+            if (outW > outH) {
+              outH = Math.round((outH * maxDim) / outW);
+              outW = maxDim;
             } else {
-              w = Math.round((w * maxDim) / h);
-              h = maxDim;
+              outW = Math.round((outW * maxDim) / outH);
+              outH = maxDim;
             }
           }
           const canvas = document.createElement('canvas');
-          canvas.width = w;
-          canvas.height = h;
+          canvas.width = outW;
+          canvas.height = outH;
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, w, h);
-            ctx.drawImage(img, 0, 0, w, h);
+            ctx.fillRect(0, 0, outW, outH);
+            if (shouldRotate) {
+              ctx.translate(outW / 2, outH / 2);
+              ctx.rotate((90 * Math.PI) / 180);
+              ctx.drawImage(img, -outH / 2, -outW / 2, outH, outW);
+            } else {
+              ctx.drawImage(img, 0, 0, outW, outH);
+            }
             const compressed = canvas.toDataURL('image/jpeg', 0.86);
             canvas.width = 0;
             canvas.height = 0;
@@ -1189,7 +1279,7 @@ export default function PIPCModal({
                         onChange={async (e) => {
                           const files: File[] = Array.from(e.target.files || []);
                           if (files.length === 0) return;
-                          const urls = await Promise.all(files.map((file) => fileToDataUrl(file)));
+                          const urls = await Promise.all(files.map((file) => fileToDataUrl(file, true)));
                           const defaultOrder = [
                             { type: 'extintor', label: 'EXTINTOR' },
                             { type: 'botiquin', label: 'BOTIQUÍN DE PRIMEROS AUXILIOS' },
@@ -1297,7 +1387,7 @@ export default function PIPCModal({
                               onChange={async (e) => {
                                 const f = e.target.files?.[0];
                                 if (f) {
-                                  const url = await fileToDataUrl(f);
+                                  const url = await fileToDataUrl(f, true);
                                   setEvidenciaItems((prev) =>
                                     prev.map((it, i) => (i === idx ? { ...it, photoDataUrl: url } : it))
                                   );
@@ -1335,16 +1425,34 @@ export default function PIPCModal({
                                   </option>
                                 ))}
                               </select>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setEvidenciaItems((prev) => prev.filter((_, i) => i !== idx))
-                                }
-                                className="p-1.5 text-red-500 hover:text-red-700 shrink-0 touch-manipulation"
-                                title="Eliminar evidencia"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              <div className="flex items-center gap-1 shrink-0">
+                                {item.photoDataUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const rotated = await rotateDataUrl90(item.photoDataUrl);
+                                      setEvidenciaItems((prev) =>
+                                        prev.map((it, i) => (i === idx ? { ...it, photoDataUrl: rotated } : it))
+                                      );
+                                    }}
+                                    className="p-1.5 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors touch-manipulation"
+                                    title="Girar foto 90° (para que quede vertical)"
+                                    aria-label="Girar foto 90°"
+                                  >
+                                    <RotateCw className="w-4 h-4" />
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setEvidenciaItems((prev) => prev.filter((_, i) => i !== idx))
+                                  }
+                                  className="p-1.5 text-red-500 hover:text-red-700 shrink-0 touch-manipulation rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                                  title="Eliminar evidencia"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
                             </div>
 
                             <div className="flex items-center gap-2">
@@ -1410,7 +1518,7 @@ export default function PIPCModal({
                     multiple
                     onChange={async (e) => {
                       const files: File[] = Array.from(e.target.files || []);
-                      const urls = await Promise.all(files.map((file) => fileToDataUrl(file)));
+                      const urls = await Promise.all(files.map((file) => fileToDataUrl(file, true)));
                       setInventarioImgs((prev) => [...prev, ...urls]);
                     }}
                     className="hidden"
@@ -1436,25 +1544,39 @@ export default function PIPCModal({
                     {inventarioImgs.map((img, i) => (
                       <div
                         key={i}
-                        className="relative border border-gray-200 dark:border-gray-700 rounded-xl p-2 bg-white dark:bg-gray-800 shadow-xs"
+                        className="relative border border-gray-200 dark:border-gray-700 rounded-xl p-2 bg-white dark:bg-gray-800 shadow-xs flex flex-col justify-between"
                       >
                         <span className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-bold px-2 py-0.5 rounded">
                           Hoja #{i + 1}
                         </span>
+                        <div className="absolute top-2 right-2 flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const rot = await rotateDataUrl90(img);
+                              setInventarioImgs((prev) => prev.map((item, idx) => (idx === i ? rot : item)));
+                            }}
+                            className="bg-black/70 hover:bg-blue-600 text-white rounded-full p-1.5 shadow touch-manipulation transition-colors"
+                            title="Girar hoja 90°"
+                          >
+                            <RotateCw className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setInventarioImgs((prev) => prev.filter((_, idx) => idx !== i))
+                            }
+                            className="bg-red-600 hover:bg-red-700 text-white rounded-full p-1.5 shadow touch-manipulation"
+                            title="Eliminar hoja"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                         <img
                           src={img}
                           alt={`Inventario ${i + 1}`}
-                          className="h-36 mx-auto object-contain rounded"
+                          className="h-36 mx-auto object-contain rounded my-auto"
                         />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setInventarioImgs((prev) => prev.filter((_, idx) => idx !== i))
-                          }
-                          className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1.5 shadow touch-manipulation"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
                       </div>
                     ))}
                   </div>
