@@ -6,37 +6,69 @@ import Swal from 'sweetalert2';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-function LazyPage({ pageNumber, containerWidth, isLandscape }: { pageNumber: number; containerWidth: number; isLandscape: boolean }) {
-  const [isVisible, setIsVisible] = useState(false);
+function LazyPage({
+  pageNumber,
+  containerWidth,
+  isLandscape,
+  isMobile
+}: {
+  pageNumber: number;
+  containerWidth: number;
+  isLandscape: boolean;
+  isMobile: boolean;
+}) {
+  const [isVisible, setIsVisible] = useState(pageNumber <= 2);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
+        const entry = entries[0];
+        if (entry) {
+          // En móvil/iOS Safari es indispensable desmontar los <canvas> que quedan lejos del viewport
+          // para no rebasar el límite de ~280 MB de memoria de canvas de WebKit al deslizar 84 páginas.
+          setIsVisible(entry.isIntersecting);
         }
       },
-      { rootMargin: '200px' }
+      { rootMargin: '650px 0px' }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   const ratio = isLandscape ? 0.7727 : 1.2941;
+  const pageHeight = Math.round(containerWidth * ratio) || (isLandscape ? 460 : 600);
+  const dpr =
+    typeof window !== 'undefined'
+      ? isMobile
+        ? Math.min(window.devicePixelRatio || 1, 1.5)
+        : Math.min(window.devicePixelRatio || 1, 2)
+      : 1.5;
 
   return (
-    <div ref={ref} className="mb-4 shadow-lg flex justify-center bg-gray-300" style={{ minHeight: containerWidth * ratio || (isLandscape ? 460 : 600), width: containerWidth || '100%' }}>
+    <div
+      ref={ref}
+      className="mb-4 shadow-lg flex items-center justify-center bg-white relative"
+      style={{ minHeight: pageHeight, width: containerWidth || '100%' }}
+    >
       {isVisible ? (
         <Page
           pageNumber={pageNumber}
           width={containerWidth}
+          devicePixelRatio={dpr}
           renderTextLayer={false}
           renderAnnotationLayer={false}
-          loading={null}
+          loading={
+            <div className="text-xs text-gray-400 font-semibold">
+              Página {pageNumber}...
+            </div>
+          }
         />
-      ) : null}
+      ) : (
+        <div className="text-xs text-gray-400 font-semibold select-none">
+          Página {pageNumber}
+        </div>
+      )}
     </div>
   );
 }
@@ -81,7 +113,8 @@ export default function PdfPreviewModal({
 
        const handleResize = () => {
          if (pdfContainerRef.current) {
-           setContainerWidth(Math.max(pdfContainerRef.current.offsetWidth - (window.innerWidth < 640 ? 16 : 32), 260));
+           const nextW = Math.max(pdfContainerRef.current.offsetWidth - (window.innerWidth < 640 ? 16 : 32), 260);
+           setContainerWidth(prev => (Math.abs(prev - nextW) > 6 ? nextW : prev));
          }
        };
        window.addEventListener('resize', handleResize);
@@ -183,7 +216,13 @@ export default function PdfPreviewModal({
           className="flex flex-col items-center"
         >
           {Array.from(new Array(numPages || 0), (_, index) => (
-            <LazyPage key={`${previewUrl}_page_${index + 1}`} pageNumber={index + 1} containerWidth={pdfWidth} isLandscape={isLandscape} />
+            <LazyPage
+              key={`${previewUrl}_page_${index + 1}`}
+              pageNumber={index + 1}
+              containerWidth={pdfWidth}
+              isLandscape={isLandscape}
+              isMobile={isMobileScreen}
+            />
           ))}
         </Document>
       </div>

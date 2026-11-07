@@ -102,6 +102,16 @@ export interface PIPCPDFConfig {
   onProgress?: (stepText: string, percent: number) => void;
 }
 
+function releaseCanvas(c?: HTMLCanvasElement | null) {
+  if (!c) return;
+  try {
+    c.width = 0;
+    c.height = 0;
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Renderiza una página de un documento PDF de pdfjs a un HTMLCanvasElement.
  */
@@ -110,8 +120,10 @@ async function renderPdfPageToCanvas(
   pageNum: number,
   scale: number = 2.0
 ): Promise<HTMLCanvasElement> {
+  const isMobileDevice = typeof window !== 'undefined' && window.innerWidth < 768;
+  const effectiveScale = isMobileDevice ? Math.min(scale, 1.7) : scale;
   const page = await pdfDoc.getPage(pageNum);
-  const viewport = page.getViewport({ scale });
+  const viewport = page.getViewport({ scale: effectiveScale });
   const canvas = document.createElement('canvas');
   canvas.width = viewport.width;
   canvas.height = viewport.height;
@@ -119,6 +131,11 @@ async function renderPdfPageToCanvas(
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+  try {
+    page.cleanup();
+  } catch {
+    // ignore
+  }
   return canvas;
 }
 
@@ -228,6 +245,7 @@ export async function generatePIPCPDF(
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(canvas.width * 0.87, canvas.height * 0.885, canvas.width * 0.09, canvas.height * 0.037);
       const imgData = canvas.toDataURL('image/jpeg', 0.88);
+      releaseCanvas(canvas);
       doc.addImage(imgData, 'JPEG', 0, 0, pageW, pageH, undefined, 'FAST');
       return currentPageNum;
     };
@@ -267,6 +285,8 @@ export async function generatePIPCPDF(
         cCtx.restore();
 
         const mergedDataUrl = compCanvas.toDataURL('image/jpeg', 0.90);
+        releaseCanvas(subPageCanvas);
+        releaseCanvas(compCanvas);
         doc.addImage(mergedDataUrl, 'JPEG', 0, 0, pageW, pageH, undefined, 'FAST');
 
         if (hasTopTitle && firstPageTitle) {
@@ -277,6 +297,9 @@ export async function generatePIPCPDF(
         }
       }
 
+      try {
+        await subPdf.destroy();
+      } catch {}
       try {
         URL.revokeObjectURL(subPdfBlobUrl);
       } catch {}
@@ -1813,6 +1836,11 @@ export async function generatePIPCPDF(
       doc.setTextColor(0, 0, 0);
       doc.text(String(p), 202.5, 255.5, { align: 'right' });
     }
+
+    releaseCanvas(baseFrameCanvas);
+    try {
+      await templatePdf.destroy();
+    } catch {}
 
     report('¡PIPC 2026 generado con éxito!', 100);
 

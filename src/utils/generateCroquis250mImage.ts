@@ -678,8 +678,8 @@ export async function generateCroquis250mDataUrl(params: {
   const footerH = 48;
   const bodyY = headerH;
   const bodyH = H - headerH - footerH; // 640
-  const panelW = 330;
-  const mapW = W - panelW; // 650
+  const mapW = 640; // Exactamente 640x640 (límite nativo exacto de Google Static Maps sin recorte ni estiramiento)
+  const panelW = W - mapW; // 340
 
   // 1. Descargar el mapa satelital híbrido de Google Static Maps (zoom 16 para cubrir los 250m a la redonda con claridad)
   const zoom = 16;
@@ -702,19 +702,28 @@ export async function generateCroquis250mDataUrl(params: {
   const mapCenterX = mapW / 2;
   const mapCenterY = bodyY + bodyH / 2;
 
-  // Escala Web Mercator en metros por píxel CSS para este zoom y latitud
+  // Proyección Web Mercator exacta (idéntica a la usada internamente por Google Static Maps)
   const d2r = Math.PI / 180;
   const metersPerPx = (156543.03392 * Math.cos(lat * d2r)) / Math.pow(2, zoom);
   const radiusMeters = 250;
   const radiusPx = radiusMeters / metersPerPx;
 
-  // Función para proyectar (lat, lng) a coordenadas (x, y) dentro del mapa
-  const latLngToPoint = (pLat: number, pLng: number) => {
-    const dLatM = (pLat - lat) * 111320;
-    const dLngM = (pLng - lng) * 111320 * Math.cos(lat * d2r);
+  const latLngToWorldPx = (la: number, ln: number) => {
+    const siny = Math.min(Math.max(Math.sin(la * d2r), -0.9999), 0.9999);
+    const worldScale = 256 * Math.pow(2, zoom);
     return {
-      x: mapCenterX + dLngM / metersPerPx,
-      y: mapCenterY - dLatM / metersPerPx
+      x: (0.5 + ln / 360) * worldScale,
+      y: (0.5 - Math.log((1 + siny) / (1 - siny)) / (4 * Math.PI)) * worldScale
+    };
+  };
+  const centerWorldPx = latLngToWorldPx(lat, lng);
+
+  // Función para proyectar (pLat, pLng) al píxel exacto sobre la imagen satelital de Google Maps
+  const latLngToPoint = (pLat: number, pLng: number) => {
+    const ptWorld = latLngToWorldPx(pLat, pLng);
+    return {
+      x: mapCenterX + (ptWorld.x - centerWorldPx.x),
+      y: mapCenterY + (ptWorld.y - centerWorldPx.y)
     };
   };
 
@@ -879,85 +888,87 @@ export async function generateCroquis250mDataUrl(params: {
   }
   const topPlaces = effectivePlaces.slice(0, 5);
 
-  // 4. Marcadores programáticos de Simbología de Riesgos (Tráfico, Zona habitacional, Afluencia)
-  const progMarkers = [
-    { lat: lat + 0.00065, lng: lng + 0.00065, cat: RISK_CATEGORIES[0] },
-    { lat: lat - 0.00065, lng: lng - 0.00065, cat: RISK_CATEGORIES[0] },
-    { lat: lat + 0.00085, lng: lng - 0.00085, cat: RISK_CATEGORIES[2] },
-    { lat: lat - 0.00085, lng: lng + 0.00085, cat: RISK_CATEGORIES[2] },
-    { lat: lat - 0.00035, lng: lng + 0.00095, cat: RISK_CATEGORIES[1] }
-  ];
-
-  const occupiedPoints: { x: number; y: number }[] = [];
-  progMarkers.forEach((pm) => {
-    const pt = latLngToPoint(pm.lat, pm.lng);
-    occupiedPoints.push(pt);
-    drawRiskSymbolMarker(pt.x, pt.y, pm.cat.color, pm.cat.id, 13);
-  });
-
-  // 5. Puntitos / Círculos de color de los Establecimientos Circundantes (hasta 5)
-  // Siempre garantizados DENTRO del círculo rojo de 250m (entre 38px y 80% del radio) y bien separados
+  // 4. Puntitos / Círculos de color de los Establecimientos Circundantes (hasta 5)
+  // Se colocan PRIMERO y en su coordenada geográfica EXACTA (place.lat, place.lng) sobre el mapa satelital,
+  // para que cada círculo de color coincida exactamente con el edificio/etiqueta del establecimiento en Google Maps.
   const defaultAngles = [-65, 15, 95, 165, -145].map((deg) => deg * d2r);
   const defaultRadii = [44, 58, 48, 64, 52];
-  const placedDots: { x: number; y: number }[] = [];
-  const maxAllowedRadius = Math.max(68, radiusPx * 0.78);
-  const minAllowedRadius = 38;
+  const placedDots: { x: number; y: number; color: string }[] = [];
 
   topPlaces.forEach((place, idx) => {
     const color = ESTABLISHMENT_PALETTE[idx % ESTABLISHMENT_PALETTE.length];
 
-    let angle = defaultAngles[idx % defaultAngles.length];
-    let targetDist = Math.min(maxAllowedRadius, defaultRadii[idx % defaultRadii.length]);
-
+    let pt: { x: number; y: number };
     if (
       typeof place.lat === 'number' &&
       typeof place.lng === 'number' &&
       Number.isFinite(place.lat) &&
       Number.isFinite(place.lng)
     ) {
-      const rawPt = latLngToPoint(place.lat, place.lng);
-      const dx = rawPt.x - mapCenterX;
-      const dy = rawPt.y - mapCenterY;
-      const rawDist = Math.hypot(dx, dy);
-
-      // Si las coordenadas del lugar pertenecen a esta misma zona (dentro de ~300m del centro),
-      // usamos su orientación real y ajustamos la distancia para que quede dentro del círculo y lejos del pin central
-      if (rawDist >= 3 && rawDist <= radiusPx * 1.25) {
-        angle = Math.atan2(dy, dx);
-        targetDist = Math.max(minAllowedRadius, Math.min(maxAllowedRadius, rawDist));
-      }
-    }
-
-    let pt = {
-      x: mapCenterX + Math.cos(angle) * targetDist,
-      y: mapCenterY + Math.sin(angle) * targetDist
-    };
-
-    // Evitar que dos círculos de color de establecimientos se encimen entre sí o con un ícono de riesgo
-    let attempts = 0;
-    while (attempts < 24) {
-      const collidesWithDot = placedDots.some(
-        (other) => Math.hypot(other.x - pt.x, other.y - pt.y) < 30
-      );
-      const collidesWithProg = occupiedPoints.some(
-        (other) => Math.hypot(other.x - pt.x, other.y - pt.y) < 28
-      );
-      if (!collidesWithDot && !collidesWithProg) break;
-
-      attempts++;
-      const shiftAngle = angle + attempts * 0.48;
-      const shiftRadius = Math.min(
-        maxAllowedRadius,
-        minAllowedRadius + ((targetDist - minAllowedRadius + attempts * 6) % (maxAllowedRadius - minAllowedRadius))
-      );
+      // Posición exacta en píxeles Web Mercator del establecimiento real
+      pt = latLngToPoint(place.lat, place.lng);
+    } else {
+      const fallbackAngle = defaultAngles[idx % defaultAngles.length];
+      const fallbackDist = defaultRadii[idx % defaultRadii.length];
       pt = {
-        x: mapCenterX + Math.cos(shiftAngle) * shiftRadius,
-        y: mapCenterY + Math.sin(shiftAngle) * shiftRadius
+        x: mapCenterX + Math.cos(fallbackAngle) * fallbackDist,
+        y: mapCenterY + Math.sin(fallbackAngle) * fallbackDist
       };
     }
 
-    placedDots.push({ x: pt.x, y: pt.y });
-    drawEstablishmentColorDot(pt.x, pt.y, color, 13);
+    // Solo si dos establecimientos están literalmente en el mismo local (< 11px de separación),
+    // desplazar apenas 11px localmente para que ambos colores sean visibles sin salirse de su edificio.
+    const basePt = { x: pt.x, y: pt.y };
+    let nudgeStep = 0;
+    while (
+      nudgeStep < 8 &&
+      placedDots.some((other) => Math.hypot(other.x - pt.x, other.y - pt.y) < 11)
+    ) {
+      nudgeStep++;
+      const nudgeAngle = nudgeStep * (Math.PI / 3);
+      pt = {
+        x: basePt.x + Math.cos(nudgeAngle) * 11,
+        y: basePt.y + Math.sin(nudgeAngle) * 11
+      };
+    }
+
+    placedDots.push({ x: pt.x, y: pt.y, color });
+  });
+
+  // 5. Marcadores programáticos de Simbología de Riesgos (Tráfico, Zona habitacional, Afluencia)
+  // Se colocan evitando tapar las coordenadas reales de los establecimientos
+  const progMarkers = [
+    { lat: lat + 0.00072, lng: lng + 0.00072, cat: RISK_CATEGORIES[0] },
+    { lat: lat - 0.00072, lng: lng - 0.00072, cat: RISK_CATEGORIES[0] },
+    { lat: lat + 0.00090, lng: lng - 0.00090, cat: RISK_CATEGORIES[2] },
+    { lat: lat - 0.00090, lng: lng + 0.00090, cat: RISK_CATEGORIES[2] },
+    { lat: lat - 0.00040, lng: lng + 0.00098, cat: RISK_CATEGORIES[1] }
+  ];
+
+  const occupiedProgPoints: { x: number; y: number }[] = [];
+  progMarkers.forEach((pm) => {
+    let pt = latLngToPoint(pm.lat, pm.lng);
+    const basePt = { x: pt.x, y: pt.y };
+    let step = 0;
+    while (
+      step < 12 &&
+      (placedDots.some((d) => Math.hypot(d.x - pt.x, d.y - pt.y) < 24) ||
+        occupiedProgPoints.some((o) => Math.hypot(o.x - pt.x, o.y - pt.y) < 24))
+    ) {
+      step++;
+      const a = step * 0.6;
+      pt = {
+        x: basePt.x + Math.cos(a) * 22,
+        y: basePt.y + Math.sin(a) * 22
+      };
+    }
+    occupiedProgPoints.push(pt);
+    drawRiskSymbolMarker(pt.x, pt.y, pm.cat.color, pm.cat.id, 12);
+  });
+
+  // Dibujar los círculos de color de los establecimientos encima para que siempre destaquen claramente
+  placedDots.forEach((dot) => {
+    drawEstablishmentColorDot(dot.x, dot.y, dot.color, 12);
   });
 
   // 6. Pin central rojo del establecimiento evaluado
@@ -1188,6 +1199,13 @@ export async function generateCroquis250mDataUrl(params: {
   ctx.strokeStyle = '#000000';
   ctx.strokeRect(0, 0, W, H);
 
-  return canvas.toDataURL('image/jpeg', 0.92);
+  const resultDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+  try {
+    canvas.width = 0;
+    canvas.height = 0;
+  } catch {
+    // ignore
+  }
+  return resultDataUrl;
 }
 
