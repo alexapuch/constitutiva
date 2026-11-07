@@ -188,7 +188,7 @@ export async function resolveRiskPhotoAsJpegDataUrl(
   const sy = (ih - sh) / 2;
 
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, size, size);
-  return canvas.toDataURL('image/jpeg', 0.9);
+  return canvas.toDataURL('image/jpeg', 0.75);
 }
 
 /**
@@ -1199,7 +1199,7 @@ export async function generateCroquis250mDataUrl(params: {
   ctx.strokeStyle = '#000000';
   ctx.strokeRect(0, 0, W, H);
 
-  const resultDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+  const resultDataUrl = canvas.toDataURL('image/jpeg', 0.80);
   try {
     canvas.width = 0;
     canvas.height = 0;

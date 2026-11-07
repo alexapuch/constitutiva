@@ -291,12 +291,47 @@ export default function PIPCModal({
 
   if (!isOpen || !docInfo) return null;
 
-  // Convertir archivo de imagen subido o pegado a DataURL
+  // Convertir y optimizar imagen subida (o pegada) a DataURL JPEG ligero (max 1400px, calidad 0.78).
+  // Esto previene que fotos de iPhone (4000x3000px y 5MB c/u) inflen el PDF a más de 30MB.
   const fileToDataUrl = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
+      reader.onload = () => {
+        const rawUrl = reader.result as string;
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1400;
+          let w = img.naturalWidth || img.width;
+          let h = img.naturalHeight || img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+            const compressed = canvas.toDataURL('image/jpeg', 0.78);
+            canvas.width = 0;
+            canvas.height = 0;
+            resolve(compressed);
+          } else {
+            resolve(rawUrl);
+          }
+        };
+        img.onerror = () => resolve(rawUrl);
+        img.src = rawUrl;
+      };
+      reader.onerror = () => resolve('');
       reader.readAsDataURL(file);
     });
   };
