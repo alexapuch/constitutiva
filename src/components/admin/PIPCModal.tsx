@@ -16,7 +16,8 @@ import {
   RefreshCw,
   Camera,
   Calendar,
-  RotateCw
+  RotateCw,
+  Layers
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { DocumentInfo, Employee, RiskData } from '../../types';
@@ -34,7 +35,8 @@ import {
   generatePIPCPDF,
   PIPCPDFConfig,
   PuntosCriticosData,
-  EvidenciaFotograficaItem
+  EvidenciaFotograficaItem,
+  CroquisPlacedSign
 } from '../../utils/generatePIPCPDF';
 import { generatePdfName } from '../../utils/pdfNameGenerator';
 import {
@@ -62,7 +64,7 @@ interface PIPCModalProps {
   onPreview: (url: string, name: string) => void;
 }
 
-type PIPCTab = 'empresa' | 'ubicacion' | 'actividad' | 'inventario' | 'calendario' | 'resumen';
+type PIPCTab = 'empresa' | 'ubicacion' | 'actividad' | 'inventario' | 'croquis_senaletica' | 'calendario' | 'resumen';
 
 export default function PIPCModal({
   isOpen,
@@ -133,6 +135,54 @@ export default function PIPCModal({
   const [loadingRisksForCoords, setLoadingRisksForCoords] = useState(false);
   const analyzedCenterRef = useRef<{ lat: number; lng: number } | null>(null);
   const syncTimeoutRef = useRef<any>(null);
+
+  // 4b. Croquis de Señaléticas y Equipos de Emergencia (página después del Inventario)
+  const [croquisSenaleticaBaseImg, setCroquisSenaleticaBaseImg] = useState<string>('');
+  const [croquisSenaleticaSigns, setCroquisSenaleticaSigns] = useState<CroquisPlacedSign[]>([]);
+  const [croquisSenaleticaIconScale, setCroquisSenaleticaIconScale] = useState<number>(6.5);
+  const [activeCroquisTool, setActiveCroquisTool] = useState<string>('extintor');
+  const [activeCroquisRotation, setActiveCroquisRotation] = useState<number>(0);
+  const [selectedCroquisSignId, setSelectedCroquisSignId] = useState<string | null>(null);
+  const croquisContainerRef = useRef<HTMLDivElement>(null);
+  const croquisDragRef = useRef<{
+    id: string;
+    startClientX: number;
+    startClientY: number;
+    origXPct: number;
+    origYPct: number;
+  } | null>(null);
+  const bgTapStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Resumen de señaléticas que el usuario ya escogió en la pestaña previa (Evidencia Fotográfica)
+  const inventorySignalSummary = React.useMemo(() => {
+    const map = new Map<string, { signalType: string; label: string; targetCount: number }>();
+    for (const it of evidenciaItems) {
+      const st = it.signalType || 'extintor';
+      const qty = Math.max(1, parseInt(it.cantidad) || 1);
+      const existing = map.get(st);
+      if (existing) {
+        existing.targetCount += qty;
+      } else {
+        const opt = EVIDENCIA_SIGNAL_OPTIONS.find((o) => o.value === st);
+        map.set(st, {
+          signalType: st,
+          label: it.label || opt?.label || st.toUpperCase(),
+          targetCount: qty
+        });
+      }
+    }
+    return Array.from(map.values());
+  }, [evidenciaItems]);
+
+  // Cuando el usuario entra a la pestaña de Croquis de Señalética, pre-seleccionar la primera señal de su inventario
+  useEffect(() => {
+    if (activeTab === 'croquis_senaletica' && inventorySignalSummary.length > 0) {
+      const existsInInv = inventorySignalSummary.some((s) => s.signalType === activeCroquisTool);
+      if (!existsInInv) {
+        setActiveCroquisTool(inventorySignalSummary[0].signalType);
+      }
+    }
+  }, [activeTab, inventorySignalSummary]);
 
   // 5. Calendario Anual de Actividades (Pág. 56)
   const [calendarioGrid, setCalendarioGrid] = useState<boolean[][]>(() =>
@@ -262,6 +312,9 @@ export default function PIPCModal({
       setCroquisCircundantesImg('');
       setCroquisUbicacionImg('');
       setEvidenciaItems([]);
+      setCroquisSenaleticaBaseImg('');
+      setCroquisSenaleticaSigns([]);
+      setSelectedCroquisSignId(null);
       setGiro(docInfo.activity || 'TIENDAS DE ROPA, ZAPATERIAS, NOVEDADES Y REGALOS');
       setNumTrabajadores(String(employees.length || docInfo.usuarios || 1));
       setAfluenciaClientes(String(docInfo.visitantes || 10));
@@ -562,6 +615,9 @@ export default function PIPCModal({
     inventarioImgs,
     evidenciaItems,
     useDefaultInventarioIfEmpty,
+    croquisSenaleticaBaseImg: croquisSenaleticaBaseImg || undefined,
+    croquisSenaleticaSigns,
+    croquisSenaleticaIconScale,
     calendarioGrid,
     turnosSimulacro,
     onProgress: (txt, pct) => {
@@ -635,8 +691,9 @@ export default function PIPCModal({
             { id: 'ubicacion', shortLabel: '2. Croquis', label: '2. Croquis y Circundantes', icon: MapPin },
             { id: 'actividad', shortLabel: '3. Actividad', label: '3. Actividad y Riesgos', icon: ShieldAlert },
             { id: 'inventario', shortLabel: '4. Fotos', label: '4. Evidencia Fotográfica', icon: Camera },
-            { id: 'calendario', shortLabel: '5. Calendario', label: '5. Calendario Anual', icon: Calendar },
-            { id: 'resumen', shortLabel: '6. Estudios', label: '6. Estudios Incluidos', icon: CheckCircle2 }
+            { id: 'croquis_senaletica', shortLabel: '5. Croquis Señal.', label: '5. Croquis Señaléticas', icon: Layers },
+            { id: 'calendario', shortLabel: '6. Calendario', label: '6. Calendario Anual', icon: Calendar },
+            { id: 'resumen', shortLabel: '7. Estudios', label: '7. Estudios Incluidos', icon: CheckCircle2 }
           ].map((t) => {
             const Icon = t.icon;
             const active = activeTab === t.id;
@@ -1593,6 +1650,548 @@ export default function PIPCModal({
                     Si no pego imágenes arriba, dejar las 2 páginas de inventario de ejemplo del machote (Págs. 54 y 55)
                   </span>
                 </label>
+              )}
+
+              {/* Acceso directo a la pestaña de Croquis de Señalética */}
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-amber-50/70 dark:bg-amber-950/20 p-3.5 rounded-xl">
+                <div className="text-xs text-gray-700 dark:text-gray-300">
+                  <strong className="text-[#7b1f1c] dark:text-amber-400">¿Listo tu inventario?</strong> En la siguiente pestaña puedes subir la foto de tu croquis y colocar estas mismas señaléticas con un toque o clic.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('croquis_senaletica')}
+                  className="px-4 py-2.5 bg-[#7b1f1c] hover:bg-[#5c1614] text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm shrink-0 touch-manipulation"
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>Ir a Croquis de Señaléticas →</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: CROQUIS DE SEÑALÉTICAS Y EQUIPOS DE EMERGENCIA (PÁG. DESPUÉS DEL INVENTARIO) */}
+          {activeTab === 'croquis_senaletica' && (
+            <div
+              className="space-y-4"
+              onPaste={(e) =>
+                handlePasteImage(e, (url) => {
+                  setCroquisSenaleticaBaseImg(url);
+                })
+              }
+            >
+              {/* Banner explicativo */}
+              <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3.5 text-xs leading-relaxed text-emerald-950 dark:text-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="flex items-start gap-2.5">
+                  <Layers className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-extrabold text-sm text-emerald-900 dark:text-emerald-200">
+                      Croquis de Señaléticas y Equipos de Emergencia (Va después del Inventario)
+                    </h4>
+                    <p className="mt-0.5 text-emerald-800 dark:text-emerald-300">
+                      1) Sube la foto de tu croquis. 2) Escoge arriba la señalética y <strong>haz clic (en PC) o toca (en celular)</strong> sobre el croquis para colocarla. También puedes arrastrarlas con el dedo o cursor para acomodarlas.
+                    </p>
+                  </div>
+                </div>
+                {croquisSenaleticaBaseImg && (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const rot = await rotateDataUrl90(croquisSenaleticaBaseImg);
+                        setCroquisSenaleticaBaseImg(rot);
+                      }}
+                      className="px-2.5 py-1.5 bg-white dark:bg-gray-800 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 rounded-lg text-xs font-bold inline-flex items-center gap-1 hover:bg-emerald-100 touch-manipulation"
+                      title="Girar imagen base del croquis 90°"
+                    >
+                      <RotateCw className="w-3.5 h-3.5" /> Girar croquis 90°
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCroquisSenaleticaBaseImg('');
+                        setCroquisSenaleticaSigns([]);
+                        setSelectedCroquisSignId(null);
+                      }}
+                      className="px-2.5 py-1.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 rounded-lg text-xs font-bold inline-flex items-center gap-1 hover:bg-red-100 touch-manipulation"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Quitar croquis
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* PASO 1: PALETA DE SEÑALÉTICAS (Priorizando las escogidas en la pestaña previa) */}
+              <div className="p-3.5 sm:p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xs space-y-3">
+                {inventorySignalSummary.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-extrabold uppercase tracking-wide text-emerald-800 dark:text-emerald-400">
+                        1. Tus Señaléticas elegidas en la pestaña previa (Toca una para colocarla):
+                      </span>
+                      <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">
+                        Total colocadas: {croquisSenaleticaSigns.length}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                      {inventorySignalSummary.map((item) => {
+                        const placedCount = croquisSenaleticaSigns.filter(
+                          (s) => s.signalType === item.signalType
+                        ).length;
+                        const isComplete = placedCount >= item.targetCount;
+                        const isActive = activeCroquisTool === item.signalType;
+                        return (
+                          <button
+                            key={item.signalType}
+                            type="button"
+                            onClick={() => setActiveCroquisTool(item.signalType)}
+                            className={`p-2 rounded-xl border-2 text-left transition-all flex items-center gap-2.5 touch-manipulation ${
+                              isActive
+                                ? 'border-[#7b1f1c] dark:border-amber-400 bg-amber-50/90 dark:bg-amber-950/40 shadow-sm scale-[1.01]'
+                                : isComplete
+                                ? 'border-emerald-300 dark:border-emerald-700/80 bg-emerald-50/40 dark:bg-emerald-950/20'
+                                : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-850 hover:bg-gray-100'
+                            }`}
+                          >
+                            <div className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center p-1 shrink-0 shadow-2xs">
+                              {item.signalType !== 'otro' ? (
+                                <img
+                                  src={`/senales/${item.signalType}.png`}
+                                  alt={item.label}
+                                  className="w-full h-full object-contain"
+                                />
+                              ) : (
+                                <span className="text-[11px] font-extrabold text-emerald-700">PR</span>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-[11px] font-extrabold text-gray-900 dark:text-gray-100 truncate">
+                                {item.label}
+                              </div>
+                              <div
+                                className={`text-[10px] font-bold mt-0.5 ${
+                                  isComplete
+                                    ? 'text-emerald-700 dark:text-emerald-400'
+                                    : 'text-amber-700 dark:text-amber-400'
+                                }`}
+                              >
+                                {isComplete ? '✓ ' : ''}
+                                {placedCount} / {item.targetCount} colocadas
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-2.5">
+                    Aún no has subido fotos individuales en la pestaña <strong>4. Fotos</strong>, pero puedes elegir cualquiera de las señaléticas oficiales de abajo para colocarlas sobre tu croquis:
+                  </div>
+                )}
+
+                {/* Catálogo rápido con todas las señaléticas NOM-003 por si quiere agregar cualquier otra */}
+                <div className="pt-1 border-t border-gray-100 dark:border-gray-700/70">
+                  <span className="block text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400 mb-1.5">
+                    {inventorySignalSummary.length > 0
+                      ? 'Otras señaléticas NOM-003 disponibles (Toca para seleccionar):'
+                      : '1. Selecciona la señalética que deseas colocar en el croquis:'}
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {EVIDENCIA_SIGNAL_OPTIONS.map((opt) => {
+                      const isActive = activeCroquisTool === opt.value;
+                      const placedCount = croquisSenaleticaSigns.filter(
+                        (s) => s.signalType === opt.value
+                      ).length;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setActiveCroquisTool(opt.value)}
+                          className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 transition-all touch-manipulation ${
+                            isActive
+                              ? 'border-[#7b1f1c] bg-[#7b1f1c] text-white shadow-xs'
+                              : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-100'
+                          }`}
+                        >
+                          {opt.value !== 'otro' ? (
+                            <img
+                              src={`/senales/${opt.value}.png`}
+                              alt={opt.label}
+                              className="w-4 h-4 object-contain bg-white rounded-xs p-0.5"
+                            />
+                          ) : (
+                            <span className="w-4 h-4 rounded-xs bg-emerald-600 text-white text-[9px] font-extrabold inline-flex items-center justify-center">
+                              PR
+                            </span>
+                          )}
+                          <span>{opt.label}</span>
+                          {placedCount > 0 && (
+                            <span
+                              className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                                isActive
+                                  ? 'bg-white/25 text-white'
+                                  : 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300'
+                              }`}
+                            >
+                              {placedCount}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Si la herramienta activa es Ruta de Evacuación, permitir escoger hacia dónde apunta la flecha */}
+                {activeCroquisTool === 'ruta_evacuacion' && (
+                  <div className="pt-2 border-t border-gray-100 dark:border-gray-700 flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                      Dirección de la flecha de Ruta de Evacuación:
+                    </span>
+                    {[
+                      { deg: 0, label: '➡ Derecha' },
+                      { deg: 90, label: '⬇ Abajo' },
+                      { deg: 180, label: '⬅ Izquierda' },
+                      { deg: 270, label: '⬆ Arriba' }
+                    ].map((dir) => (
+                      <button
+                        key={dir.deg}
+                        type="button"
+                        onClick={() => setActiveCroquisRotation(dir.deg)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold border touch-manipulation ${
+                          activeCroquisRotation === dir.deg
+                            ? 'bg-emerald-700 text-white border-emerald-700'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600'
+                        }`}
+                      >
+                        {dir.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* PASO 2: SUBIR FOTO DEL CROQUIS O INTERACTUAR CON EL CROQUIS CARGADO */}
+              {!croquisSenaleticaBaseImg ? (
+                <div className="border-2 border-dashed border-emerald-400 dark:border-emerald-600 rounded-2xl p-6 sm:p-8 text-center bg-emerald-50/40 dark:bg-emerald-950/15 space-y-3">
+                  <Camera className="w-10 h-10 mx-auto text-emerald-600 dark:text-emerald-400" />
+                  <div className="space-y-1">
+                    <h5 className="font-extrabold text-sm sm:text-base text-gray-900 dark:text-gray-100">
+                      2. Sube la Foto o Imagen de tu Croquis
+                    </h5>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                      Sube la foto del plano/croquis desde el Carrete de tu iPhone o Galería (o pega con <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-800 border rounded">Ctrl + V</kbd> en PC) para colocarle encima las señaléticas con un toque.
+                    </p>
+                  </div>
+                  <label className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs sm:text-sm font-extrabold shadow-md cursor-pointer min-h-[46px] touch-manipulation">
+                    <ImageIcon className="w-4 h-4 shrink-0" />
+                    <span>Elegir Foto del Croquis de mi Galería / Carrete</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        if (f) {
+                          const url = await fileToDataUrl(f, false);
+                          setCroquisSenaleticaBaseImg(url);
+                        }
+                        e.target.value = '';
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* Barra de controles rápidos del lienzo (Tamaño, Deshacer, Limpiar, Señal seleccionada) */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 bg-gray-100 dark:bg-gray-800 p-2.5 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                        Tamaño señales:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCroquisSenaleticaIconScale((s) => Math.max(3.5, Math.round((s - 0.8) * 10) / 10))
+                        }
+                        className="w-7 h-7 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 font-extrabold text-sm flex items-center justify-center touch-manipulation"
+                        title="Hacer señales más pequeñas"
+                      >
+                        -
+                      </button>
+                      <span className="text-xs font-mono font-bold w-10 text-center">
+                        {Math.round(croquisSenaleticaIconScale * 10) / 10}%
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCroquisSenaleticaIconScale((s) => Math.min(14, Math.round((s + 0.8) * 10) / 10))
+                        }
+                        className="w-7 h-7 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 font-extrabold text-sm flex items-center justify-center touch-manipulation"
+                        title="Hacer señales más grandes"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {selectedCroquisSignId && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCroquisSenaleticaSigns((prev) =>
+                                prev.map((s) =>
+                                  s.id === selectedCroquisSignId
+                                    ? { ...s, rotation: ((s.rotation || 0) + 90) % 360 }
+                                    : s
+                                )
+                              );
+                            }}
+                            className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold inline-flex items-center gap-1 touch-manipulation"
+                          >
+                            <RotateCw className="w-3.5 h-3.5" /> Girar señal 90°
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCroquisSenaleticaSigns((prev) =>
+                                prev.filter((s) => s.id !== selectedCroquisSignId)
+                              );
+                              setSelectedCroquisSignId(null);
+                            }}
+                            className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold inline-flex items-center gap-1 touch-manipulation"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Borrar señal
+                          </button>
+                        </>
+                      )}
+
+                      {croquisSenaleticaSigns.length > 0 && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCroquisSenaleticaSigns((prev) => prev.slice(0, -1));
+                              setSelectedCroquisSignId(null);
+                            }}
+                            className="px-2.5 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-xs font-bold touch-manipulation"
+                          >
+                            Deshacer última
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCroquisSenaleticaSigns([]);
+                              setSelectedCroquisSignId(null);
+                            }}
+                            className="px-2.5 py-1.5 bg-white dark:bg-gray-700 border border-red-300 text-red-600 dark:text-red-400 rounded-lg text-xs font-bold touch-manipulation"
+                          >
+                            Limpiar todas
+                          </button>
+                        </>
+                      )}
+
+                      <label className="px-2.5 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-xs font-bold cursor-pointer touch-manipulation">
+                        Cambiar foto
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const f = e.target.files?.[0];
+                            if (f) {
+                              const url = await fileToDataUrl(f, false);
+                              setCroquisSenaleticaBaseImg(url);
+                            }
+                            e.target.value = '';
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Indicador de herramienta activa */}
+                  <div className="text-center text-xs font-bold text-[#7b1f1c] dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 py-1.5 px-3 rounded-lg border border-amber-200 dark:border-amber-800/70">
+                    👆 Toca o haz clic en cualquier punto del croquis para colocar:{' '}
+                    <span className="underline uppercase">
+                      {EVIDENCIA_SIGNAL_OPTIONS.find((o) => o.value === activeCroquisTool)?.label ||
+                        activeCroquisTool}
+                    </span>{' '}
+                    (o arrastra cualquier señal ya colocada para moverla)
+                  </div>
+
+                  {/* Contenedor interactivo del Croquis */}
+                  <div className="flex justify-center bg-gray-100 dark:bg-gray-950 p-2 sm:p-4 rounded-2xl border border-gray-300 dark:border-gray-700 overflow-hidden">
+                    <div
+                      ref={croquisContainerRef}
+                      onPointerDown={(e) => {
+                        bgTapStartRef.current = { x: e.clientX, y: e.clientY };
+                      }}
+                      onPointerUp={(e) => {
+                        if (!bgTapStartRef.current) return;
+                        const dist = Math.hypot(
+                          e.clientX - bgTapStartRef.current.x,
+                          e.clientY - bgTapStartRef.current.y
+                        );
+                        bgTapStartRef.current = null;
+                        // Si fue un toque/clic limpio (< 10px de movimiento) y no un scroll de pantalla
+                        if (dist < 10 && croquisContainerRef.current && activeCroquisTool) {
+                          const rect = croquisContainerRef.current.getBoundingClientRect();
+                          if (rect.width <= 0 || rect.height <= 0) return;
+                          const xPct = Math.max(
+                            2,
+                            Math.min(98, ((e.clientX - rect.left) / rect.width) * 100)
+                          );
+                          const yPct = Math.max(
+                            2,
+                            Math.min(98, ((e.clientY - rect.top) / rect.height) * 100)
+                          );
+                          const opt = EVIDENCIA_SIGNAL_OPTIONS.find(
+                            (o) => o.value === activeCroquisTool
+                          );
+                          const invMatch = inventorySignalSummary.find(
+                            (s) => s.signalType === activeCroquisTool
+                          );
+                          const newSign: CroquisPlacedSign = {
+                            id: `cs-${Date.now()}-${Math.random()}`,
+                            signalType: activeCroquisTool,
+                            label:
+                              invMatch?.label || opt?.label || activeCroquisTool.toUpperCase(),
+                            xPct: Math.round(xPct * 10) / 10,
+                            yPct: Math.round(yPct * 10) / 10,
+                            rotation:
+                              activeCroquisTool === 'ruta_evacuacion' ? activeCroquisRotation : 0
+                          };
+
+                          const nextList = [...croquisSenaleticaSigns, newSign];
+                          setCroquisSenaleticaSigns(nextList);
+                          setSelectedCroquisSignId(newSign.id);
+
+                          // Si completó la cantidad declarada de esta señal en su inventario, avanzar automáticamente a la siguiente señal pendiente
+                          if (invMatch) {
+                            const countNow = nextList.filter(
+                              (s) => s.signalType === activeCroquisTool
+                            ).length;
+                            if (countNow >= invMatch.targetCount) {
+                              const nextPending = inventorySignalSummary.find((s) => {
+                                const c = nextList.filter(
+                                  (item) => item.signalType === s.signalType
+                                ).length;
+                                return c < s.targetCount;
+                              });
+                              if (nextPending) {
+                                setActiveCroquisTool(nextPending.signalType);
+                              }
+                            }
+                          }
+                        }
+                      }}
+                      className="relative inline-block max-w-full select-none cursor-crosshair shadow-lg rounded-lg overflow-hidden bg-white"
+                      style={{ touchAction: 'pan-y' }}
+                    >
+                      <img
+                        src={croquisSenaleticaBaseImg}
+                        alt="Croquis base"
+                        draggable={false}
+                        className="block max-w-full max-h-[68vh] w-auto h-auto object-contain pointer-events-none select-none"
+                      />
+
+                      {/* Señaléticas colocadas encima */}
+                      {croquisSenaleticaSigns.map((sign) => {
+                        const isSelected = selectedCroquisSignId === sign.id;
+                        return (
+                          <div
+                            key={sign.id}
+                            onPointerDown={(e) => {
+                              e.stopPropagation();
+                              bgTapStartRef.current = null;
+                              try {
+                                e.currentTarget.setPointerCapture(e.pointerId);
+                              } catch {}
+                              setSelectedCroquisSignId(sign.id);
+                              croquisDragRef.current = {
+                                id: sign.id,
+                                startClientX: e.clientX,
+                                startClientY: e.clientY,
+                                origXPct: sign.xPct,
+                                origYPct: sign.yPct
+                              };
+                            }}
+                            onPointerMove={(e) => {
+                              if (
+                                !croquisDragRef.current ||
+                                croquisDragRef.current.id !== sign.id ||
+                                !croquisContainerRef.current
+                              ) {
+                                return;
+                              }
+                              e.stopPropagation();
+                              const rect = croquisContainerRef.current.getBoundingClientRect();
+                              if (rect.width <= 0 || rect.height <= 0) return;
+                              const dx = e.clientX - croquisDragRef.current.startClientX;
+                              const dy = e.clientY - croquisDragRef.current.startClientY;
+                              const newXPct = Math.max(
+                                2,
+                                Math.min(98, croquisDragRef.current.origXPct + (dx / rect.width) * 100)
+                              );
+                              const newYPct = Math.max(
+                                2,
+                                Math.min(98, croquisDragRef.current.origYPct + (dy / rect.height) * 100)
+                              );
+                              setCroquisSenaleticaSigns((prev) =>
+                                prev.map((s) =>
+                                  s.id === sign.id
+                                    ? {
+                                        ...s,
+                                        xPct: Math.round(newXPct * 10) / 10,
+                                        yPct: Math.round(newYPct * 10) / 10
+                                      }
+                                    : s
+                                )
+                              );
+                            }}
+                            onPointerUp={(e) => {
+                              e.stopPropagation();
+                              try {
+                                e.currentTarget.releasePointerCapture(e.pointerId);
+                              } catch {}
+                              croquisDragRef.current = null;
+                            }}
+                            style={{
+                              left: `${sign.xPct}%`,
+                              top: `${sign.yPct}%`,
+                              width: `${croquisSenaleticaIconScale}%`,
+                              minWidth: '22px',
+                              aspectRatio: '1 / 1',
+                              transform: `translate(-50%, -50%) rotate(${sign.rotation || 0}deg)`,
+                              touchAction: 'none'
+                            }}
+                            className={`absolute cursor-grab active:cursor-grabbing bg-white p-0.5 rounded-xs shadow-md transition-shadow ${
+                              isSelected
+                                ? 'ring-2 ring-blue-500 z-20 scale-110'
+                                : 'ring-1 ring-black/30 z-10 hover:scale-105'
+                            }`}
+                            title={`${sign.label} (Arrastra para mover)`}
+                          >
+                            {sign.signalType !== 'otro' ? (
+                              <img
+                                src={`/senales/${sign.signalType}.png`}
+                                alt={sign.label}
+                                draggable={false}
+                                className="w-full h-full object-contain pointer-events-none select-none"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-emerald-600 text-white font-extrabold text-[10px] flex items-center justify-center select-none pointer-events-none">
+                                PR
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           )}

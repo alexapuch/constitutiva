@@ -36,6 +36,15 @@ export interface EvidenciaFotograficaItem {
   photoDataUrl: string;
 }
 
+export interface CroquisPlacedSign {
+  id: string;
+  signalType: string;
+  label: string;
+  xPct: number; // 0 a 100 (% del ancho de la imagen)
+  yPct: number; // 0 a 100 (% del alto de la imagen)
+  rotation?: number; // 0, 90, 180, 270
+}
+
 export interface PuntosCriticosData {
   brigadaPrimerosAuxilios: boolean;
   combateIncendios: boolean;
@@ -92,6 +101,11 @@ export interface PIPCPDFConfig {
   inventarioImgs: string[]; // imágenes pegadas por el usuario (o usa las del machote si está vacío y useDefaultInventario=true)
   evidenciaItems?: EvidenciaFotograficaItem[]; // fotos subidas desde el Carrete del iPhone / Galería por señal
   useDefaultInventarioIfEmpty?: boolean;
+
+  // Pág. 55+ (después del Inventario de Señaléticas): Croquis de Señaléticas y Equipos de Emergencia
+  croquisSenaleticaBaseImg?: string;
+  croquisSenaleticaSigns?: CroquisPlacedSign[];
+  croquisSenaleticaIconScale?: number; // % respecto al ancho de la imagen (default 6.5)
 
   // Estudios opcionales personalizados (si no se pasan, se autogeneran)
   riesgosData?: RiesgosPDFData;
@@ -181,6 +195,107 @@ async function getImageDimensions(dataUrl: string): Promise<{ width: number; hei
     img.onerror = () => resolve({ width: 800, height: 600 });
     img.src = dataUrl;
   });
+}
+
+/**
+ * Compone la imagen base del croquis subida por el usuario con las señaléticas NOM-003
+ * colocadas interactivamente (click en PC / touch en celular) en sus coordenadas porcentuales exactas.
+ */
+async function composeCroquisSenaleticaImage(
+  baseImgDataUrl: string,
+  placedSigns: CroquisPlacedSign[],
+  iconScalePct: number = 6.5
+): Promise<{ dataUrl: string; width: number; height: number } | null> {
+  if (!baseImgDataUrl) return null;
+  const baseImg = await loadCrossOriginImage(baseImgDataUrl, 6000);
+  if (!baseImg) return null;
+
+  const natW = baseImg.naturalWidth || baseImg.width || 1200;
+  const natH = baseImg.naturalHeight || baseImg.height || 900;
+
+  // Escalar el lienzo para que el lado mayor tenga entre 1600px y 2200px (máxima nitidez de iconos y plano)
+  const maxSide = Math.max(natW, natH);
+  const scaleFactor = maxSide < 1600 ? 1600 / maxSide : maxSide > 2200 ? 2200 / maxSide : 1;
+  const cw = Math.round(natW * scaleFactor);
+  const ch = Math.round(natH * scaleFactor);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = cw;
+  canvas.height = ch;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  // Fondo blanco sólido + imagen del croquis
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, cw, ch);
+  ctx.drawImage(baseImg, 0, 0, cw, ch);
+
+  if (placedSigns && placedSigns.length > 0) {
+    // Precargar iconos de señalética necesarios
+    const iconImgs: Record<string, HTMLImageElement> = {};
+    const uniqueTypes = Array.from(new Set(placedSigns.map((s) => s.signalType)));
+    for (const sType of uniqueTypes) {
+      if (!sType || sType === 'otro') continue;
+      try {
+        const loaded = await loadCrossOriginImage(`/senales/${sType}.png`, 4000);
+        if (loaded) iconImgs[sType] = loaded;
+      } catch {
+        // ignore
+      }
+    }
+
+    const effectivePct = Math.max(3, Math.min(16, iconScalePct || 6.5));
+    const iconSizePx = (effectivePct / 100) * cw;
+
+    for (const sign of placedSigns) {
+      const cx = (Math.max(0, Math.min(100, sign.xPct)) / 100) * cw;
+      const cy = (Math.max(0, Math.min(100, sign.yPct)) / 100) * ch;
+      const rotRad = ((sign.rotation || 0) * Math.PI) / 180;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      if (rotRad !== 0) {
+        ctx.rotate(rotRad);
+      }
+
+      const iconImg = iconImgs[sign.signalType];
+      if (iconImg) {
+        // Placa blanca de respaldo con borde sutil para que la señal destaque claramente sobre los muros
+        const pad = Math.max(2, iconSizePx * 0.06);
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+        ctx.lineWidth = Math.max(1.5, iconSizePx * 0.035);
+        ctx.beginPath();
+        ctx.rect(-iconSizePx / 2 - pad, -iconSizePx / 2 - pad, iconSizePx + pad * 2, iconSizePx + pad * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.drawImage(iconImg, -iconSizePx / 2, -iconSizePx / 2, iconSizePx, iconSizePx);
+      } else {
+        // Icono vectorial NOM-003 para Punto de Reunión / Otro equipo
+        const r = iconSizePx / 2;
+        ctx.fillStyle = '#16a34a';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = Math.max(2, iconSizePx * 0.06);
+        ctx.beginPath();
+        ctx.rect(-r, -r, iconSizePx, iconSizePx);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.round(iconSizePx * 0.42)}px Helvetica, Arial, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('PR', 0, 0);
+      }
+
+      ctx.restore();
+    }
+  }
+
+  const outDataUrl = canvas.toDataURL('image/jpeg', 0.91);
+  releaseCanvas(canvas);
+  return { dataUrl: outDataUrl, width: cw, height: ch };
 }
 
 export async function generatePIPCPDF(
@@ -1661,13 +1776,61 @@ export async function generatePIPCPDF(
       releaseCanvas(p54Canvas);
       releaseCanvas(cropCanvas);
 
-      await addStaticTemplatePage(55);
-    } else {
+      if (!config.croquisSenaleticaBaseImg) {
+        await addStaticTemplatePage(55);
+      }
+    } else if (!config.croquisSenaleticaBaseImg) {
       sectionPages.inventarioSenaleticas = addFramedPage();
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(13.5);
       doc.setTextColor(0, 0, 0);
       doc.text('INVENTARIO SEÑALÉTICAS Y EQUIPOS DE EMERGENCIA', pageW / 2, 25, { align: 'center' });
+    }
+
+    // =========================================================================
+    // PÁGINA 55+ (después del Inventario de Señaléticas): CROQUIS DE SEÑALÉTICAS
+    // =========================================================================
+    if (config.croquisSenaleticaBaseImg) {
+      report('Integrando Croquis de Señaléticas y Equipos de Emergencia...', 83);
+      const composedCroquis = await composeCroquisSenaleticaImage(
+        config.croquisSenaleticaBaseImg,
+        config.croquisSenaleticaSigns || [],
+        config.croquisSenaleticaIconScale || 6.5
+      );
+      if (composedCroquis) {
+        const croquisPageNo = addFramedPage();
+        if (!sectionPages.inventarioSenaleticas) {
+          sectionPages.inventarioSenaleticas = croquisPageNo;
+        }
+
+        // Fondo blanco sólido para el título
+        doc.setFillColor(255, 255, 255);
+        doc.rect(pageW / 2 - 78, 19, 156, 9, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.setTextColor(0, 0, 0);
+        doc.text('CROQUIS DE SEÑALÉTICAS Y EQUIPOS DE EMERGENCIA', pageW / 2, 25, { align: 'center' });
+
+        const maxW = pageW - 28; // 187.9 mm
+        const maxH = 212;
+        const topY = 31;
+        let drawW = maxW;
+        let drawH = (composedCroquis.height / composedCroquis.width) * drawW;
+        if (drawH > maxH) {
+          drawH = maxH;
+          drawW = (composedCroquis.width / composedCroquis.height) * drawH;
+        }
+        const imgX = (pageW - drawW) / 2;
+
+        // Fondo blanco sólido detrás de todo el croquis para evitar transparencia de marca de agua
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(140, 140, 140);
+        doc.setLineWidth(0.3);
+        doc.rect(imgX - 1.5, topY - 1.5, drawW + 3, drawH + 3, 'FD');
+
+        doc.addImage(composedCroquis.dataUrl, 'JPEG', imgX, topY, drawW, drawH, undefined, 'FAST');
+      }
     }
 
     // =========================================================================
