@@ -139,6 +139,8 @@ export default function PIPCModal({
   const [loadingRisksForCoords, setLoadingRisksForCoords] = useState(false);
   const analyzedCenterRef = useRef<{ lat: number; lng: number } | null>(null);
   const syncTimeoutRef = useRef<any>(null);
+  const hasCompletedRef = useRef<boolean>(false);
+  const initializedDocKeyRef = useRef<string | null>(null);
 
   // 4b. Croquis de Señaléticas y Equipos de Emergencia (página después del Inventario)
   const [croquisSenaleticaBaseImg, setCroquisSenaleticaBaseImg] = useState<string>('');
@@ -308,78 +310,91 @@ export default function PIPCModal({
     }
   };
 
-  // Inicializar datos al abrir para una empresa
+  // Helper para inicializar / limpiar todos los campos del modal para un documento
+  const resetModalFieldsForDoc = (targetDoc: DocumentInfo) => {
+    const rawAddr = targetDoc.address || '';
+    const parts = rawAddr.split('|');
+    const baseAddr = parts[0]?.trim() || '';
+    const cityPart = parts[1]?.trim().toUpperCase() || 'PLAYA DEL CARMEN';
+
+    setRazonSocial(targetDoc.company_name || '');
+    setNombreComercial(targetDoc.commercial_name || '');
+    setRepresentanteLegal(targetDoc.company_name || '');
+    setDireccion(baseAddr);
+    setMunicipio(cityPart);
+    setRfc('');
+    setHorario('');
+    setM2Construccion('');
+    setCroquisCircundantesImg('');
+    setCroquisUbicacionImg('');
+    setEvidenciaItems([]);
+    setCollapsedEvidenciaIds({});
+    setInventarioImgs([]);
+    setCroquisSenaleticaBaseImg('');
+    setCroquisSenaleticaSigns([]);
+    setOmitCroquisSenaletica(false);
+    setSelectedCroquisSignId(null);
+    setGiro(targetDoc.activity || 'TIENDAS DE ROPA, ZAPATERIAS, NOVEDADES Y REGALOS');
+    setNumTrabajadores(String(employees.length || targetDoc.usuarios || 1));
+    setAfluenciaClientes(String(targetDoc.visitantes || 10));
+
+    const actText = generateActividadEconomicaText(
+      targetDoc.activity || 'TIENDAS DE ROPA, ZAPATERIAS, NOVEDADES Y REGALOS',
+      targetDoc.commercial_name
+    );
+    setActividadEconomicaText(actText);
+
+    const riSection = generateRiesgosInternosSection(
+      targetDoc.activity || 'TIENDAS DE ROPA, ZAPATERIAS, NOVEDADES Y REGALOS'
+    );
+    setRiesgosInternos(riSection);
+
+    // Intentar cargar caché reciente de GeoRiesgos
+    try {
+      const cachedRaw = localStorage.getItem('circundantes_places_cache');
+      if (cachedRaw) {
+        const parsed = JSON.parse(cachedRaw);
+        if (typeof parsed?.center?.lat === 'number' && typeof parsed?.center?.lng === 'number') {
+          setCoordenadas(`${parsed.center.lat}, ${parsed.center.lng}`);
+          analyzedCenterRef.current = { lat: parsed.center.lat, lng: parsed.center.lng };
+        }
+        if (Array.isArray(parsed?.places) && parsed.places.length > 0) {
+          setRiesgosCircundantesList(parsed.places.slice(0, 5));
+          const colors = ['#16a34a', '#1d4ed8', '#dc2626', '#f59e0b', '#7c3aed'];
+          setSimbologiaItems(
+            parsed.places.slice(0, 5).map((p: RiskData, i: number) => ({
+              label: (p.name || `LOCAL ${i + 1}`).toUpperCase(),
+              color: colors[i % colors.length]
+            }))
+          );
+        }
+      }
+    } catch (e) {
+      console.error('Error reading circundantes_places_cache:', e);
+    }
+
+    // Resetear cuadrícula del calendario y archivos de ZIP
+    setCalendarioGrid(buildDefaultCalendarioGrid(targetDoc.date));
+    setZipConstanciasFiles([]);
+    setZipLegalFiles([]);
+    setZipPolizaFiles([]);
+    setZipExtintoresFiles([]);
+    setZipDictamenFiles([]);
+    setZipCustomRegistroFiles([]);
+    setIncludeAutoConstancias(true);
+    setIncludeDictamenElectrico(false);
+    setActiveTab('empresa');
+  };
+
+  // Inicializar solo si es una empresa nueva o si el flujo anterior ya se había completado
   useEffect(() => {
     if (isOpen && docInfo) {
-      const rawAddr = docInfo.address || '';
-      const parts = rawAddr.split('|');
-      const baseAddr = parts[0]?.trim() || '';
-      const cityPart = parts[1]?.trim().toUpperCase() || 'PLAYA DEL CARMEN';
-
-      setRazonSocial(docInfo.company_name || '');
-      setNombreComercial(docInfo.commercial_name || '');
-      setRepresentanteLegal(docInfo.company_name || '');
-      setDireccion(baseAddr);
-      setMunicipio(cityPart);
-      setRfc('');
-      setHorario('');
-      setM2Construccion('');
-      setCroquisCircundantesImg('');
-      setCroquisUbicacionImg('');
-      setEvidenciaItems([]);
-      setCollapsedEvidenciaIds({});
-      setCroquisSenaleticaBaseImg('');
-      setCroquisSenaleticaSigns([]);
-      setOmitCroquisSenaletica(false);
-      setSelectedCroquisSignId(null);
-      setGiro(docInfo.activity || 'TIENDAS DE ROPA, ZAPATERIAS, NOVEDADES Y REGALOS');
-      setNumTrabajadores(String(employees.length || docInfo.usuarios || 1));
-      setAfluenciaClientes(String(docInfo.visitantes || 10));
-
-      const actText = generateActividadEconomicaText(
-        docInfo.activity || 'TIENDAS DE ROPA, ZAPATERIAS, NOVEDADES Y REGALOS',
-        docInfo.commercial_name
-      );
-      setActividadEconomicaText(actText);
-
-      const riSection = generateRiesgosInternosSection(
-        docInfo.activity || 'TIENDAS DE ROPA, ZAPATERIAS, NOVEDADES Y REGALOS'
-      );
-      setRiesgosInternos(riSection);
-
-      // Intentar cargar caché reciente de GeoRiesgos
-      try {
-        const cachedRaw = localStorage.getItem('circundantes_places_cache');
-        if (cachedRaw) {
-          const parsed = JSON.parse(cachedRaw);
-          if (typeof parsed?.center?.lat === 'number' && typeof parsed?.center?.lng === 'number') {
-            setCoordenadas(`${parsed.center.lat}, ${parsed.center.lng}`);
-            analyzedCenterRef.current = { lat: parsed.center.lat, lng: parsed.center.lng };
-          }
-          if (Array.isArray(parsed?.places) && parsed.places.length > 0) {
-            setRiesgosCircundantesList(parsed.places.slice(0, 5));
-            const colors = ['#16a34a', '#1d4ed8', '#dc2626', '#f59e0b', '#7c3aed'];
-            setSimbologiaItems(
-              parsed.places.slice(0, 5).map((p: RiskData, i: number) => ({
-                label: (p.name || `LOCAL ${i + 1}`).toUpperCase(),
-                color: colors[i % colors.length]
-              }))
-            );
-          }
-        }
-      } catch (e) {
-        console.error('Error reading circundantes_places_cache:', e);
+      const docKey = `${docInfo.id || ''}_${docInfo.commercial_name || docInfo.company_name || ''}`;
+      if (initializedDocKeyRef.current !== docKey || hasCompletedRef.current) {
+        resetModalFieldsForDoc(docInfo);
+        initializedDocKeyRef.current = docKey;
+        hasCompletedRef.current = false;
       }
-      // Resetear o inicializar cuadrícula del calendario
-      setCalendarioGrid(buildDefaultCalendarioGrid(docInfo.date));
-      setZipConstanciasFiles([]);
-      setZipLegalFiles([]);
-      setZipPolizaFiles([]);
-      setZipExtintoresFiles([]);
-      setZipDictamenFiles([]);
-      setZipCustomRegistroFiles([]);
-      setIncludeAutoConstancias(true);
-      setIncludeDictamenElectrico(false);
     }
   }, [isOpen, docInfo, employees]);
 
@@ -673,6 +688,7 @@ export default function PIPCModal({
     setProgressPercent(2);
     try {
       await generatePIPCPDF(buildConfig(), false);
+      hasCompletedRef.current = true;
     } finally {
       setGenerating(false);
     }
@@ -698,9 +714,20 @@ export default function PIPCModal({
           setProgressPercent(pct);
         }
       });
+      hasCompletedRef.current = true;
     } finally {
       setGenerating(false);
     }
+  };
+
+  // Si ya se completó (descargó PIPC o ZIP), al cerrar borra todo; si está incompleto, conserva el avance
+  const handleCloseModal = () => {
+    if (hasCompletedRef.current && docInfo) {
+      resetModalFieldsForDoc(docInfo);
+      initializedDocKeyRef.current = null;
+      hasCompletedRef.current = false;
+    }
+    onClose();
   };
 
   return (
@@ -726,7 +753,7 @@ export default function PIPCModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleCloseModal}
             disabled={generating}
             className="p-2 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50 shrink-0 touch-manipulation"
             aria-label="Cerrar"
@@ -3091,7 +3118,7 @@ export default function PIPCModal({
         >
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleCloseModal}
             disabled={generating}
             className="hidden sm:inline-flex items-center justify-center px-4 py-2 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
           >
