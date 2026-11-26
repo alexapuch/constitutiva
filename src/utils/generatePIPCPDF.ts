@@ -329,11 +329,16 @@ export async function generatePIPCPDF(
     const blankFrameDataUrl = baseFrameCanvas.toDataURL('image/jpeg', 0.86);
 
     // Crear documento maestro jsPDF (Tamaño Carta vertical: 215.9 x 279.4 mm)
+    // Protegido contra edición en Adobe PDF / editores (solo permite ver e imprimir)
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
       format: 'letter',
-      compress: true
+      compress: true,
+      encryption: {
+        ownerPassword: 'Meyersound1##',
+        userPermissions: ['print']
+      }
     });
 
     const pageW = doc.internal.pageSize.getWidth(); // 215.9
