@@ -1554,8 +1554,15 @@ export default function PIPCModal({
                                   </span>
                                 </div>
                                 <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                                  {item.ubicacion?.trim()
-                                    ? `📍 ${item.ubicacion.replace(/\n+/g, ' · ')}`
+                                  {item.ubicacion
+                                    ?.split('\n')
+                                    .map((s) => s.trim())
+                                    .filter(Boolean).length
+                                    ? `📍 ${item.ubicacion
+                                        .split('\n')
+                                        .map((s) => s.trim())
+                                        .filter(Boolean)
+                                        .join(' · ')}`
                                     : 'Sin ubicación'}
                                 </p>
                               </div>
@@ -1726,52 +1733,54 @@ export default function PIPCModal({
                               </div>
                             </div>
 
-                            <textarea
-                              rows={2}
-                              value={item.ubicacion || ''}
-                              onChange={(e) => {
-                                const val = e.target.value.toUpperCase();
-                                setEvidenciaItems((prev) =>
-                                  prev.map((it, i) => (i === idx ? { ...it, ubicacion: val } : it))
+                            {/* Casillas de ubicación automáticas según la Cantidad (sin duplicar tarjetas ni copiar texto) */}
+                            {(() => {
+                              const qty = Math.min(12, Math.max(1, parseInt(item.cantidad) || 1));
+                              const slots = (item.ubicacion || '').split('\n');
+                              const updateSlot = (slotIdx: number, val: string) => {
+                                const nextSlots = Array.from({ length: qty }, (_, k) =>
+                                  k === slotIdx ? val.toUpperCase() : (slots[k] || '')
                                 );
-                              }}
-                              placeholder="Ubicación(es) — ej. 1 EN RECEPCIÓN, 1 EN PASILLO (puedes usar varias líneas)"
-                              className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-base sm:text-xs bg-white dark:bg-gray-900 leading-snug resize-y"
-                            />
-                            <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
-                              {(parseInt(item.cantidad) || 1) > 1 ? (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const qty = Math.min(12, Math.max(2, parseInt(item.cantidad) || 2));
-                                    const rawParts = (item.ubicacion || '')
-                                      .split(/\n|,|;/)
-                                      .map((s) => s.trim())
-                                      .filter(Boolean);
-                                    const splitRows: EvidenciaFotograficaItem[] = Array.from(
-                                      { length: qty },
-                                      (_, k) => ({
-                                        id: `ev-${Date.now()}-${k}-${Math.random()}`,
-                                        signalType: item.signalType,
-                                        label: item.label,
-                                        cantidad: '1',
-                                        ubicacion: rawParts[k] || rawParts[0] || '',
-                                        photoDataUrl: k === 0 ? item.photoDataUrl : ''
-                                      })
-                                    );
-                                    setEvidenciaItems((prev) => [
-                                      ...prev.slice(0, idx),
-                                      ...splitRows,
-                                      ...prev.slice(idx + 1)
-                                    ]);
-                                  }}
-                                  className="text-[11px] font-bold text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-1 touch-manipulation"
-                                >
-                                  ↳ Separar en {Math.min(12, parseInt(item.cantidad) || 2)} filas
-                                </button>
-                              ) : (
-                                <span />
-                              )}
+                                setEvidenciaItems((prev) =>
+                                  prev.map((it, i) =>
+                                    i === idx ? { ...it, ubicacion: nextSlots.join('\n') } : it
+                                  )
+                                );
+                              };
+
+                              if (qty === 1) {
+                                return (
+                                  <input
+                                    type="text"
+                                    value={slots[0] || ''}
+                                    onChange={(e) => updateSlot(0, e.target.value)}
+                                    placeholder="Ubicación (ej. Recepción, Entrada, Pasillo...)"
+                                    className="w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-base sm:text-xs bg-white dark:bg-gray-900"
+                                  />
+                                );
+                              }
+
+                              return (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                                  {Array.from({ length: qty }, (_, k) => (
+                                    <div key={k} className="flex items-center gap-1.5">
+                                      <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 w-5 text-right shrink-0">
+                                        #{k + 1}
+                                      </span>
+                                      <input
+                                        type="text"
+                                        value={slots[k] || ''}
+                                        onChange={(e) => updateSlot(k, e.target.value)}
+                                        placeholder={`Ubicación #${k + 1}...`}
+                                        className="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-base sm:text-xs bg-white dark:bg-gray-900"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })()}
+
+                            <div className="flex justify-end pt-0.5">
                               <button
                                 type="button"
                                 onClick={() =>

@@ -1772,11 +1772,15 @@ export async function generatePIPCPDF(
               doc.text(lblLines.slice(0, 2), tableX + col1W / 2, ry + 36, { align: 'center' });
             }
 
-            // Columna 2: Ubicación (soporta múltiples líneas o varias ubicaciones)
+            // Columna 2: Ubicación (soporta múltiples líneas / casillas limpiando líneas vacías)
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(8.8);
             doc.setTextColor(30, 30, 30);
-            const ubicText = (item.ubicacion || '').trim().toUpperCase() || '-';
+            const cleanUbicLines = (item.ubicacion || '')
+              .split('\n')
+              .map((s) => s.trim().toUpperCase())
+              .filter(Boolean);
+            const ubicText = cleanUbicLines.length > 0 ? cleanUbicLines.join('\n') : '-';
             const ubicLines = doc.splitTextToSize(ubicText, col2W - 8).slice(0, 6);
             const lineStep = 3.9;
             const uBlockH = ubicLines.length * lineStep;
