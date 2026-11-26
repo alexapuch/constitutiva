@@ -17,7 +17,9 @@ import {
   Camera,
   Calendar,
   RotateCw,
-  Layers
+  Layers,
+  FolderArchive,
+  Upload
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { DocumentInfo, Employee, RiskData } from '../../types';
@@ -38,6 +40,7 @@ import {
   EvidenciaFotograficaItem,
   CroquisPlacedSign
 } from '../../utils/generatePIPCPDF';
+import { generateExpedienteZip } from '../../utils/generateExpedienteZip';
 import { generatePdfName } from '../../utils/pdfNameGenerator';
 import {
   generateCroquis250mDataUrl,
@@ -64,7 +67,7 @@ interface PIPCModalProps {
   onPreview: (url: string, name: string) => void;
 }
 
-type PIPCTab = 'empresa' | 'ubicacion' | 'actividad' | 'inventario' | 'croquis_senaletica' | 'calendario' | 'resumen';
+type PIPCTab = 'empresa' | 'ubicacion' | 'actividad' | 'inventario' | 'croquis_senaletica' | 'calendario' | 'resumen' | 'zip';
 
 export default function PIPCModal({
   isOpen,
@@ -229,6 +232,14 @@ export default function PIPCModal({
   const [progressText, setProgressText] = useState('');
   const [progressPercent, setProgressPercent] = useState(0);
 
+  // 8. Expediente ZIP ordenado (100% local en el navegador, sin guardar en servidor)
+  const [includeAutoConstancias, setIncludeAutoConstancias] = useState(true);
+  const [zipConstanciasFiles, setZipConstanciasFiles] = useState<File[]>([]);
+  const [zipLegalFiles, setZipLegalFiles] = useState<File[]>([]);
+  const [zipPolizaFiles, setZipPolizaFiles] = useState<File[]>([]);
+  const [zipExtintoresFiles, setZipExtintoresFiles] = useState<File[]>([]);
+  const [zipCustomRegistroFiles, setZipCustomRegistroFiles] = useState<File[]>([]);
+
   // Actualizar establecimientos circundantes, simbología y croquis cuando cambian las coordenadas
   const syncRisksWithCoords = async (lat: number, lng: number, updateSatelliteToo = true) => {
     setLoadingRisksForCoords(true);
@@ -357,6 +368,12 @@ export default function PIPCModal({
       }
       // Resetear o inicializar cuadrícula del calendario
       setCalendarioGrid(buildDefaultCalendarioGrid(docInfo.date));
+      setZipConstanciasFiles([]);
+      setZipLegalFiles([]);
+      setZipPolizaFiles([]);
+      setZipExtintoresFiles([]);
+      setZipCustomRegistroFiles([]);
+      setIncludeAutoConstancias(true);
     }
   }, [isOpen, docInfo, employees]);
 
@@ -655,6 +672,29 @@ export default function PIPCModal({
     }
   };
 
+  const handleDownloadZip = async () => {
+    setGenerating(true);
+    setProgressText('Preparando expediente ZIP...');
+    setProgressPercent(2);
+    try {
+      await generateExpedienteZip({
+        pipcConfig: buildConfig(),
+        includeAutoConstancias,
+        constanciasFiles: zipConstanciasFiles,
+        legalFiles: zipLegalFiles,
+        polizaFiles: zipPolizaFiles,
+        extintoresFiles: zipExtintoresFiles,
+        customRegistroFiles: zipCustomRegistroFiles,
+        onProgress: (txt, pct) => {
+          setProgressText(txt);
+          setProgressPercent(pct);
+        }
+      });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/65 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
       <div
@@ -696,7 +736,8 @@ export default function PIPCModal({
             { id: 'inventario', shortLabel: '4. Fotos', label: '4. Evidencia Fotográfica', icon: Camera },
             { id: 'croquis_senaletica', shortLabel: '5. Croquis Señal.', label: '5. Croquis Señaléticas', icon: Layers },
             { id: 'calendario', shortLabel: '6. Calendario', label: '6. Calendario Anual', icon: Calendar },
-            { id: 'resumen', shortLabel: '7. Estudios', label: '7. Estudios Incluidos', icon: CheckCircle2 }
+            { id: 'resumen', shortLabel: '7. Estudios', label: '7. Estudios Incluidos', icon: CheckCircle2 },
+            { id: 'zip', shortLabel: '8. ZIP', label: '8. Expediente ZIP', icon: FolderArchive }
           ].map((t) => {
             const Icon = t.icon;
             const active = activeTab === t.id;
@@ -2502,6 +2543,300 @@ export default function PIPCModal({
                   ))}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* TAB 8: ARMADOR DE EXPEDIENTE COMPLETO EN ZIP */}
+          {activeTab === 'zip' && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-3.5 text-xs leading-relaxed text-blue-950 dark:text-blue-200 flex items-start gap-2.5">
+                <FolderArchive className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-extrabold text-sm text-blue-900 dark:text-blue-100">
+                    Expediente Completo en Carpetas (.zip)
+                  </h4>
+                  <p className="mt-0.5 text-blue-800 dark:text-blue-300">
+                    Arma automáticamente todas tus carpetas ordenadas en un solo <strong>.zip</strong>. Todo se procesa directo en tu dispositivo (no se guarda ningún archivo en servidores).
+                  </p>
+                </div>
+              </div>
+
+              {/* Archivos por fuera (raíz del ZIP) */}
+              <div className="p-3.5 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/50 dark:bg-amber-950/20 space-y-2">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#7b1f1c] dark:text-amber-400 block">
+                  Archivos en la raíz (por fuera de las carpetas) — Automáticos:
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-amber-200/80 dark:border-gray-700">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-bold truncate">
+                      P.I.P.C. {anio} {(nombreComercial || 'EMPRESA').toUpperCase()}.pdf
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-amber-200/80 dark:border-gray-700">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-bold truncate">
+                      PLAN DE CONTINGENCIAS (con nombre de empresa)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Las 6 carpetas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* 1. CONSTANCIAS DE CAPACITACIÓN */}
+                <div className="p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <h5 className="font-extrabold text-xs uppercase text-gray-900 dark:text-gray-100">
+                      📁 CONSTANCIAS DE CAPACITACIÓN
+                    </h5>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300">
+                      Auto + Extras
+                    </span>
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={includeAutoConstancias}
+                      onChange={(e) => setIncludeAutoConstancias(e.target.checked)}
+                      className="rounded text-[#7b1f1c] w-4 h-4 shrink-0"
+                    />
+                    <span>
+                      Generar e incluir constancias automáticas ({employees.length} persona(s))
+                    </span>
+                  </label>
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-800 dark:text-gray-200 rounded-lg text-xs font-bold cursor-pointer touch-manipulation">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Agregar archivos extra</span>
+                    <input
+                      type="file"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (files.length) setZipConstanciasFiles((p) => [...p, ...files]);
+                        e.target.value = '';
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  {zipConstanciasFiles.length > 0 && (
+                    <div className="space-y-1">
+                      {zipConstanciasFiles.map((f, i) => (
+                        <div key={i} className="flex items-center justify-between text-[11px] bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded">
+                          <span className="truncate">{f.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setZipConstanciasFiles((p) => p.filter((_, idx) => idx !== i))}
+                            className="text-red-500 font-bold ml-2"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. DOCUMENTACIÓN LEGAL */}
+                <div className="p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <h5 className="font-extrabold text-xs uppercase text-gray-900 dark:text-gray-100">
+                      📁 DOCUMENTACIÓN LEGAL
+                    </h5>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300">
+                      Auto + Cliente
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">
+                    ✓ Incluye automático: Acta Constitutiva y Cédula de Simulacro
+                  </p>
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer touch-manipulation">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Subir CSF / Documentos del cliente</span>
+                    <input
+                      type="file"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (files.length) setZipLegalFiles((p) => [...p, ...files]);
+                        e.target.value = '';
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  {zipLegalFiles.length > 0 && (
+                    <div className="space-y-1">
+                      {zipLegalFiles.map((f, i) => (
+                        <div key={i} className="flex items-center justify-between text-[11px] bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded">
+                          <span className="truncate">{f.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setZipLegalFiles((p) => p.filter((_, idx) => idx !== i))}
+                            className="text-red-500 font-bold ml-2"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. MARCO JURIDICO */}
+                <div className="p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <h5 className="font-extrabold text-xs uppercase text-gray-900 dark:text-gray-100">
+                      📁 MARCO JURIDICO
+                    </h5>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300">
+                      Preestablecido
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-300 leading-snug">
+                    ✓ Incluye automáticamente las 5 NOMs (NOM-002, NOM-005, NOM-017, NOM-026, NOM-029).
+                  </p>
+                </div>
+
+                {/* 4. REGISTRO 2026 */}
+                <div className="p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <h5 className="font-extrabold text-xs uppercase text-gray-900 dark:text-gray-100">
+                      📁 REGISTRO {anio}
+                    </h5>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300">
+                      {zipCustomRegistroFiles.length > 0 ? 'Personalizado' : 'Preestablecido'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-300">
+                    {zipCustomRegistroFiles.length > 0
+                      ? `Usando ${zipCustomRegistroFiles.length} archivo(s) personalizado(s).`
+                      : '✓ Incluye automáticamente tu Registro Municipal 2026.'}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-800 dark:text-gray-200 rounded-lg text-xs font-bold cursor-pointer touch-manipulation">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Cambiar archivo (ej. 2027)</span>
+                      <input
+                        type="file"
+                        multiple
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          if (files.length) setZipCustomRegistroFiles(files);
+                          e.target.value = '';
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                    {zipCustomRegistroFiles.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setZipCustomRegistroFiles([])}
+                        className="text-xs text-red-500 font-bold"
+                      >
+                        Usar base
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 5. POLIZA DE SEGURO */}
+                <div className="p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <h5 className="font-extrabold text-xs uppercase text-gray-900 dark:text-gray-100">
+                      📁 POLIZA DE SEGURO
+                    </h5>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300">
+                      {zipPolizaFiles.length > 0 ? `${zipPolizaFiles.length} archivo(s)` : 'Opcional'}
+                    </span>
+                  </div>
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer touch-manipulation">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Subir Póliza de Seguro</span>
+                    <input
+                      type="file"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (files.length) setZipPolizaFiles((p) => [...p, ...files]);
+                        e.target.value = '';
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  {zipPolizaFiles.length > 0 && (
+                    <div className="space-y-1">
+                      {zipPolizaFiles.map((f, i) => (
+                        <div key={i} className="flex items-center justify-between text-[11px] bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded">
+                          <span className="truncate">{f.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setZipPolizaFiles((p) => p.filter((_, idx) => idx !== i))}
+                            className="text-red-500 font-bold ml-2"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 6. RECARGA DE EXTINTORES */}
+                <div className="p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <h5 className="font-extrabold text-xs uppercase text-gray-900 dark:text-gray-100">
+                      📁 RECARGA DE EXTINTORES
+                    </h5>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300">
+                      {zipExtintoresFiles.length > 0 ? `${zipExtintoresFiles.length} archivo(s)` : 'Opcional'}
+                    </span>
+                  </div>
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer touch-manipulation">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Subir Póliza de Recarga</span>
+                    <input
+                      type="file"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (files.length) setZipExtintoresFiles((p) => [...p, ...files]);
+                        e.target.value = '';
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  {zipExtintoresFiles.length > 0 && (
+                    <div className="space-y-1">
+                      {zipExtintoresFiles.map((f, i) => (
+                        <div key={i} className="flex items-center justify-between text-[11px] bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded">
+                          <span className="truncate">{f.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setZipExtintoresFiles((p) => p.filter((_, idx) => idx !== i))}
+                            className="text-red-500 font-bold ml-2"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleDownloadZip}
+                disabled={generating}
+                className="w-full py-3.5 px-5 bg-gradient-to-r from-[#1f3769] to-[#0b2c5e] hover:opacity-95 text-white rounded-xl font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50 touch-manipulation"
+              >
+                <FolderArchive className="w-5 h-5 shrink-0" />
+                <span>
+                  {generating
+                    ? 'Armando Expediente ZIP...'
+                    : `Descargar Expediente Completo (.zip)`}
+                </span>
+              </button>
             </div>
           )}
         </div>

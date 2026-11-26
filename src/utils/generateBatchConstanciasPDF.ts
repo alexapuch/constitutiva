@@ -10,7 +10,7 @@ import { savePdf } from './savePdf';
 import { hasChinese, loadChineseFont } from './loadChineseFont';
 import { getCachedJpeg } from './imageCache';
 
-export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employees: Employee[], templateImage: string = '/constancia_vacia.png', preview: boolean = false, pdfPrefix: string = 'CONSTANCIAS', fileDate?: string): Promise<string | void> => {
+export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employees: Employee[], templateImage: string = '/constancia_vacia.png', preview: boolean = false, pdfPrefix: string = 'CONSTANCIAS', fileDate?: string, returnBlobOnly: boolean = false): Promise<string | Blob | void> => {
     try {
         if (!employees || employees.length === 0) {
             Swal.fire({
@@ -147,6 +147,10 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
         // Generate output and share/download
         const pdfName = generatePdfName(pdfPrefix, docInfo.commercial_name, fileDate || docInfo.date);
         const pdfBlob = doc.output('blob');
+
+        if (returnBlobOnly) {
+            return pdfBlob;
+        }
 
         await savePdf(pdfBlob, `${pdfName}.pdf`);
     } catch (error: any) {
