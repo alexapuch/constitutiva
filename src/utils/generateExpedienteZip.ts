@@ -10,10 +10,12 @@ import { generatePdfName } from './pdfNameGenerator';
 export interface ExpedienteZipInput {
   pipcConfig: PIPCPDFConfig;
   includeAutoConstancias: boolean;
+  includeDictamenElectrico: boolean;
   constanciasFiles: File[];
   legalFiles: File[];
   polizaFiles: File[];
   extintoresFiles: File[];
+  dictamenFiles: File[];
   customRegistroFiles: File[];
   onProgress?: (text: string, percent: number) => void;
 }
@@ -49,6 +51,23 @@ function sanitizeFileSegment(str: string): string {
     .replace(/\s+/g, ' ')
     .trim()
     .toUpperCase();
+}
+
+function addAutoRenamedFiles(
+  folder: JSZip,
+  files: File[],
+  basePrefix: string,
+  cleanCommercial: string
+) {
+  files.forEach((file, idx) => {
+    const extMatch = file.name.match(/\.([a-zA-Z0-9]+)$/);
+    const ext = extMatch ? extMatch[1].toLowerCase() : 'pdf';
+    const suffix = files.length > 1 ? ` (${idx + 1})` : '';
+    const finalName = cleanCommercial
+      ? `${basePrefix} ${cleanCommercial}${suffix}.${ext}`
+      : `${basePrefix}${suffix}.${ext}`;
+    folder.file(finalName, file);
+  });
 }
 
 async function fetchBlobUrlAsBlob(blobUrl: string): Promise<Blob> {
@@ -198,10 +217,12 @@ export async function generateExpedienteZip(input: ExpedienteZipInput): Promise<
   const {
     pipcConfig,
     includeAutoConstancias,
+    includeDictamenElectrico,
     constanciasFiles,
     legalFiles,
     polizaFiles,
     extintoresFiles,
+    dictamenFiles,
     customRegistroFiles,
     onProgress
   } = input;
@@ -283,9 +304,7 @@ export async function generateExpedienteZip(input: ExpedienteZipInput): Promise<
       folderLegal.file(`${simName}.pdf`, simBlob);
     }
 
-    for (const f of legalFiles) {
-      folderLegal.file(f.name, f);
-    }
+    addAutoRenamedFiles(folderLegal, legalFiles, 'DOCUMENTACION LEGAL', cleanCommercial);
 
     // 4. Constancias de Capacitación (automáticas + extras subidas)
     if (includeAutoConstancias && pipcConfig.employees.length > 0) {
@@ -304,9 +323,7 @@ export async function generateExpedienteZip(input: ExpedienteZipInput): Promise<
         folderConstancias.file(`${constName}.pdf`, constBlob);
       }
     }
-    for (const f of constanciasFiles) {
-      folderConstancias.file(f.name, f);
-    }
+    addAutoRenamedFiles(folderConstancias, constanciasFiles, 'CONSTANCIA CAPACITACION', cleanCommercial);
 
     // 5. Marco Jurídico (5 NOMs preestablecidas)
     report('Empaquetando Marco Jurídico...', 83);
@@ -317,20 +334,20 @@ export async function generateExpedienteZip(input: ExpedienteZipInput): Promise<
       })
     );
 
-    // 6. Póliza de Seguro y Recarga de Extintores (archivos subidos por el usuario)
-    for (const f of polizaFiles) {
-      folderPoliza.file(f.name, f);
-    }
-    for (const f of extintoresFiles) {
-      folderExtintores.file(f.name, f);
+    // 6. Póliza de Seguro y Recarga de Extintores (renombrados automáticamente)
+    addAutoRenamedFiles(folderPoliza, polizaFiles, 'POLIZA DE SEGURO', cleanCommercial);
+    addAutoRenamedFiles(folderExtintores, extintoresFiles, 'RECARGA EXTINTORES', cleanCommercial);
+
+    // 6b. Dictamen Eléctrico (solo si la palomita de incluir carpeta está activa)
+    if (includeDictamenElectrico) {
+      const folderDictamen = zip.folder('DICTAMEN ELÉCTRICO')!;
+      addAutoRenamedFiles(folderDictamen, dictamenFiles, 'DICTAMEN ELECTRICO', cleanCommercial);
     }
 
     // 7. Registro Municipal (preestablecido o reemplazo personalizado)
     report('Agregando Registro Municipal...', 89);
     if (customRegistroFiles.length > 0) {
-      for (const f of customRegistroFiles) {
-        folderRegistro.file(f.name, f);
-      }
+      addAutoRenamedFiles(folderRegistro, customRegistroFiles, `REGISTRO MUNICIPAL ${anio}`, '');
     } else {
       const regBytes = await fetchTemplateBytes(
         '/plantillas-zip/REGISTRO%202026/REGISTRO%20MUNICIPAL%202026.pdf'

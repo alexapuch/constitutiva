@@ -235,10 +235,12 @@ export default function PIPCModal({
 
   // 8. Expediente ZIP ordenado (100% local en el navegador, sin guardar en servidor)
   const [includeAutoConstancias, setIncludeAutoConstancias] = useState(true);
+  const [includeDictamenElectrico, setIncludeDictamenElectrico] = useState(false);
   const [zipConstanciasFiles, setZipConstanciasFiles] = useState<File[]>([]);
   const [zipLegalFiles, setZipLegalFiles] = useState<File[]>([]);
   const [zipPolizaFiles, setZipPolizaFiles] = useState<File[]>([]);
   const [zipExtintoresFiles, setZipExtintoresFiles] = useState<File[]>([]);
+  const [zipDictamenFiles, setZipDictamenFiles] = useState<File[]>([]);
   const [zipCustomRegistroFiles, setZipCustomRegistroFiles] = useState<File[]>([]);
 
   // Actualizar establecimientos circundantes, simbología y croquis cuando cambian las coordenadas
@@ -374,8 +376,10 @@ export default function PIPCModal({
       setZipLegalFiles([]);
       setZipPolizaFiles([]);
       setZipExtintoresFiles([]);
+      setZipDictamenFiles([]);
       setZipCustomRegistroFiles([]);
       setIncludeAutoConstancias(true);
+      setIncludeDictamenElectrico(false);
     }
   }, [isOpen, docInfo, employees]);
 
@@ -682,10 +686,12 @@ export default function PIPCModal({
       await generateExpedienteZip({
         pipcConfig: buildConfig(),
         includeAutoConstancias,
+        includeDictamenElectrico,
         constanciasFiles: zipConstanciasFiles,
         legalFiles: zipLegalFiles,
         polizaFiles: zipPolizaFiles,
         extintoresFiles: zipExtintoresFiles,
+        dictamenFiles: zipDictamenFiles,
         customRegistroFiles: zipCustomRegistroFiles,
         onProgress: (txt, pct) => {
           setProgressText(txt);
@@ -2953,7 +2959,10 @@ export default function PIPCModal({
                     <div className="space-y-1">
                       {zipExtintoresFiles.map((f, i) => (
                         <div key={i} className="flex items-center justify-between text-[11px] bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded">
-                          <span className="truncate">{f.name}</span>
+                          <span className="truncate">
+                            RECARGA EXTINTORES {(nombreComercial || 'EMPRESA').toUpperCase()}
+                            {zipExtintoresFiles.length > 1 ? ` (${i + 1})` : ''}
+                          </span>
                           <button
                             type="button"
                             onClick={() => setZipExtintoresFiles((p) => p.filter((_, idx) => idx !== i))}
@@ -2964,6 +2973,80 @@ export default function PIPCModal({
                         </div>
                       ))}
                     </div>
+                  )}
+                </div>
+
+                {/* 7. DICTAMEN ELÉCTRICO (Con palomita para incluir o no en el ZIP) */}
+                <div className="sm:col-span-2 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer touch-manipulation">
+                      <input
+                        type="checkbox"
+                        checked={includeDictamenElectrico}
+                        onChange={(e) => setIncludeDictamenElectrico(e.target.checked)}
+                        className="rounded text-[#7b1f1c] w-4 h-4 shrink-0"
+                      />
+                      <h5 className="font-extrabold text-xs uppercase text-gray-900 dark:text-gray-100">
+                        📁 DICTAMEN ELÉCTRICO
+                      </h5>
+                    </label>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        includeDictamenElectrico
+                          ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                      }`}
+                    >
+                      {includeDictamenElectrico ? 'Incluida en ZIP' : 'No incluir'}
+                    </span>
+                  </div>
+
+                  {includeDictamenElectrico ? (
+                    <div className="space-y-2">
+                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer touch-manipulation">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Subir Dictamen Eléctrico</span>
+                        <input
+                          type="file"
+                          multiple
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            if (files.length) {
+                              setZipDictamenFiles((p) => [...p, ...files]);
+                              setIncludeDictamenElectrico(true);
+                            }
+                            e.target.value = '';
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                      {zipDictamenFiles.length > 0 && (
+                        <div className="space-y-1">
+                          {zipDictamenFiles.map((f, i) => (
+                            <div
+                              key={i}
+                              className="flex items-center justify-between text-[11px] bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded"
+                            >
+                              <span className="truncate">
+                                DICTAMEN ELECTRICO {(nombreComercial || 'EMPRESA').toUpperCase()}
+                                {zipDictamenFiles.length > 1 ? ` (${i + 1})` : ''}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setZipDictamenFiles((p) => p.filter((_, idx) => idx !== i))}
+                                className="text-red-500 font-bold ml-2"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                      Marca la palomita arriba si este establecimiento cuenta con Dictamen Eléctrico para agregar la carpeta al ZIP.
+                    </p>
                   )}
                 </div>
               </div>
