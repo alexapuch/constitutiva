@@ -314,7 +314,7 @@ export default function PIPCModal({
     typeof navigator !== 'undefined' && /iphone|ipad|ipod|android/i.test(navigator.userAgent);
 
   // Pegar imagen desde el portapapeles en PC (botón directo "Pegar")
-  const handleReadClipboardImageForItem = async (targetIdx: number) => {
+  const handleReadClipboardImageForItem = async (targetIdx: number, slotIdx?: number) => {
     if (isMobileDevice) return;
     try {
       if (navigator.clipboard && typeof navigator.clipboard.read === 'function') {
@@ -326,7 +326,20 @@ export default function PIPCModal({
             const file = new File([blob], 'pasted-image.png', { type: imgType });
             const url = await fileToDataUrl(file, false);
             setEvidenciaItems((prev) =>
-              prev.map((it, i) => (i === targetIdx ? { ...it, photoDataUrl: url } : it))
+              prev.map((it, i) => {
+                if (i !== targetIdx) return it;
+                if (typeof slotIdx === 'number') {
+                  const nextArr = [...(it.photoDataUrls || [])];
+                  if (slotIdx > 0 && !nextArr[0] && it.photoDataUrl) nextArr[0] = it.photoDataUrl;
+                  nextArr[slotIdx] = url;
+                  return {
+                    ...it,
+                    photoDataUrls: nextArr,
+                    photoDataUrl: slotIdx === 0 ? url : it.photoDataUrl
+                  };
+                }
+                return { ...it, photoDataUrl: url };
+              })
             );
             return;
           }
@@ -348,7 +361,46 @@ export default function PIPCModal({
       toast: true,
       position: 'bottom-end',
       icon: 'info',
-      title: 'Haz clic en la tarjeta y presiona Ctrl + V para pegar la foto',
+      title: 'Haz clic en la fila y presiona Ctrl + V para pegar la foto',
+      showConfirmButton: false,
+      timer: 2500
+    });
+  };
+
+  // Pegar imagen del Croquis desde el portapapeles en PC
+  const handleReadClipboardImageForCroquis = async () => {
+    if (isMobileDevice) return;
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.read === 'function') {
+        const items = await navigator.clipboard.read();
+        for (const clipItem of items) {
+          const imgType = clipItem.types.find((t) => t.startsWith('image/'));
+          if (imgType) {
+            const blob = await clipItem.getType(imgType);
+            const file = new File([blob], 'pasted-croquis.png', { type: imgType });
+            const url = await fileToDataUrl(file, false);
+            setCroquisSenaleticaBaseImg(url);
+            return;
+          }
+        }
+        Swal.fire({
+          toast: true,
+          position: 'bottom-end',
+          icon: 'info',
+          title: 'No hay ninguna imagen copiada en el portapapeles',
+          showConfirmButton: false,
+          timer: 2200
+        });
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+    Swal.fire({
+      toast: true,
+      position: 'bottom-end',
+      icon: 'info',
+      title: 'Haz clic en el recuadro y presiona Ctrl + V para pegar el croquis',
       showConfirmButton: false,
       timer: 2500
     });
@@ -1826,7 +1878,7 @@ export default function PIPCModal({
                               </div>
                             </div>
 
-                            {/* Casillas de ubicación automáticas según la Cantidad (sin duplicar tarjetas ni copiar texto) */}
+                            {/* Casillas de ubicación y foto individual por cada unidad según la Cantidad */}
                             {(() => {
                               const qty = Math.min(12, Math.max(1, parseInt(item.cantidad) || 1));
                               const slots = (item.ubicacion || '').split('\n');
@@ -1838,6 +1890,24 @@ export default function PIPCModal({
                                   prev.map((it, i) =>
                                     i === idx ? { ...it, ubicacion: nextSlots.join('\n') } : it
                                   )
+                                );
+                              };
+
+                              const setSlotPhoto = (slotIdx: number, url: string) => {
+                                setEvidenciaItems((prev) =>
+                                  prev.map((it, i) => {
+                                    if (i !== idx) return it;
+                                    const nextArr = [...(it.photoDataUrls || [])];
+                                    if (slotIdx > 0 && !nextArr[0] && it.photoDataUrl) {
+                                      nextArr[0] = it.photoDataUrl;
+                                    }
+                                    nextArr[slotIdx] = url;
+                                    return {
+                                      ...it,
+                                      photoDataUrls: nextArr,
+                                      photoDataUrl: slotIdx === 0 ? url : it.photoDataUrl
+                                    };
+                                  })
                                 );
                               };
 
@@ -1854,21 +1924,87 @@ export default function PIPCModal({
                               }
 
                               return (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                                  {Array.from({ length: qty }, (_, k) => (
-                                    <div key={k} className="flex items-center gap-1.5">
-                                      <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 w-5 text-right shrink-0">
-                                        #{k + 1}
-                                      </span>
-                                      <input
-                                        type="text"
-                                        value={slots[k] || ''}
-                                        onChange={(e) => updateSlot(k, e.target.value)}
-                                        placeholder={`Ubicación #${k + 1}...`}
-                                        className="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-base sm:text-xs bg-white dark:bg-gray-900"
-                                      />
-                                    </div>
-                                  ))}
+                                <div className="space-y-1.5">
+                                  {Array.from({ length: qty }, (_, k) => {
+                                    const slotPhoto =
+                                      item.photoDataUrls?.[k] || (k === 0 ? item.photoDataUrl : '');
+                                    return (
+                                      <div
+                                        key={k}
+                                        tabIndex={!isMobileDevice ? 0 : undefined}
+                                        onPaste={(e) => {
+                                          if (isMobileDevice) return;
+                                          e.stopPropagation();
+                                          handlePasteImage(e, (url) => setSlotPhoto(k, url));
+                                        }}
+                                        className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                      >
+                                        <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 w-5 text-center shrink-0">
+                                          #{k + 1}
+                                        </span>
+                                        <input
+                                          type="text"
+                                          value={slots[k] || ''}
+                                          onChange={(e) => updateSlot(k, e.target.value)}
+                                          placeholder={`Ubicación #${k + 1}...`}
+                                          className="flex-1 min-w-[120px] px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-base sm:text-xs bg-white dark:bg-gray-900"
+                                        />
+
+                                        {/* Estado visual / botones de foto para esta unidad #k */}
+                                        {slotPhoto ? (
+                                          <div className="flex items-center gap-1 shrink-0 bg-emerald-100 dark:bg-emerald-900/50 border border-emerald-300 dark:border-emerald-700 rounded-md px-1.5 py-0.5">
+                                            <img
+                                              src={slotPhoto}
+                                              alt={`#${k + 1}`}
+                                              className="w-5 h-5 rounded-xs object-cover shrink-0"
+                                            />
+                                            <span className="text-[10px] font-extrabold text-emerald-800 dark:text-emerald-300">
+                                              ✓ Foto
+                                            </span>
+                                            <button
+                                              type="button"
+                                              onClick={() => setSlotPhoto(k, '')}
+                                              className="text-red-500 hover:text-red-700 text-[10px] font-bold ml-0.5"
+                                              title="Quitar foto"
+                                            >
+                                              ✕
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-1 shrink-0">
+                                            <label className="inline-flex items-center gap-1 px-2 py-1 bg-white dark:bg-gray-800 border border-emerald-400 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 rounded-md text-[10px] font-bold cursor-pointer hover:bg-emerald-50 touch-manipulation">
+                                              <Camera className="w-3 h-3 shrink-0" />
+                                              <span>Foto</span>
+                                              <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={async (e) => {
+                                                  const f = e.target.files?.[0];
+                                                  if (f) {
+                                                    const url = await fileToDataUrl(f, true);
+                                                    setSlotPhoto(k, url);
+                                                  }
+                                                  e.target.value = '';
+                                                }}
+                                                className="hidden"
+                                              />
+                                            </label>
+                                            {!isMobileDevice && (
+                                              <button
+                                                type="button"
+                                                onClick={() => handleReadClipboardImageForItem(idx, k)}
+                                                className="hidden sm:inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 rounded-md text-[10px] font-bold hover:bg-blue-100"
+                                                title={`Pegar foto #${k + 1} (Ctrl + V)`}
+                                              >
+                                                <ClipboardPaste className="w-3 h-3 shrink-0" />
+                                                <span>Pegar</span>
+                                              </button>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               );
                             })()}
@@ -2017,11 +2153,12 @@ export default function PIPCModal({
           {activeTab === 'croquis_senaletica' && (
             <div
               className="space-y-4"
-              onPaste={(e) =>
+              onPaste={(e) => {
+                if (isMobileDevice) return;
                 handlePasteImage(e, (url) => {
                   setCroquisSenaleticaBaseImg(url);
-                })
-              }
+                });
+              }}
             >
               {/* Banner explicativo */}
               <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3.5 text-xs leading-relaxed text-emerald-950 dark:text-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
@@ -2239,33 +2376,59 @@ export default function PIPCModal({
 
               {/* PASO 2: SUBIR FOTO DEL CROQUIS O INTERACTUAR CON EL CROQUIS CARGADO */}
               {!croquisSenaleticaBaseImg ? (
-                <div className="border-2 border-dashed border-emerald-400 dark:border-emerald-600 rounded-2xl p-6 sm:p-8 text-center bg-emerald-50/40 dark:bg-emerald-950/15 space-y-3">
+                <div
+                  tabIndex={!isMobileDevice ? 0 : undefined}
+                  className="border-2 border-dashed border-emerald-400 dark:border-emerald-600 rounded-2xl p-6 sm:p-8 text-center bg-emerald-50/40 dark:bg-emerald-950/15 space-y-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
                   <Camera className="w-10 h-10 mx-auto text-emerald-600 dark:text-emerald-400" />
                   <div className="space-y-1">
                     <h5 className="font-extrabold text-sm sm:text-base text-gray-900 dark:text-gray-100">
                       2. Sube la Foto o Imagen de tu Croquis
                     </h5>
                     <p className="text-xs text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                      Sube la foto del plano/croquis desde el Carrete de tu iPhone o Galería (o pega con <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-800 border rounded">Ctrl + V</kbd> en PC) para colocarle encima las señaléticas con un toque.
+                      Sube la foto del plano/croquis desde el Carrete de tu iPhone o Galería
+                      {!isMobileDevice && (
+                        <>
+                          {' '}
+                          (o pega directo con{' '}
+                          <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-800 border rounded">
+                            Ctrl + V
+                          </kbd>{' '}
+                          en PC)
+                        </>
+                      )}
+                      .
                     </p>
                   </div>
-                  <label className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs sm:text-sm font-extrabold shadow-md cursor-pointer min-h-[46px] touch-manipulation">
-                    <ImageIcon className="w-4 h-4 shrink-0" />
-                    <span>Elegir Foto del Croquis de mi Galería / Carrete</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={async (e) => {
-                        const f = e.target.files?.[0];
-                        if (f) {
-                          const url = await fileToDataUrl(f, false);
-                          setCroquisSenaleticaBaseImg(url);
-                        }
-                        e.target.value = '';
-                      }}
-                      className="hidden"
-                    />
-                  </label>
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5">
+                    <label className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs sm:text-sm font-extrabold shadow-md cursor-pointer min-h-[46px] w-full sm:w-auto touch-manipulation">
+                      <ImageIcon className="w-4 h-4 shrink-0" />
+                      <span>Elegir Foto del Croquis de mi Galería / Carrete</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const f = e.target.files?.[0];
+                          if (f) {
+                            const url = await fileToDataUrl(f, false);
+                            setCroquisSenaleticaBaseImg(url);
+                          }
+                          e.target.value = '';
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                    {!isMobileDevice && (
+                      <button
+                        type="button"
+                        onClick={handleReadClipboardImageForCroquis}
+                        className="hidden sm:inline-flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-extrabold shadow-md min-h-[46px]"
+                      >
+                        <ClipboardPaste className="w-4 h-4 shrink-0" />
+                        <span>Pegar Croquis (Ctrl+V)</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3">

@@ -35,6 +35,7 @@ export interface EvidenciaFotograficaItem {
   cantidad: string;
   ubicacion?: string;
   photoDataUrl: string;
+  photoDataUrls?: string[];
 }
 
 export interface CroquisPlacedSign {
@@ -1583,7 +1584,33 @@ export async function generatePIPCPDF(
     // PÁGINAS 53+ (ref): INVENTARIO SEÑALÉTICAS Y EQUIPOS DE EMERGENCIA
     // (La primera tabla o imagen se pega en la misma página justo debajo del título)
     // =========================================================================
-    const validEvidenciaItems = (config.evidenciaItems || []).filter(
+    const expandedEvidenciaItems: EvidenciaFotograficaItem[] = [];
+    for (const rawItem of config.evidenciaItems || []) {
+      const qty = Math.max(1, parseInt(rawItem.cantidad) || 1);
+      const slotPhotos = (rawItem.photoDataUrls || []).map((p) => p || '');
+      const slotUbics = (rawItem.ubicacion || '').split('\n').map((s) => s.trim());
+      const hasPerUnitPhotos = qty > 1 && slotPhotos.some((p) => !!p);
+
+      if (hasPerUnitPhotos) {
+        for (let k = 0; k < qty; k++) {
+          const unitPhoto = slotPhotos[k] || (k === 0 ? rawItem.photoDataUrl : '');
+          const unitUbic = slotUbics[k] || '';
+          if (unitPhoto || unitUbic || k === 0) {
+            expandedEvidenciaItems.push({
+              ...rawItem,
+              id: `${rawItem.id}-u${k}`,
+              cantidad: '1',
+              ubicacion: unitUbic,
+              photoDataUrl: unitPhoto
+            });
+          }
+        }
+      } else {
+        expandedEvidenciaItems.push(rawItem);
+      }
+    }
+
+    const validEvidenciaItems = expandedEvidenciaItems.filter(
       (it) => !!(it.photoDataUrl || it.signalType || it.label)
     );
     if (validEvidenciaItems.length > 0) {
