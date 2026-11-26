@@ -1767,17 +1767,18 @@ export async function generatePIPCPDF(
               doc.text(lblLines.slice(0, 2), tableX + col1W / 2, ry + 36, { align: 'center' });
             }
 
-            // Columna 2: Ubicación
+            // Columna 2: Ubicación (soporta múltiples líneas o varias ubicaciones)
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(9.5);
+            doc.setFontSize(8.8);
             doc.setTextColor(30, 30, 30);
             const ubicText = (item.ubicacion || '').trim().toUpperCase() || '-';
-            const ubicLines = doc.splitTextToSize(ubicText, col2W - 8);
-            const uBlockH = ubicLines.slice(0, 4).length * 4.2;
+            const ubicLines = doc.splitTextToSize(ubicText, col2W - 8).slice(0, 6);
+            const lineStep = 3.9;
+            const uBlockH = ubicLines.length * lineStep;
             doc.text(
-              ubicLines.slice(0, 4),
+              ubicLines,
               tableX + col1W + col2W / 2,
-              ry + (rowH - uBlockH) / 2 + 3.5,
+              ry + (rowH - uBlockH) / 2 + 3.2,
               { align: 'center', lineHeightFactor: 1.25 }
             );
           }
