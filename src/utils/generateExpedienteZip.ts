@@ -125,7 +125,8 @@ async function buildCustomPlanContingenciasPdf(
   }
 
   // Estampar el nombre de la empresa justo debajo de "PROTECCIÓN CIVIL 2026" (y: 683 -> y: 660)
-  const displayName = (companyLabel || '').toUpperCase().trim();
+  // Filtrar caracteres fuera de WinAnsi para que HelveticaBold nunca falle
+  const displayName = (companyLabel || '').toUpperCase().replace(/[^\x20-\xFF]/g, '').trim();
   if (displayName) {
     // Dividir en máximo 2 líneas si el nombre es muy largo para respetar márgenes (maxWidth ~540pt)
     const maxW = 540;

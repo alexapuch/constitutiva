@@ -10,7 +10,9 @@ import { savePdf } from './savePdf';
 import { hasChinese, loadChineseFont } from './loadChineseFont';
 import { getCachedJpeg } from './imageCache';
 
-export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employees: Employee[], templateImage: string = '/constancia_vacia.png', preview: boolean = false, pdfPrefix: string = 'CONSTANCIAS', fileDate?: string, returnBlobOnly: boolean = false): Promise<string | Blob | void> => {
+export function generateBatchConstanciasPDF(docInfo: DocumentInfo, employees: Employee[], templateImage?: string, preview?: boolean, pdfPrefix?: string, fileDate?: string, returnBlobOnly?: false): Promise<string | void>;
+export function generateBatchConstanciasPDF(docInfo: DocumentInfo, employees: Employee[], templateImage: string, preview: false, pdfPrefix: string, fileDate: string | undefined, returnBlobOnly: true): Promise<Blob | void>;
+export async function generateBatchConstanciasPDF(docInfo: DocumentInfo, employees: Employee[], templateImage: string = '/constancia_vacia.png', preview: boolean = false, pdfPrefix: string = 'CONSTANCIAS', fileDate?: string, returnBlobOnly: boolean = false): Promise<string | Blob | void> {
     try {
         if (!employees || employees.length === 0) {
             Swal.fire({
@@ -162,4 +164,4 @@ export const generateBatchConstanciasPDF = async (docInfo: DocumentInfo, employe
             confirmButtonColor: '#722F37'
         });
     }
-};
+}

@@ -40,7 +40,6 @@ import {
   EvidenciaFotograficaItem,
   CroquisPlacedSign
 } from '../../utils/generatePIPCPDF';
-import { generateExpedienteZip } from '../../utils/generateExpedienteZip';
 import { generatePdfName } from '../../utils/pdfNameGenerator';
 import {
   generateCroquis250mDataUrl,
@@ -699,6 +698,7 @@ export default function PIPCModal({
     setProgressText('Preparando expediente ZIP...');
     setProgressPercent(2);
     try {
+      const { generateExpedienteZip } = await import('../../utils/generateExpedienteZip');
       await generateExpedienteZip({
         pipcConfig: buildConfig(),
         includeAutoConstancias,
@@ -2800,7 +2800,10 @@ export default function PIPCModal({
                     <div className="space-y-1">
                       {zipConstanciasFiles.map((f, i) => (
                         <div key={i} className="flex items-center justify-between text-[11px] bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded">
-                          <span className="truncate">{f.name}</span>
+                          <span className="truncate">
+                            CONSTANCIA CAPACITACION {(nombreComercial || 'EMPRESA').toUpperCase()}
+                            {zipConstanciasFiles.length > 1 ? ` (${i + 1})` : ''}
+                          </span>
                           <button
                             type="button"
                             onClick={() => setZipConstanciasFiles((p) => p.filter((_, idx) => idx !== i))}
@@ -2845,7 +2848,10 @@ export default function PIPCModal({
                     <div className="space-y-1">
                       {zipLegalFiles.map((f, i) => (
                         <div key={i} className="flex items-center justify-between text-[11px] bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded">
-                          <span className="truncate">{f.name}</span>
+                          <span className="truncate">
+                            DOCUMENTACION LEGAL {(nombreComercial || 'EMPRESA').toUpperCase()}
+                            {zipLegalFiles.length > 1 ? ` (${i + 1})` : ''}
+                          </span>
                           <button
                             type="button"
                             onClick={() => setZipLegalFiles((p) => p.filter((_, idx) => idx !== i))}
@@ -2944,7 +2950,10 @@ export default function PIPCModal({
                     <div className="space-y-1">
                       {zipPolizaFiles.map((f, i) => (
                         <div key={i} className="flex items-center justify-between text-[11px] bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded">
-                          <span className="truncate">{f.name}</span>
+                          <span className="truncate">
+                            POLIZA DE SEGURO {(nombreComercial || 'EMPRESA').toUpperCase()}
+                            {zipPolizaFiles.length > 1 ? ` (${i + 1})` : ''}
+                          </span>
                           <button
                             type="button"
                             onClick={() => setZipPolizaFiles((p) => p.filter((_, idx) => idx !== i))}

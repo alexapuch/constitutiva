@@ -209,7 +209,7 @@ async function composeCroquisSenaleticaImage(
   iconScalePct: number = 6.5
 ): Promise<{ dataUrl: string; width: number; height: number } | null> {
   if (!baseImgDataUrl) return null;
-  const baseImg = await loadCrossOriginImage(baseImgDataUrl, 6000);
+  const baseImg = await loadCrossOriginImage(baseImgDataUrl);
   if (!baseImg) return null;
 
   const natW = baseImg.naturalWidth || baseImg.width || 1200;
@@ -239,7 +239,7 @@ async function composeCroquisSenaleticaImage(
     for (const sType of uniqueTypes) {
       if (!sType || sType === 'otro') continue;
       try {
-        const loaded = await loadCrossOriginImage(`/senales/${sType}.png`, 4000);
+        const loaded = await loadCrossOriginImage(`/senales/${sType}.png`);
         if (loaded) iconImgs[sType] = loaded;
       } catch {
         // ignore
@@ -1588,7 +1588,7 @@ export async function generatePIPCPDF(
       for (const sType of uniqueTypes) {
         if (!sType || sType === 'otro') continue;
         try {
-          const iconImg = await loadCrossOriginImage(`/senales/${sType}.png`, 4000);
+          const iconImg = await loadCrossOriginImage(`/senales/${sType}.png`);
           if (iconImg) {
             const ic = document.createElement('canvas');
             ic.width = iconImg.naturalWidth || 200;
