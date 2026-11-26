@@ -134,6 +134,7 @@ export default function PIPCModal({
   // 4. Inventario de Señaléticas y Equipos de Emergencia (Pág. 54+)
   const [inventarioImgs, setInventarioImgs] = useState<string[]>([]);
   const [evidenciaItems, setEvidenciaItems] = useState<EvidenciaFotograficaItem[]>([]);
+  const [collapsedEvidenciaIds, setCollapsedEvidenciaIds] = useState<Record<string, boolean>>({});
   const [useDefaultInventarioIfEmpty, setUseDefaultInventarioIfEmpty] = useState(true);
   const [loadingRisksForCoords, setLoadingRisksForCoords] = useState(false);
   const analyzedCenterRef = useRef<{ lat: number; lng: number } | null>(null);
@@ -324,6 +325,7 @@ export default function PIPCModal({
       setCroquisCircundantesImg('');
       setCroquisUbicacionImg('');
       setEvidenciaItems([]);
+      setCollapsedEvidenciaIds({});
       setCroquisSenaleticaBaseImg('');
       setCroquisSenaleticaSigns([]);
       setOmitCroquisSenaletica(false);
@@ -1422,32 +1424,57 @@ export default function PIPCModal({
 
                 {evidenciaItems.length > 0 && (
                   <div className="space-y-2.5 pt-1">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="text-xs font-bold uppercase text-emerald-900 dark:text-emerald-300">
-                        Evidencias Fotográficas ({evidenciaItems.length}):
+                        Evidencias / Señaléticas ({evidenciaItems.length}):
                       </span>
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-3">
                         <button
                           type="button"
-                          onClick={() =>
+                          onClick={() => {
+                            const allCollapsed = evidenciaItems.every((it) => collapsedEvidenciaIds[it.id]);
+                            if (allCollapsed) {
+                              setCollapsedEvidenciaIds({});
+                            } else {
+                              const next: Record<string, boolean> = {};
+                              evidenciaItems.forEach((it) => {
+                                next[it.id] = true;
+                              });
+                              setCollapsedEvidenciaIds(next);
+                            }
+                          }}
+                          className="text-xs text-gray-600 dark:text-gray-300 font-bold hover:underline"
+                        >
+                          {evidenciaItems.every((it) => collapsedEvidenciaIds[it.id])
+                            ? 'Expandir todas'
+                            : 'Contraer todas'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newId = `ev-${Date.now()}-${Math.random()}`;
                             setEvidenciaItems((prev) => [
                               ...prev,
                               {
-                                id: `ev-${Date.now()}-${Math.random()}`,
+                                id: newId,
                                 signalType: 'extintor',
                                 label: 'EXTINTOR',
                                 cantidad: '1',
+                                ubicacion: '',
                                 photoDataUrl: ''
                               }
-                            ])
-                          }
+                            ]);
+                          }}
                           className="text-xs text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1 hover:underline"
                         >
                           <Plus className="w-3.5 h-3.5" /> Agregar fila
                         </button>
                         <button
                           type="button"
-                          onClick={() => setEvidenciaItems([])}
+                          onClick={() => {
+                            setEvidenciaItems([]);
+                            setCollapsedEvidenciaIds({});
+                          }}
                           className="text-xs text-red-600 font-bold hover:underline"
                         >
                           Limpiar todas
@@ -1455,11 +1482,82 @@ export default function PIPCModal({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {evidenciaItems.map((item, idx) => (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {evidenciaItems.map((item, idx) => {
+                        const isCollapsed = !!collapsedEvidenciaIds[item.id];
+                        if (isCollapsed) {
+                          return (
+                            <div
+                              key={item.id}
+                              onClick={() =>
+                                setCollapsedEvidenciaIds((prev) => ({ ...prev, [item.id]: false }))
+                              }
+                              className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-emerald-400 rounded-xl flex items-center gap-2.5 shadow-2xs cursor-pointer transition-colors"
+                            >
+                              <div className="w-10 h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 overflow-hidden flex items-center justify-center shrink-0">
+                                {item.photoDataUrl ? (
+                                  <img
+                                    src={item.photoDataUrl}
+                                    alt={item.label}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : item.signalType && item.signalType !== 'otro' ? (
+                                  <img
+                                    src={`/senales/${item.signalType}.png`}
+                                    alt={item.label}
+                                    className="w-7 h-7 object-contain"
+                                  />
+                                ) : (
+                                  <span className="text-[10px] font-extrabold text-emerald-700">PR</span>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-extrabold text-gray-900 dark:text-gray-100 truncate">
+                                    {item.label || 'SEÑAL'}
+                                  </span>
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 shrink-0">
+                                    Cant: {item.cantidad || '1'}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                                  {item.ubicacion?.trim()
+                                    ? `📍 ${item.ubicacion.replace(/\n+/g, ' · ')}`
+                                    : 'Sin ubicación'}
+                                </p>
+                              </div>
+                              <div
+                                className="flex items-center gap-1 shrink-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setCollapsedEvidenciaIds((prev) => ({ ...prev, [item.id]: false }))
+                                  }
+                                  className="px-2 py-1 text-[11px] font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 rounded-lg hover:bg-blue-100 touch-manipulation"
+                                >
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setEvidenciaItems((prev) => prev.filter((_, i) => i !== idx))
+                                  }
+                                  className="p-1.5 text-red-500 hover:text-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 touch-manipulation"
+                                  title="Eliminar"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        return (
                         <div
                           key={item.id}
-                          className="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl flex gap-3 items-start shadow-2xs"
+                          className="sm:col-span-2 p-3 bg-white dark:bg-gray-800 border-2 border-emerald-300/80 dark:border-emerald-700/70 rounded-xl flex gap-3 items-start shadow-xs"
                         >
                           {/* Miniatura o botón para elegir foto del Carrete */}
                           <label className="w-24 h-24 rounded-lg border-2 border-dashed border-emerald-400 dark:border-emerald-600 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 overflow-hidden cursor-pointer shrink-0 relative group touch-manipulation">
@@ -1607,40 +1705,55 @@ export default function PIPCModal({
                               placeholder="Ubicación(es) — ej. 1 EN RECEPCIÓN, 1 EN PASILLO (puedes usar varias líneas)"
                               className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-base sm:text-xs bg-white dark:bg-gray-900 leading-snug resize-y"
                             />
-                            {(parseInt(item.cantidad) || 1) > 1 && (
+                            <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                              {(parseInt(item.cantidad) || 1) > 1 ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const qty = Math.min(12, Math.max(2, parseInt(item.cantidad) || 2));
+                                    const rawParts = (item.ubicacion || '')
+                                      .split(/\n|,|;/)
+                                      .map((s) => s.trim())
+                                      .filter(Boolean);
+                                    const splitRows: EvidenciaFotograficaItem[] = Array.from(
+                                      { length: qty },
+                                      (_, k) => ({
+                                        id: `ev-${Date.now()}-${k}-${Math.random()}`,
+                                        signalType: item.signalType,
+                                        label: item.label,
+                                        cantidad: '1',
+                                        ubicacion: rawParts[k] || rawParts[0] || '',
+                                        photoDataUrl: k === 0 ? item.photoDataUrl : ''
+                                      })
+                                    );
+                                    setEvidenciaItems((prev) => [
+                                      ...prev.slice(0, idx),
+                                      ...splitRows,
+                                      ...prev.slice(idx + 1)
+                                    ]);
+                                  }}
+                                  className="text-[11px] font-bold text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-1 touch-manipulation"
+                                >
+                                  ↳ Separar en {Math.min(12, parseInt(item.cantidad) || 2)} filas
+                                </button>
+                              ) : (
+                                <span />
+                              )}
                               <button
                                 type="button"
-                                onClick={() => {
-                                  const qty = Math.min(12, Math.max(2, parseInt(item.cantidad) || 2));
-                                  const rawParts = (item.ubicacion || '')
-                                    .split(/\n|,|;/)
-                                    .map((s) => s.trim())
-                                    .filter(Boolean);
-                                  const splitRows: EvidenciaFotograficaItem[] = Array.from(
-                                    { length: qty },
-                                    (_, k) => ({
-                                      id: `ev-${Date.now()}-${k}-${Math.random()}`,
-                                      signalType: item.signalType,
-                                      label: item.label,
-                                      cantidad: '1',
-                                      ubicacion: rawParts[k] || rawParts[0] || '',
-                                      photoDataUrl: k === 0 ? item.photoDataUrl : ''
-                                    })
-                                  );
-                                  setEvidenciaItems((prev) => [
-                                    ...prev.slice(0, idx),
-                                    ...splitRows,
-                                    ...prev.slice(idx + 1)
-                                  ]);
-                                }}
-                                className="text-[11px] font-bold text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-1 touch-manipulation"
+                                onClick={() =>
+                                  setCollapsedEvidenciaIds((prev) => ({ ...prev, [item.id]: true }))
+                                }
+                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-extrabold inline-flex items-center gap-1 shadow-2xs touch-manipulation"
                               >
-                                ↳ Separar en {Math.min(12, parseInt(item.cantidad) || 2)} filas (1 ubicación por cada señal)
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                Listo (Contraer)
                               </button>
-                            )}
+                            </div>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
