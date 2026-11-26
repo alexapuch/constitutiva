@@ -140,6 +140,7 @@ export default function PIPCModal({
   const [croquisSenaleticaBaseImg, setCroquisSenaleticaBaseImg] = useState<string>('');
   const [croquisSenaleticaSigns, setCroquisSenaleticaSigns] = useState<CroquisPlacedSign[]>([]);
   const [croquisSenaleticaIconScale, setCroquisSenaleticaIconScale] = useState<number>(6.5);
+  const [omitCroquisSenaletica, setOmitCroquisSenaletica] = useState<boolean>(false);
   const [activeCroquisTool, setActiveCroquisTool] = useState<string>('extintor');
   const [activeCroquisRotation, setActiveCroquisRotation] = useState<number>(0);
   const [selectedCroquisSignId, setSelectedCroquisSignId] = useState<string | null>(null);
@@ -314,6 +315,7 @@ export default function PIPCModal({
       setEvidenciaItems([]);
       setCroquisSenaleticaBaseImg('');
       setCroquisSenaleticaSigns([]);
+      setOmitCroquisSenaletica(false);
       setSelectedCroquisSignId(null);
       setGiro(docInfo.activity || 'TIENDAS DE ROPA, ZAPATERIAS, NOVEDADES Y REGALOS');
       setNumTrabajadores(String(employees.length || docInfo.usuarios || 1));
@@ -615,9 +617,10 @@ export default function PIPCModal({
     inventarioImgs,
     evidenciaItems,
     useDefaultInventarioIfEmpty,
-    croquisSenaleticaBaseImg: croquisSenaleticaBaseImg || undefined,
-    croquisSenaleticaSigns,
+    croquisSenaleticaBaseImg: omitCroquisSenaletica ? undefined : (croquisSenaleticaBaseImg || undefined),
+    croquisSenaleticaSigns: omitCroquisSenaletica ? [] : croquisSenaleticaSigns,
     croquisSenaleticaIconScale,
+    omitCroquisSenaletica,
     calendarioGrid,
     turnosSimulacro,
     onProgress: (txt, pct) => {
@@ -1728,6 +1731,28 @@ export default function PIPCModal({
                 )}
               </div>
 
+              {/* Opción explícita: No hay croquis (omitir página en Vista Previa y Descarga) */}
+              <label className="flex items-center gap-2.5 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/70 cursor-pointer touch-manipulation">
+                <input
+                  type="checkbox"
+                  checked={omitCroquisSenaletica}
+                  onChange={(e) => setOmitCroquisSenaletica(e.target.checked)}
+                  className="rounded text-[#7b1f1c] w-4 h-4 shrink-0"
+                />
+                <div className="text-xs leading-snug">
+                  <span className="font-extrabold text-gray-900 dark:text-gray-100">
+                    No hay croquis (omitir esta página en el PIPC)
+                  </span>
+                  <span className="block text-gray-500 dark:text-gray-400 mt-0.5">
+                    {omitCroquisSenaletica
+                      ? 'Esta página se omitirá en la Vista Previa y en la Descarga del PDF.'
+                      : 'Si tampoco subes una foto del croquis abajo, esta página también se omitirá automáticamente.'}
+                  </span>
+                </div>
+              </label>
+
+              {!omitCroquisSenaletica && (
+                <>
               {/* PASO 1: PALETA DE SEÑALÉTICAS (Priorizando las escogidas en la pestaña previa) */}
               <div className="p-3.5 sm:p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xs space-y-3">
                 {inventorySignalSummary.length > 0 ? (
@@ -2201,10 +2226,12 @@ export default function PIPCModal({
                   </div>
                 </div>
               )}
+                </>
+              )}
             </div>
           )}
 
-          {/* TAB 5: CALENDARIO ANUAL DE ACTIVIDADES (PÁG. 56) */}
+          {/* TAB 6: CALENDARIO ANUAL DE ACTIVIDADES (PÁG. 56) */}
           {activeTab === 'calendario' && (
             <div className="space-y-5">
               <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs leading-relaxed text-blue-950 dark:text-blue-200">

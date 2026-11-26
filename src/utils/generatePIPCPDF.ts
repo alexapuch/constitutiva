@@ -106,6 +106,7 @@ export interface PIPCPDFConfig {
   croquisSenaleticaBaseImg?: string;
   croquisSenaleticaSigns?: CroquisPlacedSign[];
   croquisSenaleticaIconScale?: number; // % respecto al ancho de la imagen (default 6.5)
+  omitCroquisSenaletica?: boolean;
 
   // Estudios opcionales personalizados (si no se pasan, se autogeneran)
   riesgosData?: RiesgosPDFData;
@@ -1814,7 +1815,7 @@ export async function generatePIPCPDF(
     // =========================================================================
     // PÁGINA 55+ (después del Inventario de Señaléticas): CROQUIS DE SEÑALÉTICAS
     // =========================================================================
-    if (config.croquisSenaleticaBaseImg) {
+    if (config.croquisSenaleticaBaseImg && !config.omitCroquisSenaletica) {
       report('Integrando Croquis de Señaléticas y Equipos de Emergencia...', 83);
       const composedCroquis = await composeCroquisSenaleticaImage(
         config.croquisSenaleticaBaseImg,
