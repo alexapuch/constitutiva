@@ -309,6 +309,51 @@ export default function PIPCModal({
     }
   };
 
+  // Detectar móvil/iPhone para mostrar opciones de Copy & Paste solo en PC
+  const isMobileDevice =
+    typeof navigator !== 'undefined' && /iphone|ipad|ipod|android/i.test(navigator.userAgent);
+
+  // Pegar imagen desde el portapapeles en PC (botón directo "Pegar")
+  const handleReadClipboardImageForItem = async (targetIdx: number) => {
+    if (isMobileDevice) return;
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.read === 'function') {
+        const items = await navigator.clipboard.read();
+        for (const clipItem of items) {
+          const imgType = clipItem.types.find((t) => t.startsWith('image/'));
+          if (imgType) {
+            const blob = await clipItem.getType(imgType);
+            const file = new File([blob], 'pasted-image.png', { type: imgType });
+            const url = await fileToDataUrl(file, false);
+            setEvidenciaItems((prev) =>
+              prev.map((it, i) => (i === targetIdx ? { ...it, photoDataUrl: url } : it))
+            );
+            return;
+          }
+        }
+        Swal.fire({
+          toast: true,
+          position: 'bottom-end',
+          icon: 'info',
+          title: 'No hay ninguna imagen copiada en el portapapeles',
+          showConfirmButton: false,
+          timer: 2200
+        });
+        return;
+      }
+    } catch {
+      // Fallback si el navegador requiere Ctrl+V manual
+    }
+    Swal.fire({
+      toast: true,
+      position: 'bottom-end',
+      icon: 'info',
+      title: 'Haz clic en la tarjeta y presiona Ctrl + V para pegar la foto',
+      showConfirmButton: false,
+      timer: 2500
+    });
+  };
+
   // Helper para inicializar / limpiar todos los campos del modal para un documento
   const resetModalFieldsForDoc = (targetDoc: DocumentInfo) => {
     const rawAddr = targetDoc.address || '';
@@ -1392,8 +1437,32 @@ export default function PIPCModal({
           {/* TAB 4: INVENTARIO DE SEÑALÉTICAS Y EQUIPOS (PÁGS. 54-55+) */}
           {activeTab === 'inventario' && (
             <div className="space-y-5">
-              {/* SECCIÓN 1: SUBIR EVIDENCIA FOTOGRÁFICA DESDE EL CARRETE DEL IPHONE (ARMA LA TABLA OFICIAL) */}
-              <div className="border-2 border-emerald-500/40 dark:border-emerald-700/60 bg-emerald-50/40 dark:bg-emerald-950/20 rounded-xl p-3.5 sm:p-4 space-y-3.5">
+              {/* SECCIÓN 1: SUBIR EVIDENCIA FOTOGRÁFICA DESDE EL CARRETE DEL IPHONE (O COPY/PASTE EN PC) */}
+              <div
+                onPaste={(e) => {
+                  if (isMobileDevice) return;
+                  handlePasteImage(e, (url) => {
+                    setEvidenciaItems((prev) => {
+                      const emptyIdx = prev.findIndex((it) => !it.photoDataUrl);
+                      if (emptyIdx !== -1) {
+                        return prev.map((it, i) => (i === emptyIdx ? { ...it, photoDataUrl: url } : it));
+                      }
+                      return [
+                        ...prev,
+                        {
+                          id: `ev-${Date.now()}-${Math.random()}`,
+                          signalType: 'extintor',
+                          label: 'EXTINTOR',
+                          cantidad: '1',
+                          ubicacion: '',
+                          photoDataUrl: url
+                        }
+                      ];
+                    });
+                  });
+                }}
+                className="border-2 border-emerald-500/40 dark:border-emerald-700/60 bg-emerald-50/40 dark:bg-emerald-950/20 rounded-xl p-3.5 sm:p-4 space-y-3.5"
+              >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   <div>
                     <h4 className="font-extrabold text-xs sm:text-sm uppercase text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
@@ -1597,52 +1666,76 @@ export default function PIPCModal({
                         return (
                         <div
                           key={item.id}
-                          className="sm:col-span-2 p-3 bg-white dark:bg-gray-800 border-2 border-emerald-300/80 dark:border-emerald-700/70 rounded-xl flex flex-col sm:flex-row gap-3 items-stretch sm:items-start shadow-xs"
+                          tabIndex={!isMobileDevice ? 0 : undefined}
+                          onPaste={(e) => {
+                            if (isMobileDevice) return;
+                            e.stopPropagation();
+                            handlePasteImage(e, (url) => {
+                              setEvidenciaItems((prev) =>
+                                prev.map((it, i) => (i === idx ? { ...it, photoDataUrl: url } : it))
+                              );
+                            });
+                          }}
+                          className="sm:col-span-2 p-3 bg-white dark:bg-gray-800 border-2 border-emerald-300/80 dark:border-emerald-700/70 rounded-xl flex flex-col sm:flex-row gap-3 items-stretch sm:items-start shadow-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         >
-                          {/* Miniatura o botón para elegir foto del Carrete (en móvil ocupa ancho completo horizontal para no aplastar los campos) */}
-                          <label className="w-full h-20 sm:w-24 sm:h-24 rounded-lg border-2 border-dashed border-emerald-400 dark:border-emerald-600 flex flex-row sm:flex-col items-center justify-center gap-2 sm:gap-0 bg-gray-50 dark:bg-gray-900 overflow-hidden cursor-pointer shrink-0 relative group touch-manipulation">
-                            {item.photoDataUrl ? (
-                              <>
-                                <img
-                                  src={item.photoDataUrl}
-                                  alt={item.label}
-                                  className="w-full h-full object-cover"
-                                />
-                                <span className="absolute bottom-0 inset-x-0 bg-black/70 text-white text-[10px] font-bold py-0.5 text-center">
-                                  Cambiar foto
-                                </span>
-                              </>
-                            ) : (
-                              <div className="text-center p-1.5 flex flex-row sm:flex-col items-center justify-center gap-2 sm:gap-1">
-                                {item.signalType && item.signalType !== 'otro' ? (
+                          {/* Miniatura o botón para elegir foto (en PC también permite Pegar Ctrl+V) */}
+                          <div className="flex flex-col gap-1.5 shrink-0">
+                            <label className="w-full h-20 sm:w-24 sm:h-24 rounded-lg border-2 border-dashed border-emerald-400 dark:border-emerald-600 flex flex-row sm:flex-col items-center justify-center gap-2 sm:gap-0 bg-gray-50 dark:bg-gray-900 overflow-hidden cursor-pointer shrink-0 relative group touch-manipulation">
+                              {item.photoDataUrl ? (
+                                <>
                                   <img
-                                    src={`/senales/${item.signalType}.png`}
+                                    src={item.photoDataUrl}
                                     alt={item.label}
-                                    className="w-10 h-10 object-contain opacity-80 shrink-0"
+                                    className="w-full h-full object-cover"
                                   />
-                                ) : (
-                                  <Camera className="w-6 h-6 mx-auto text-emerald-600 shrink-0" />
-                                )}
-                                <span className="block text-[10px] sm:text-[9px] font-bold text-emerald-700 dark:text-emerald-400 leading-tight">
-                                  Subir foto (o usa ícono)
-                                </span>
-                              </div>
+                                  <span className="absolute bottom-0 inset-x-0 bg-black/70 text-white text-[10px] font-bold py-0.5 text-center">
+                                    Cambiar foto
+                                  </span>
+                                </>
+                              ) : (
+                                <div className="text-center p-1.5 flex flex-row sm:flex-col items-center justify-center gap-2 sm:gap-1">
+                                  {item.signalType && item.signalType !== 'otro' ? (
+                                    <img
+                                      src={`/senales/${item.signalType}.png`}
+                                      alt={item.label}
+                                      className="w-10 h-10 object-contain opacity-80 shrink-0"
+                                    />
+                                  ) : (
+                                    <Camera className="w-6 h-6 mx-auto text-emerald-600 shrink-0" />
+                                  )}
+                                  <span className="block text-[10px] sm:text-[9px] font-bold text-emerald-700 dark:text-emerald-400 leading-tight">
+                                    Subir foto (o usa ícono)
+                                  </span>
+                                </div>
+                              )}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                  const f = e.target.files?.[0];
+                                  if (f) {
+                                    const url = await fileToDataUrl(f, true);
+                                    setEvidenciaItems((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, photoDataUrl: url } : it))
+                                    );
+                                  }
+                                }}
+                                className="hidden"
+                              />
+                            </label>
+
+                            {!isMobileDevice && (
+                              <button
+                                type="button"
+                                onClick={() => handleReadClipboardImageForItem(idx)}
+                                className="hidden sm:inline-flex items-center justify-center gap-1 w-24 py-1 px-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg text-[10px] font-bold transition-colors"
+                                title="Pegar foto copiada desde tu PC (Ctrl + V)"
+                              >
+                                <ClipboardPaste className="w-3 h-3 shrink-0" />
+                                <span>Pegar Ctrl+V</span>
+                              </button>
                             )}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={async (e) => {
-                                const f = e.target.files?.[0];
-                                if (f) {
-                                  const url = await fileToDataUrl(f, true);
-                                  setEvidenciaItems((prev) =>
-                                    prev.map((it, i) => (i === idx ? { ...it, photoDataUrl: url } : it))
-                                  );
-                                }
-                              }}
-                              className="hidden"
-                            />
-                          </label>
+                          </div>
 
                           {/* Selector de Señal y Cantidad */}
                           <div className="flex-1 min-w-0 space-y-2">
