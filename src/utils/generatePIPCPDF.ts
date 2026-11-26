@@ -33,6 +33,7 @@ export interface EvidenciaFotograficaItem {
   signalType: string;
   label: string;
   cantidad: string;
+  ubicacion?: string;
   photoDataUrl: string;
 }
 
@@ -1603,6 +1604,7 @@ export async function generatePIPCPDF(
         }
       }
 
+      const hasAnyPhoto = validEvidenciaItems.some((it) => !!it.photoDataUrl);
       const itemsPerPage = 4;
       for (let pIdx = 0; pIdx < validEvidenciaItems.length; pIdx += itemsPerPage) {
         const chunk = validEvidenciaItems.slice(pIdx, pIdx + itemsPerPage);
@@ -1618,11 +1620,11 @@ export async function generatePIPCPDF(
         const tableX = 16;
         const tableY = pIdx === 0 ? 31 : 24;
         const tableW = pageW - 32; // 183.9 mm
-        const col1W = 72; // EVIDENCIA FOTOGRÁFICA
-        const col2W = 72; // SEÑAL
-        const col3W = tableW - col1W - col2W; // CANTIDAD (~39.9 mm)
+        const col1W = 72; // EVIDENCIA FOTOGRÁFICA (si hay fotos) o SEÑAL (si no hay fotos)
+        const col2W = hasAnyPhoto ? 72 : 74; // SEÑAL (con fotos) o UBICACIÓN (sin fotos)
+        const col3W = tableW - col1W - col2W; // CANTIDAD (~39.9 mm / ~37.9 mm)
         const headerH = 9.5;
-        const rowH = 49;
+        const rowH = hasAnyPhoto ? 49 : 46;
 
         // Fondo blanco sólido para toda el área de la tabla de Inventario
         const totalTableH = headerH + chunk.length * rowH;
@@ -1641,9 +1643,15 @@ export async function generatePIPCPDF(
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9.5);
         doc.setTextColor(255, 255, 255);
-        doc.text('EVIDENCIA FOTOGRÁFICA', tableX + col1W / 2, tableY + 6.2, { align: 'center' });
-        doc.text('SEÑAL', tableX + col1W + col2W / 2, tableY + 6.2, { align: 'center' });
-        doc.text('CANTIDAD', tableX + col1W + col2W + col3W / 2, tableY + 6.2, { align: 'center' });
+        if (hasAnyPhoto) {
+          doc.text('EVIDENCIA FOTOGRÁFICA', tableX + col1W / 2, tableY + 6.2, { align: 'center' });
+          doc.text('SEÑAL', tableX + col1W + col2W / 2, tableY + 6.2, { align: 'center' });
+          doc.text('CANTIDAD', tableX + col1W + col2W + col3W / 2, tableY + 6.2, { align: 'center' });
+        } else {
+          doc.text('SEÑAL', tableX + col1W / 2, tableY + 6.2, { align: 'center' });
+          doc.text('UBICACIÓN', tableX + col1W + col2W / 2, tableY + 6.2, { align: 'center' });
+          doc.text('CANTIDAD', tableX + col1W + col2W + col3W / 2, tableY + 6.2, { align: 'center' });
+        }
 
         for (let rIdx = 0; rIdx < chunk.length; rIdx++) {
           const item = chunk[rIdx];
@@ -1657,64 +1665,121 @@ export async function generatePIPCPDF(
           doc.line(tableX + col1W, ry, tableX + col1W, ry + rowH);
           doc.line(tableX + col1W + col2W, ry, tableX + col1W + col2W, ry + rowH);
 
-          // Columna 1: Evidencia Fotográfica (o ícono/imagen oficial de la señalética si no se subió foto)
-          if (item.photoDataUrl) {
-            try {
-              const pDims = await getImageDimensions(item.photoDataUrl);
-              const maxPW = col1W - 8;
-              const maxPH = rowH - 5;
-              let pw = maxPW;
-              let ph = (pDims.height / pDims.width) * pw;
-              if (ph > maxPH) {
-                ph = maxPH;
-                pw = (pDims.width / pDims.height) * ph;
+          if (hasAnyPhoto) {
+            // Columna 1: Evidencia Fotográfica (o ícono oficial si esta fila específica no tiene foto)
+            if (item.photoDataUrl) {
+              try {
+                const pDims = await getImageDimensions(item.photoDataUrl);
+                const maxPW = col1W - 8;
+                const maxPH = rowH - 5;
+                let pw = maxPW;
+                let ph = (pDims.height / pDims.width) * pw;
+                if (ph > maxPH) {
+                  ph = maxPH;
+                  pw = (pDims.width / pDims.height) * ph;
+                }
+                const px = tableX + (col1W - pw) / 2;
+                const py = ry + (rowH - ph) / 2;
+                doc.addImage(item.photoDataUrl, 'JPEG', px, py, pw, ph, undefined, 'FAST');
+              } catch {
+                // ignore broken image
               }
-              const px = tableX + (col1W - pw) / 2;
-              const py = ry + (rowH - ph) / 2;
-              doc.addImage(item.photoDataUrl, 'JPEG', px, py, pw, ph, undefined, 'FAST');
-            } catch {
-              // ignore broken image
+            } else {
+              const fallbackIcon = signIconCache[item.signalType];
+              if (fallbackIcon) {
+                const iconEvSize = 36;
+                const ix = tableX + (col1W - iconEvSize) / 2;
+                const iy = ry + (rowH - iconEvSize) / 2;
+                doc.addImage(fallbackIcon, 'JPEG', ix, iy, iconEvSize, iconEvSize, undefined, 'FAST');
+              } else {
+                const boxSize = 32;
+                const bx = tableX + (col1W - boxSize) / 2;
+                const by = ry + (rowH - boxSize) / 2;
+                doc.setFillColor(22, 163, 74);
+                doc.setDrawColor(22, 163, 74);
+                doc.roundedRect(bx, by, boxSize, boxSize, 2, 2, 'F');
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(14);
+                doc.setTextColor(255, 255, 255);
+                doc.text('PR', tableX + col1W / 2, ry + rowH / 2 + 2, { align: 'center' });
+              }
+            }
+
+            // Columna 2: Señal (Icono NOM-003 + Nombre + Ubicación opcional)
+            const iconData = signIconCache[item.signalType];
+            if (iconData) {
+              const iconSize = 26;
+              const ix = tableX + col1W + (col2W - iconSize) / 2;
+              const iy = ry + 3.5;
+              doc.addImage(iconData, 'JPEG', ix, iy, iconSize, iconSize, undefined, 'FAST');
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(8.5);
+              doc.setTextColor(20, 20, 20);
+              const lblLines = doc.splitTextToSize((item.label || '').toUpperCase(), col2W - 6);
+              doc.text(lblLines.slice(0, 2), tableX + col1W + col2W / 2, ry + 35, { align: 'center' });
+              if (item.ubicacion?.trim()) {
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(7.2);
+                doc.setTextColor(80, 80, 80);
+                doc.text(
+                  doc.splitTextToSize(`UBICACIÓN: ${item.ubicacion.trim().toUpperCase()}`, col2W - 6).slice(0, 1),
+                  tableX + col1W + col2W / 2,
+                  ry + 44,
+                  { align: 'center' }
+                );
+              }
+            } else {
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(9.5);
+              doc.setTextColor(20, 20, 20);
+              const lblLines = doc.splitTextToSize((item.label || '').toUpperCase(), col2W - 8);
+              doc.text(lblLines.slice(0, 3), tableX + col1W + col2W / 2, ry + rowH / 2, { align: 'center' });
             }
           } else {
-            const fallbackIcon = signIconCache[item.signalType];
-            if (fallbackIcon) {
-              const iconEvSize = 36;
-              const ix = tableX + (col1W - iconEvSize) / 2;
-              const iy = ry + (rowH - iconEvSize) / 2;
-              doc.addImage(fallbackIcon, 'JPEG', ix, iy, iconEvSize, iconEvSize, undefined, 'FAST');
+            // SIN FOTOS: Tabla de 3 columnas -> SEÑAL | UBICACIÓN | CANTIDAD
+            // Columna 1: Señal (Icono NOM-003 + Nombre)
+            const iconData = signIconCache[item.signalType];
+            if (iconData) {
+              const iconSize = 26;
+              const ix = tableX + (col1W - iconSize) / 2;
+              const iy = ry + 4;
+              doc.addImage(iconData, 'JPEG', ix, iy, iconSize, iconSize, undefined, 'FAST');
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(8.5);
+              doc.setTextColor(20, 20, 20);
+              const lblLines = doc.splitTextToSize((item.label || '').toUpperCase(), col1W - 6);
+              doc.text(lblLines.slice(0, 2), tableX + col1W / 2, ry + 36, { align: 'center' });
             } else {
-              // Respaldo vectorial NOM-003 para 'otro' (Punto de Reunión / Equipo)
-              const boxSize = 32;
+              const boxSize = 24;
               const bx = tableX + (col1W - boxSize) / 2;
-              const by = ry + (rowH - boxSize) / 2;
+              const by = ry + 4;
               doc.setFillColor(22, 163, 74);
-              doc.setDrawColor(22, 163, 74);
               doc.roundedRect(bx, by, boxSize, boxSize, 2, 2, 'F');
               doc.setFont('helvetica', 'bold');
-              doc.setFontSize(14);
+              doc.setFontSize(12);
               doc.setTextColor(255, 255, 255);
-              doc.text('PR', tableX + col1W / 2, ry + rowH / 2 + 2, { align: 'center' });
-            }
-          }
+              doc.text('PR', tableX + col1W / 2, by + boxSize / 2 + 2, { align: 'center' });
 
-          // Columna 2: Señal (Icono NOM-003 + Nombre)
-          const iconData = signIconCache[item.signalType];
-          if (iconData) {
-            const iconSize = 27;
-            const ix = tableX + col1W + (col2W - iconSize) / 2;
-            const iy = ry + 4.5;
-            doc.addImage(iconData, 'JPEG', ix, iy, iconSize, iconSize, undefined, 'FAST');
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(8.5);
-            doc.setTextColor(20, 20, 20);
-            const lblLines = doc.splitTextToSize((item.label || '').toUpperCase(), col2W - 6);
-            doc.text(lblLines.slice(0, 2), tableX + col1W + col2W / 2, ry + 37.5, { align: 'center' });
-          } else {
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(8.5);
+              doc.setTextColor(20, 20, 20);
+              const lblLines = doc.splitTextToSize((item.label || '').toUpperCase(), col1W - 6);
+              doc.text(lblLines.slice(0, 2), tableX + col1W / 2, ry + 36, { align: 'center' });
+            }
+
+            // Columna 2: Ubicación
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(9.5);
-            doc.setTextColor(20, 20, 20);
-            const lblLines = doc.splitTextToSize((item.label || '').toUpperCase(), col2W - 8);
-            doc.text(lblLines.slice(0, 3), tableX + col1W + col2W / 2, ry + rowH / 2, { align: 'center' });
+            doc.setTextColor(30, 30, 30);
+            const ubicText = (item.ubicacion || '').trim().toUpperCase() || '-';
+            const ubicLines = doc.splitTextToSize(ubicText, col2W - 8);
+            const uBlockH = ubicLines.slice(0, 4).length * 4.2;
+            doc.text(
+              ubicLines.slice(0, 4),
+              tableX + col1W + col2W / 2,
+              ry + (rowH - uBlockH) / 2 + 3.5,
+              { align: 'center', lineHeightFactor: 1.25 }
+            );
           }
 
           // Columna 3: Cantidad

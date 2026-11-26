@@ -1325,7 +1325,7 @@ export default function PIPCModal({
                       <span>Opción 1 (Ideal iPhone / Móvil): Subir Evidencia Fotográfica desde tu Carrete</span>
                     </h4>
                     <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 leading-relaxed">
-                      Sube las fotos directamente desde tu <strong>Carrete / Galería de Fotos</strong> y el sistema armará automáticamente la tabla oficial (<strong>EVIDENCIA FOTOGRÁFICA | SEÑAL | CANTIDAD</strong>). Si dejas una señal sin foto, se usará automáticamente su <strong>ícono oficial</strong>.
+                      Sube fotos desde tu <strong>Carrete / Galería</strong> (tabla <strong>EVIDENCIA FOTOGRÁFICA | SEÑAL | CANTIDAD</strong>), o agrega las señaléticas con su <strong>Ubicación</strong> sin fotos para generar la tabla <strong>SEÑAL | UBICACIÓN | CANTIDAD</strong> con sus íconos oficiales.
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 shrink-0">
@@ -1553,6 +1553,19 @@ export default function PIPCModal({
                                 />
                               </div>
                             </div>
+
+                            <input
+                              type="text"
+                              value={item.ubicacion || ''}
+                              onChange={(e) => {
+                                const val = e.target.value.toUpperCase();
+                                setEvidenciaItems((prev) =>
+                                  prev.map((it, i) => (i === idx ? { ...it, ubicacion: val } : it))
+                                );
+                              }}
+                              placeholder="Ubicación (ej. Recepción, Pasillo, Entrada...)"
+                              className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-base sm:text-xs bg-white dark:bg-gray-900"
+                            />
                           </div>
                         </div>
                       ))}
