@@ -1650,10 +1650,10 @@ export async function generatePIPCPDF(
         doc.setTextColor(255, 255, 255);
         if (hasAnyPhoto) {
           doc.text('EVIDENCIA FOTOGRÁFICA', tableX + col1W / 2, tableY + 6.2, { align: 'center' });
-          doc.text('SEÑAL', tableX + col1W + col2W / 2, tableY + 6.2, { align: 'center' });
+          doc.text('SEÑALÉTICA', tableX + col1W + col2W / 2, tableY + 6.2, { align: 'center' });
           doc.text('CANTIDAD', tableX + col1W + col2W + col3W / 2, tableY + 6.2, { align: 'center' });
         } else {
-          doc.text('SEÑAL', tableX + col1W / 2, tableY + 6.2, { align: 'center' });
+          doc.text('SEÑALÉTICA', tableX + col1W / 2, tableY + 6.2, { align: 'center' });
           doc.text('UBICACIÓN', tableX + col1W + col2W / 2, tableY + 6.2, { align: 'center' });
           doc.text('CANTIDAD', tableX + col1W + col2W + col3W / 2, tableY + 6.2, { align: 'center' });
         }

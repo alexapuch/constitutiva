@@ -781,7 +781,7 @@ export default function PIPCModal({
                 key={t.id}
                 type="button"
                 onClick={() => setActiveTab(t.id as PIPCTab)}
-                className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1 sm:px-3.5 py-2 rounded-t-lg text-[10px] sm:text-sm font-bold whitespace-nowrap transition-colors border-b-2 touch-manipulation ${
+                className={`shrink-0 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-t-lg text-[10px] sm:text-sm font-bold whitespace-nowrap transition-colors border-b-2 touch-manipulation ${
                   active
                     ? 'bg-white dark:bg-gray-900 text-[#7b1f1c] dark:text-amber-400 border-[#7b1f1c] dark:border-amber-400 shadow-xs'
                     : 'text-gray-600 dark:text-gray-400 border-transparent hover:text-gray-900 dark:hover:text-gray-200'
@@ -1401,7 +1401,7 @@ export default function PIPCModal({
                       <span>Opción 1 (Ideal iPhone / Móvil): Subir Evidencia Fotográfica desde tu Carrete</span>
                     </h4>
                     <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 leading-relaxed">
-                      Sube fotos desde tu <strong>Carrete / Galería</strong> (tabla <strong>EVIDENCIA FOTOGRÁFICA | SEÑAL | CANTIDAD</strong>), o agrega las señaléticas con su <strong>Ubicación</strong> sin fotos para generar la tabla <strong>SEÑAL | UBICACIÓN | CANTIDAD</strong> con sus íconos oficiales.
+                      Sube fotos desde tu <strong>Carrete / Galería</strong> (tabla <strong>EVIDENCIA FOTOGRÁFICA | SEÑALÉTICA | CANTIDAD</strong>), o agrega las señaléticas con su <strong>Ubicación</strong> sin fotos para generar la tabla <strong>SEÑALÉTICA | UBICACIÓN | CANTIDAD</strong> con sus íconos oficiales.
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 shrink-0">
@@ -1597,10 +1597,10 @@ export default function PIPCModal({
                         return (
                         <div
                           key={item.id}
-                          className="sm:col-span-2 p-3 bg-white dark:bg-gray-800 border-2 border-emerald-300/80 dark:border-emerald-700/70 rounded-xl flex gap-3 items-start shadow-xs"
+                          className="sm:col-span-2 p-3 bg-white dark:bg-gray-800 border-2 border-emerald-300/80 dark:border-emerald-700/70 rounded-xl flex flex-col sm:flex-row gap-3 items-stretch sm:items-start shadow-xs"
                         >
-                          {/* Miniatura o botón para elegir foto del Carrete */}
-                          <label className="w-24 h-24 rounded-lg border-2 border-dashed border-emerald-400 dark:border-emerald-600 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 overflow-hidden cursor-pointer shrink-0 relative group touch-manipulation">
+                          {/* Miniatura o botón para elegir foto del Carrete (en móvil ocupa ancho completo horizontal para no aplastar los campos) */}
+                          <label className="w-full h-20 sm:w-24 sm:h-24 rounded-lg border-2 border-dashed border-emerald-400 dark:border-emerald-600 flex flex-row sm:flex-col items-center justify-center gap-2 sm:gap-0 bg-gray-50 dark:bg-gray-900 overflow-hidden cursor-pointer shrink-0 relative group touch-manipulation">
                             {item.photoDataUrl ? (
                               <>
                                 <img
@@ -1613,17 +1613,17 @@ export default function PIPCModal({
                                 </span>
                               </>
                             ) : (
-                              <div className="text-center p-1.5 space-y-1 flex flex-col items-center justify-center">
+                              <div className="text-center p-1.5 flex flex-row sm:flex-col items-center justify-center gap-2 sm:gap-1">
                                 {item.signalType && item.signalType !== 'otro' ? (
                                   <img
                                     src={`/senales/${item.signalType}.png`}
                                     alt={item.label}
-                                    className="w-10 h-10 object-contain opacity-80"
+                                    className="w-10 h-10 object-contain opacity-80 shrink-0"
                                   />
                                 ) : (
-                                  <Camera className="w-6 h-6 mx-auto text-emerald-600" />
+                                  <Camera className="w-6 h-6 mx-auto text-emerald-600 shrink-0" />
                                 )}
-                                <span className="block text-[9px] font-bold text-emerald-700 dark:text-emerald-400 leading-tight">
+                                <span className="block text-[10px] sm:text-[9px] font-bold text-emerald-700 dark:text-emerald-400 leading-tight">
                                   Subir foto (o usa ícono)
                                 </span>
                               </div>
