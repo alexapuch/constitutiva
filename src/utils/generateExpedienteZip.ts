@@ -370,7 +370,7 @@ export async function generateExpedienteZip(input: ExpedienteZipInput): Promise<
     );
 
     report('¡Expediente ZIP listo!', 100);
-    await saveZipBlob(zipBlob, `EXPEDIENTE PIPC ${anio} ${cleanCommercial}.zip`);
+    await saveZipBlob(zipBlob, `P.I.P.C. ${anio} ${cleanCommercial}.zip`);
   } catch (err: any) {
     console.error('Error al generar expediente ZIP:', err);
     Swal.fire({
