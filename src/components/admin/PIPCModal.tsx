@@ -1322,7 +1322,7 @@ export default function PIPCModal({
                       <span>Opción 1 (Ideal iPhone / Móvil): Subir Evidencia Fotográfica desde tu Carrete</span>
                     </h4>
                     <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 leading-relaxed">
-                      Sube las fotos directamente desde tu <strong>Carrete / Galería de Fotos</strong> y el sistema armará automáticamente la tabla oficial (<strong>EVIDENCIA FOTOGRÁFICA | SEÑAL | CANTIDAD</strong>) con los íconos de Protección Civil.
+                      Sube las fotos directamente desde tu <strong>Carrete / Galería de Fotos</strong> y el sistema armará automáticamente la tabla oficial (<strong>EVIDENCIA FOTOGRÁFICA | SEÑAL | CANTIDAD</strong>). Si dejas una señal sin foto, se usará automáticamente su <strong>ícono oficial</strong>.
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 shrink-0">
@@ -1431,10 +1431,18 @@ export default function PIPCModal({
                                 </span>
                               </>
                             ) : (
-                              <div className="text-center p-1.5 space-y-1">
-                                <Camera className="w-6 h-6 mx-auto text-emerald-600" />
-                                <span className="block text-[10px] font-bold text-emerald-700 dark:text-emerald-400 leading-tight">
-                                  Subir de Carrete
+                              <div className="text-center p-1.5 space-y-1 flex flex-col items-center justify-center">
+                                {item.signalType && item.signalType !== 'otro' ? (
+                                  <img
+                                    src={`/senales/${item.signalType}.png`}
+                                    alt={item.label}
+                                    className="w-10 h-10 object-contain opacity-80"
+                                  />
+                                ) : (
+                                  <Camera className="w-6 h-6 mx-auto text-emerald-600" />
+                                )}
+                                <span className="block text-[9px] font-bold text-emerald-700 dark:text-emerald-400 leading-tight">
+                                  Subir foto (o usa ícono)
                                 </span>
                               </div>
                             )}

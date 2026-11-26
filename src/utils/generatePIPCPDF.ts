@@ -1576,7 +1576,9 @@ export async function generatePIPCPDF(
     // PÁGINAS 53+ (ref): INVENTARIO SEÑALÉTICAS Y EQUIPOS DE EMERGENCIA
     // (La primera tabla o imagen se pega en la misma página justo debajo del título)
     // =========================================================================
-    const validEvidenciaItems = (config.evidenciaItems || []).filter((it) => !!it.photoDataUrl);
+    const validEvidenciaItems = (config.evidenciaItems || []).filter(
+      (it) => !!(it.photoDataUrl || it.signalType || it.label)
+    );
     if (validEvidenciaItems.length > 0) {
       // Precargar iconos de señalética (/senales/*.png) como DataURL para dibujarlos en la columna SEÑAL
       const signIconCache: Record<string, string> = {};
@@ -1654,22 +1656,44 @@ export async function generatePIPCPDF(
           doc.line(tableX + col1W, ry, tableX + col1W, ry + rowH);
           doc.line(tableX + col1W + col2W, ry, tableX + col1W + col2W, ry + rowH);
 
-          // Columna 1: Evidencia Fotográfica
-          try {
-            const pDims = await getImageDimensions(item.photoDataUrl);
-            const maxPW = col1W - 8;
-            const maxPH = rowH - 5;
-            let pw = maxPW;
-            let ph = (pDims.height / pDims.width) * pw;
-            if (ph > maxPH) {
-              ph = maxPH;
-              pw = (pDims.width / pDims.height) * ph;
+          // Columna 1: Evidencia Fotográfica (o ícono/imagen oficial de la señalética si no se subió foto)
+          if (item.photoDataUrl) {
+            try {
+              const pDims = await getImageDimensions(item.photoDataUrl);
+              const maxPW = col1W - 8;
+              const maxPH = rowH - 5;
+              let pw = maxPW;
+              let ph = (pDims.height / pDims.width) * pw;
+              if (ph > maxPH) {
+                ph = maxPH;
+                pw = (pDims.width / pDims.height) * ph;
+              }
+              const px = tableX + (col1W - pw) / 2;
+              const py = ry + (rowH - ph) / 2;
+              doc.addImage(item.photoDataUrl, 'JPEG', px, py, pw, ph, undefined, 'FAST');
+            } catch {
+              // ignore broken image
             }
-            const px = tableX + (col1W - pw) / 2;
-            const py = ry + (rowH - ph) / 2;
-            doc.addImage(item.photoDataUrl, 'JPEG', px, py, pw, ph, undefined, 'FAST');
-          } catch {
-            // ignore broken image
+          } else {
+            const fallbackIcon = signIconCache[item.signalType];
+            if (fallbackIcon) {
+              const iconEvSize = 36;
+              const ix = tableX + (col1W - iconEvSize) / 2;
+              const iy = ry + (rowH - iconEvSize) / 2;
+              doc.addImage(fallbackIcon, 'JPEG', ix, iy, iconEvSize, iconEvSize, undefined, 'FAST');
+            } else {
+              // Respaldo vectorial NOM-003 para 'otro' (Punto de Reunión / Equipo)
+              const boxSize = 32;
+              const bx = tableX + (col1W - boxSize) / 2;
+              const by = ry + (rowH - boxSize) / 2;
+              doc.setFillColor(22, 163, 74);
+              doc.setDrawColor(22, 163, 74);
+              doc.roundedRect(bx, by, boxSize, boxSize, 2, 2, 'F');
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(14);
+              doc.setTextColor(255, 255, 255);
+              doc.text('PR', tableX + col1W / 2, ry + rowH / 2 + 2, { align: 'center' });
+            }
           }
 
           // Columna 2: Señal (Icono NOM-003 + Nombre)
